@@ -6,3 +6,9 @@
 
 /data/*
   Cache-Control: public, max-age=3600
+
+/icons/*
+  Cache-Control: public, max-age=86400
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json

@@ -72,6 +72,17 @@ small { color: var(--muted); font-weight: 400; }
 .tabs a { white-space: nowrap; padding: 8px 14px; border-radius: 999px; text-decoration: none; color: rgba(255, 255, 255, .82); font-weight: 500; font-size: .92rem; transition: background .15s, color .15s; }
 .tabs a:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 .tabs a.active { background: #fff; color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
+@media (max-width: 700px) {
+  .header-inner { flex-direction: column; align-items: stretch; gap: 6px; padding-top: 10px; padding-bottom: 8px; }
+  .brand { font-size: 1.05rem; }
+  .brand-mark { width: 28px; height: 28px; font-size: .95rem; }
+  .tabs { margin: 0 -22px; padding: 2px 22px 4px; }
+  .tabs a { padding: 7px 12px; font-size: .88rem; }
+  .panel { padding-top: 22px; }
+  h1 { font-size: 1.5rem; }
+  .stat .v { font-size: 1.2rem; }
+  .regime-card .amount { font-size: 1.7rem; }
+}
 
 /* ============================================================
    Panels and section heads
@@ -181,7 +192,7 @@ table.compare td.neg { color: var(--danger); }
 .about .sources li { text-transform: capitalize; }
 .about .sources a { text-transform: none; }
 .calc { display: grid; grid-template-columns: minmax(280px, 390px) 1fr; gap: 22px; align-items: start; }
-@media (max-width: 800px) { .calc { grid-template-columns: 1fr; } }
+@media (max-width: 800px) { .calc, .calc.budget { grid-template-columns: 1fr; } }
 .calc .inputs { display: grid; gap: 12px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 15px; box-shadow: var(--shadow); }
