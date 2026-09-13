@@ -2,3 +2,12 @@ name = "india-tax-app"
 pages_build_output_dir = "public"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
+
+# Because this file exists, Cloudflare Pages takes ALL bindings from here, not from the dashboard.
+# Secrets (BREVO_API_KEY etc.) are still set in the dashboard under Variables and Secrets.
+
+# D1 database for feedback rows and the usage counter. Created in the dashboard as "taxcompass".
+[[d1_databases]]
+binding = "DB"
+database_name = "taxcompass"
+database_id = "52d8788c-57e5-42b8-8f62-e8b92e2697eb"
