@@ -43,11 +43,12 @@ export function initAbout({ rates, schemes, capgains }) {
       el('ul', {}, [
         'Everything you type into the tax comparison and the calculators stays in your own browser, in its local storage. It is never sent anywhere, and the site has no user accounts.',
         'If you ask for an Excel workbook by email, your name, email address and the workbook are sent once to our email provider (Brevo) for delivery. With your consent on that form, we keep your name and email to ask for feedback about the app. We do not sell or share them, and you can ask to be removed by replying to any email.',
+        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. A simple counter records how many visits and comparisons happen; it stores numbers, not people.',
         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',
       ].map((t) => el('li', {}, t))),
     ]),
     section('Feedback and corrections', [
-      el('p', {}, ['Found a mistake, a rule that changed, or something confusing? Please write to ', el('a', { href: `mailto:${FEEDBACK_EMAIL}?subject=TaxCompass%20feedback` }, FEEDBACK_EMAIL), '. Corrections to rates or limits are especially welcome, with a link to the notification or circular if you have one.']),
+      el('p', {}, ['Found a mistake, a rule that changed, or something confusing? Use the Feedback button at the bottom right of any page, or write to ', el('a', { href: `mailto:${FEEDBACK_EMAIL}?subject=TaxCompass%20feedback` }, FEEDBACK_EMAIL), '. Corrections to rates or limits are especially welcome, with a link to the notification or circular if you have one.']),
     ]),
   ]);
 }

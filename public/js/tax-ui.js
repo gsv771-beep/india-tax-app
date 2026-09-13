@@ -6,6 +6,7 @@ import { emailWorkbookCard } from './email-card.js';
 import { lineChart, waterfallChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
 import { termify } from './tooltips.js';
+import { countEvent } from './feedback.js';
 
 const OLD_COLOR = '#b7861c', NEW_COLOR = '#1d6b3d';
 const FY_SHORT = { 'FY2026-27': 'FY 2026-27', 'FY2025-26': 'FY 2025-26' };
@@ -69,6 +70,7 @@ function restore(form) {
 function render(inputs, rates, flags) {
   lastInputs = inputs;
   const result = compareRegimes(inputs, rates, flags);
+  if (result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) countEvent('compare');
   renderHeadline(result);
   renderWarnings(result);
   renderInsights(inputs, result, rates, flags);

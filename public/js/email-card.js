@@ -37,6 +37,7 @@ export function emailWorkbookCard(opts) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Could not send (${res.status})`);
       status.textContent = `Sent to ${to}. Check your spam folder if it does not arrive in a few minutes.`;
+      fetch('/api/counter', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event: 'workbook' }) }).catch(() => {});
     } catch (e) {
       status.textContent = /not configured|503/.test(e.message) ? 'Emailing is not switched on for this deployment yet. Please try again later.' : e.message;
     } finally { send.disabled = false; }

@@ -5,6 +5,7 @@ import { initGlossary } from './glossary.js';
 import { initNps } from './nps.js';
 import { initAbout } from './about.js';
 import { initGlossaryTooltips } from './tooltips.js';
+import { initFeedback, initCounter } from './feedback.js';
 
 const SITE = 'TaxCompass India';
 const PAGES = {
@@ -109,6 +110,8 @@ async function boot() {
     initGlossary(data);
     initNps(data);
     initAbout(data);
+    initFeedback();
+    initCounter();
 
     loading.hidden = true;
     route();

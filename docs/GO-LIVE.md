@@ -73,6 +73,17 @@ Every later `git push` to `main` redeploys automatically. The monthly fund-data 
 6. Trigger a new deploy so the function picks up the settings: **Deployments**, **Retry deployment** on the latest one, or push any small change.
 7. Test: open the live site, Calculators, Expenses & savings, enter a few numbers, fill in your own name and email, tick the box, click the button. The workbook should arrive within a minute, and your details should appear under **Contacts** in Brevo.
 
+## 5a. Feedback storage and the usage counter (D1, five minutes)
+
+The Feedback button and the "N comparisons run" counter store their data in Cloudflare D1, a free SQLite database. Until you connect one, the counter stays hidden and feedback is only emailed to you (if Brevo is set up).
+
+1. In Cloudflare, left menu **Storage & Databases**, **D1 SQL Database**, **Create**. Name it `taxcompass`. Leave the location on automatic.
+2. Open your Pages project, **Settings**, **Bindings**, **Add**, choose **D1 database**. Variable name must be exactly `DB`. Pick `taxcompass`. Save.
+3. Push any commit, or retry the latest deployment, so the function picks up the binding. The tables create themselves on first use.
+4. To read feedback: **Storage & Databases**, **D1**, `taxcompass`, **Explore data** (or the Console tab) and run `SELECT * FROM feedback ORDER BY id DESC;`. Counters are in `SELECT * FROM counters;`.
+
+The free plan allows 100,000 writes and 5 million reads a day, far beyond what this needs. Each feedback message is also emailed to `MAIL_FROM_EMAIL` when Brevo is configured, with the sender's email set as reply-to if they gave one.
+
 ## 6. Before you share the link
 
 - Open every tab on the live site on a phone and on a laptop. Try the tax comparison with your own numbers and check them against your last return or Form 16.
