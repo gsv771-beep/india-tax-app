@@ -100,9 +100,15 @@ In the Cloudflare Pages project open the **Web Analytics** tab (or **Metrics**) 
 
 The site has real URLs per section (`/tax`, `/calculators/emi`, `/schemes`, `/about`, and so on), a `sitemap.xml` and a `robots.txt`. To get indexed faster, sign in at https://search.google.com/search-console, add the site, verify it (the DNS or HTML-tag method both work), and submit `https://india-tax-app.pages.dev/sitemap.xml`. When you move to a custom domain, update the domain in `public/sitemap.xml`, `public/robots.txt` and the canonical link in `public/index.html`, and add the new domain in Search Console.
 
-## 7. Custom domain (optional, later)
+## 7. Custom domain: taxcompass.biz (bought on GoDaddy, 13 Sep 2026)
 
-Buy a domain from any registrar (a `.in` costs a few hundred rupees a year). In the Pages project open **Custom domains**, **Set up a custom domain**, and follow the DNS instructions. Cloudflare issues the HTTPS certificate for free. If you buy the domain through Cloudflare Registrar the DNS step is automatic.
+The code already uses `https://taxcompass.biz` for the sitemap, robots, canonical links and the share card. To connect the domain:
+
+1. **Put the domain's DNS on Cloudflare.** Cloudflare dashboard, **Add a domain** (top of the account home), type `taxcompass.biz`, choose the **Free** plan, continue past the DNS scan. Cloudflare shows two nameservers, like `ana.ns.cloudflare.com` and `rob.ns.cloudflare.com`.
+2. **Point GoDaddy at them.** GoDaddy, **My Products**, the domain, **DNS**, **Nameservers**, **Change**, choose **I'll use my own nameservers**, paste the two Cloudflare names, save. Confirm the warning. Propagation takes minutes to a few hours; Cloudflare emails you when it is active.
+3. **Attach the site.** Pages project, **Custom domains**, **Set up a custom domain**, `taxcompass.biz`, **Activate domain**. Repeat for `www.taxcompass.biz`. Cloudflare adds the DNS records and issues HTTPS itself. The old `india-tax-app.pages.dev` address keeps working and can be left as is.
+4. **Search Console**: add `https://taxcompass.biz/` as a new property (the DNS method now works since DNS is on Cloudflare) and submit `https://taxcompass.biz/sitemap.xml`.
+5. **Email from the domain (recommended, fixes the Gmail deliverability warning).** Cloudflare, the domain, **Email**, **Email Routing**, enable it and create `hello@taxcompass.biz` forwarding to your Gmail. Then Brevo, **Senders, Domains & Dedicated IPs**, **Domains**, add `taxcompass.biz`, and paste the records Brevo gives you into Cloudflare DNS (Cloudflare can do this automatically if you pick "authenticate with Cloudflare"). Add `hello@taxcompass.biz` as a sender in Brevo, verify it via the forwarded email, then change `MAIL_FROM_EMAIL` in the Pages project to that address and redeploy.
 
 ## 8. Making changes after launch
 

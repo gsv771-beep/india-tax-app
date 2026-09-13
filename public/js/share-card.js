@@ -6,7 +6,7 @@
 import { el, setChildren } from './util.js';
 
 const SIZE = 1080;
-const SITE_URL = location.origin.replace(/^https?:\/\//, '');
+const SITE_URL = 'taxcompass.biz';
 
 function drawCard(ctx, { verdict, sub, includeAmounts, fy }) {
   const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
@@ -75,7 +75,7 @@ export function shareCard(cmp, fyLabel) {
     if (!blob) await render();
     const file = new File([blob], 'my-tax-regime-result.png', { type: 'image/png' });
     if (canNative && navigator.canShare({ files: [file] })) {
-      try { await navigator.share({ files: [file], title: 'My tax regime result', text: texts().verdict + ' ' + location.origin }); status.textContent = 'Shared.'; return; } catch (e) { if (e.name === 'AbortError') return; }
+      try { await navigator.share({ files: [file], title: 'My tax regime result', text: texts().verdict + ' https://' + SITE_URL }); status.textContent = 'Shared.'; return; } catch (e) { if (e.name === 'AbortError') return; }
     }
     const a = el('a', { href: URL.createObjectURL(blob), download: 'my-tax-regime-result.png' });
     document.body.append(a); a.click(); a.remove();
@@ -83,7 +83,7 @@ export function shareCard(cmp, fyLabel) {
   });
   const copyBtn = el('button', { type: 'button', class: 'btn secondary' }, 'Copy text and link');
   copyBtn.addEventListener('click', async () => {
-    const t = `${texts().verdict} Check yours free at ${location.origin}/tax`;
+    const t = `${texts().verdict} Check yours free at https://${SITE_URL}/tax`;
     try { await navigator.clipboard.writeText(t); status.textContent = 'Copied.'; } catch { status.textContent = t; }
   });
 

@@ -48,7 +48,8 @@ function setMeta(tab, sub) {
   set('meta[name="description"]', 'content', page.desc);
   set('meta[property="og:title"]', 'content', `${title} · ${SITE}`);
   set('meta[property="og:description"]', 'content', page.desc);
-  const url = location.origin + location.pathname;
+  // canonical always points at the primary domain, even when viewed via the pages.dev address
+  const url = 'https://taxcompass.biz' + location.pathname;
   set('link[rel="canonical"]', 'href', url);
   set('meta[property="og:url"]', 'content', url);
 }
