@@ -29,6 +29,7 @@ export async function onRequestPost({ request, env }) {
   const email = String(body.email || '').trim().slice(0, 120);
   const filename = String(body.filename || 'budget.xlsx').replace(/[^a-z0-9._-]/gi, '-').slice(0, 100) || 'budget.xlsx';
   const xlsxBase64 = String(body.xlsxBase64 || '');
+  const source = body.source === 'tax' ? 'tax' : 'budget';
   if (!name) return json({ error: 'Name is required.' }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: 'A valid email address is required.' }, 400);
   if (!xlsxBase64 || !/^[A-Za-z0-9+/=]+$/.test(xlsxBase64)) return json({ error: 'Workbook data is missing.' }, 400);
@@ -43,26 +44,32 @@ export async function onRequestPost({ request, env }) {
 <tr><td style="background:#14532d;padding:18px 24px;color:#ffffff;font-size:18px;font-weight:700">&#8377; TaxCompass <span style="opacity:.8;font-weight:500">India</span></td></tr>
 <tr><td style="padding:24px">
 <p style="margin:0 0 12px;font-size:16px">Hi ${safeName},</p>
-<p style="margin:0 0 12px;line-height:1.5">Your monthly budget workbook is attached. It has four sheets:</p>
+${source === 'tax' ? `<p style="margin:0 0 12px;line-height:1.5">Your tax regime comparison is attached. It has four sheets:</p>
+<ul style="margin:0 0 16px 18px;padding:0;line-height:1.6">
+<li><strong>Comparison</strong>: old regime and new regime, line by line, with the total tax under each</li>
+<li><strong>Break-even</strong>: how far the result is from flipping, and the unused deductions that could change it</li>
+<li><strong>Inputs</strong>: every figure you entered, so your CA can check them</li>
+<li><strong>Notes</strong>: the assumptions behind the numbers</li>
+</ul>` : `<p style="margin:0 0 12px;line-height:1.5">Your monthly budget workbook is attached. It has four sheets:</p>
 <ul style="margin:0 0 16px 18px;padding:0;line-height:1.6">
 <li><strong>Summary</strong>: income, expenses, investments, what is left, and your expenses by category, with charts</li>
 <li><strong>Expenses</strong>: every line you entered</li>
 <li><strong>Investments</strong>: your SIPs and recurring deposits with projected values</li>
 <li><strong>Notes</strong>: the assumptions behind the numbers</li>
-</ul>
+</ul>`}
 <p style="margin:0 0 16px;line-height:1.5">You can come back to <a href="${site}" style="color:#1d6b3d">${site.replace(/^https?:\/\//, '')}</a> any time; your entries are saved in your browser.</p>
 <p style="margin:0 0 16px;line-height:1.5;color:#5c6763;font-size:13px">We may write to you once to ask what you thought of the app. Reply to this email if you would rather we did not.</p>
 <p style="margin:0;padding-top:12px;border-top:1px solid #e3e8e0;color:#5c6763;font-size:12px;line-height:1.5">Projections are illustrative and not guaranteed. Mutual fund investments are subject to market risk. This is not tax, legal or investment advice; please consult your chartered accountant or a SEBI-registered investment adviser before acting.</p>
 </td></tr></table></td></tr></table></body></html>`;
 
   try {
-    await sendViaBrevo(env, { toName: name, toEmail: email, subject: 'Your TaxCompass budget workbook', html, filename, base64: xlsxBase64 });
+    await sendViaBrevo(env, { toName: name, toEmail: email, subject: source === 'tax' ? 'Your TaxCompass tax regime comparison' : 'Your TaxCompass budget workbook', html, filename, base64: xlsxBase64 });
   } catch (err) {
     return json({ error: err.message || 'The email provider rejected the message.' }, 502);
   }
   // Save the contact after the email succeeds. A failure here should not turn a delivered email into an error.
   let stored = false;
-  try { await upsertBrevoContact(env, { name, email }); stored = true; } catch { stored = false; }
+  try { await upsertBrevoContact(env, { name, email, source }); stored = true; } catch { stored = false; }
   return json({ ok: true, stored });
 }
 
@@ -90,11 +97,11 @@ async function sendViaBrevo(env, m) {
   }
 }
 
-async function upsertBrevoContact(env, { name, email }) {
+async function upsertBrevoContact(env, { name, email, source }) {
   const [first, ...rest] = name.split(/\s+/);
   const body = {
     email,
-    attributes: { FIRSTNAME: first, LASTNAME: rest.join(' '), SOURCE: 'taxcompass-budget-workbook' },
+    attributes: { FIRSTNAME: first, LASTNAME: rest.join(' '), SOURCE: `taxcompass-${source}-workbook` },
     updateEnabled: true,
   };
   if (env.BREVO_LIST_ID) body.listIds = [Number(env.BREVO_LIST_ID)];

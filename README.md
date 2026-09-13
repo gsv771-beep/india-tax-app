@@ -2,7 +2,7 @@
 
 A static web app for Indian individual taxpayers. No backend, no build step, no API keys.
 
-- **Tax comparison**: answer a short set of questions and see the old and new regimes computed line by line, side by side, with a provision-by-provision reference table.
+- **Tax comparison**: answer a short set of questions and see the old and new regimes computed line by line, side by side, with a provision-by-provision reference table. A break-even panel says how far the result is from flipping ("the old regime would win only with ₹X more in deductions"), what-if sliders show the effect of using the 80C, NPS and 80D room the user still has, and a headroom table links straight into the matching schemes. The comparison, break-even and inputs can be emailed as a formatted workbook.
 - **Calculators**:
   - Expenses and savings: monthly take-home income, expenses in ten fixed categories plus Others, SIP and recurring-deposit investments with projected values, a summary of where the income goes (charts and tables), and an Excel workbook emailed to the user in exchange for name and email.
   - EMI with step-up EMI (by a percentage or a fixed amount each year), a one-time lump sum prepayment and an extra payment every year (keep the EMI and finish sooner, or keep the tenure and pay less), a plain-English sentence explaining the outcome, a before-and-after comparison and a year-by-year schedule, plus an "invest instead of prepaying?" panel showing fund categories that historically beat the loan rate, lowest risk first.
@@ -21,7 +21,11 @@ public/                 the static site (deploy this folder)
   index.html
   css/style.css
   js/tax-engine.js      pure tax computation, no DOM; also used by the tests
-  js/tax-ui.js          onboarding form + two-column comparison
+  js/tax-ui.js          onboarding form + two-column comparison + break-even panel
+  js/tax-insights.js    break-even, headroom and what-if maths on top of the engine
+  js/tax-export.js      the tax comparison workbook
+  js/email-card.js      the shared "email me this workbook" form
+  js/xlsx-style.js      shared ExcelJS loading and cell styling
   js/calculators.js     EMI (with loan simulator), SIP, lumpsum, goal
   js/budget.js          expenses and savings calculator, charts, Excel export
   js/funds.js           historical fund returns: category summaries, matching, panel

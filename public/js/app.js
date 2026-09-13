@@ -16,7 +16,8 @@ function showTab(name) {
 }
 
 function route() {
-  showTab(location.hash.replace('#', ''));
+  // hash may carry a query for a tab, e.g. #schemes?f=80c
+  showTab(location.hash.replace('#', '').split('?')[0]);
 }
 
 // Some browsers change a focused number input's value on scroll-wheel. On a tax form that

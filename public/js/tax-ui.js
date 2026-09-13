@@ -1,13 +1,25 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
-import { inr, pct, el, setPath, debounce } from './util.js';
+import { inr, pct, el, setPath, debounce, setChildren } from './util.js';
+import { breakEven, headroom, whatIf } from './tax-insights.js';
+import { buildTaxWorkbookBase64, taxFileName } from './tax-export.js';
+import { emailWorkbookCard } from './email-card.js';
 
 const STORAGE_KEY = 'taxcompass.inputs.v1';
+let lastInputs = null;
+const extras = { s80c: 0, nps1b: 0, health: 0 }; // what-if slider state, survives re-renders
 
 export function initTax({ rates, onboarding }) {
   const form = document.getElementById('tax-form');
   const flags = { ...DEFAULT_FLAGS };
 
   restore(form);
+  document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
+    title: 'Email me this comparison',
+    intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
+    source: 'tax',
+    fileName: taxFileName,
+    buildBase64: async (who) => buildTaxWorkbookBase64(lastInputs, compareRegimes(lastInputs, rates, flags), rates, flags, who),
+  }));
   const run = debounce(() => render(readForm(form), rates, flags), 120);
   form.addEventListener('input', run);
   form.addEventListener('change', run);
@@ -49,11 +61,89 @@ function restore(form) {
 }
 
 function render(inputs, rates, flags) {
+  lastInputs = inputs;
   const result = compareRegimes(inputs, rates, flags);
   renderHeadline(result);
   renderWarnings(result);
+  renderInsights(inputs, result, rates, flags);
   renderTable(result);
   renderNotes(result);
+}
+
+const fmt = (n) => inr(n);
+
+function renderInsights(inputs, cmp, rates, flags) {
+  const box = document.getElementById('tax-insights');
+  if (cmp.old.tax.totalIncome === 0 && cmp.new.tax.totalIncome === 0) { box.replaceChildren(); return; }
+  const be = breakEven(inputs, rates, flags);
+  const hr = headroom(inputs, rates, flags);
+
+  const sentence = {
+    need: `The old regime would win only if you had about ${fmt(be.extra)} more in deductions or exemptions than you do now.`,
+    impossible: 'On these figures no amount of old-regime deductions would beat the new regime.',
+    cushion: `The old regime stays ahead until about ${fmt(be.cushion)} of the ${fmt(be.claimed)} you currently claim is lost.`,
+    always: 'The old regime would stay lower even without any of its deductions.',
+  }[be.kind];
+
+  // what-if sliders for old-regime room
+  const roomOf = (id) => (hr.items.find((i) => i.id === id) || { room: 0 }).room;
+  const sliders = [
+    ['s80c', '80C investments', roomOf('80c'), '80c'],
+    ['nps1b', 'Own NPS, 80CCD(1B)', roomOf('nps1b'), 'pension'],
+    ['health', 'Health insurance, 80D', roomOf('80d'), null],
+  ].filter(([, , room]) => room > 0);
+  for (const [key, , room] of sliders) extras[key] = Math.min(extras[key], room);
+  for (const key of Object.keys(extras)) if (!sliders.find((s) => s[0] === key)) extras[key] = 0;
+
+  const result = el('div', { class: 'whatif-result' });
+  const renderResult = () => {
+    const w = whatIf(inputs, extras, rates, flags);
+    const a = w.after;
+    if (w.invested === 0) { result.replaceChildren(el('span', { class: 'muted' }, 'Move a slider to see the effect.')); return; }
+    const verdict = a.better === 'old' ? `the old regime wins by ${fmt(a.saving)}` : a.better === 'new' ? `the new regime still wins by ${fmt(a.saving)}` : 'both regimes come out equal';
+    setChildren(result, [
+      el('div', {}, [el('strong', {}, `Investing ${fmt(w.invested)} more saves ${fmt(w.taxSaved)} in old-regime tax`), `, and ${verdict}.`]),
+      el('div', { class: 'muted small' }, `Old regime ${fmt(a.old.tax.total)} versus new regime ${fmt(a.new.tax.total)}. You would still have to put the ${fmt(w.invested)} in; the tax saved is ${w.invested ? Math.round((w.taxSaved / w.invested) * 100) : 0}% of it.`),
+    ]);
+  };
+  const sliderRows = sliders.map(([key, label, room, filter]) => {
+    const range = el('input', { type: 'range', min: 0, max: room, step: 500, value: extras[key] });
+    const val = el('span', { class: 'slider-val' }, fmt(extras[key]));
+    range.addEventListener('input', () => { extras[key] = +range.value; val.textContent = fmt(extras[key]); renderResult(); });
+    return el('div', { class: 'slider-row' }, [
+      el('div', { class: 'slider-label' }, [label, el('small', {}, ` room left ${fmt(room)}`), filter ? el('a', { href: `#schemes?f=${filter}`, class: 'slider-link' }, 'compare options') : null]),
+      el('div', { class: 'slider-ctl' }, [range, val]),
+    ]);
+  });
+  renderResult();
+
+  const rows = hr.items.map((it) => el('tr', {}, [
+    el('td', {}, [it.label, it.schemesFilter ? el('a', { href: `#schemes?f=${it.schemesFilter}`, class: 'tag-link' }, 'compare options') : null]),
+    el('td', {}, fmt(it.room)),
+    el('td', {}, it.regime === 'both' ? [fmt(it.saving), el('div', { class: 'muted small' }, `new regime · old: ${fmt(it.savingOld)}`)] : fmt(it.saving)),
+    el('td', {}, it.regime === 'both' ? 'Both' : 'Old only'),
+  ]));
+
+  setChildren(box, [
+    el('div', { class: 'card insights' }, [
+      el('h3', { style: 'margin-top:0' }, 'How far is this from flipping?'),
+      el('p', {}, sentence),
+      sliders.length ? el('div', {}, [
+        el('h4', {}, 'What if you used the room you have left?'),
+        el('p', { class: 'muted small' }, 'These deductions apply in the old regime only. Drag to see what more investing would do to the comparison.'),
+        ...sliderRows,
+        result,
+      ]) : null,
+      hr.items.length ? el('details', { class: 'headroom' }, [
+        el('summary', {}, 'Where the room is, and what each would save'),
+        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+          el('thead', {}, el('tr', {}, [el('th', {}, 'Deduction'), el('th', {}, 'Room left'), el('th', {}, 'Tax saved if used'), el('th', {}, 'Regime')])),
+          el('tbody', {}, rows),
+        ])),
+        el('p', { class: 'muted small' }, 'Tax saved is what the deduction would cut from your tax. You would still have to invest or spend the amount itself. Employer NPS needs your employer to restructure your salary.'),
+      ]) : null,
+    ]),
+  ]);
 }
 
 function renderHeadline(r) {
