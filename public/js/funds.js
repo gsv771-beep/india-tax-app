@@ -11,7 +11,7 @@ import { el } from './util.js';
 let dataPromise = null;
 export function loadFunds() {
   if (!dataPromise) {
-    dataPromise = fetch('data/mf_returns.json').then((r) => { if (!r.ok) throw new Error('fund data unavailable'); return r.json(); });
+    dataPromise = fetch('/data/mf_returns.json').then((r) => { if (!r.ok) throw new Error('fund data unavailable'); return r.json(); });
   }
   return dataPromise;
 }

@@ -97,17 +97,17 @@ function comparisonSection(rows) {
       el('tbody', {}, trs.length ? trs : [el('tr', {}, el('td', { colspan: 7, class: 'muted' }, 'No scheme matches these filters.'))]),
     ])]);
   }
-  // deep links from the tax page: #schemes?f=80c (80C-eligible) or #schemes?f=pension
-  const applyHash = () => {
-    const q = new URLSearchParams((location.hash.split('?')[1] || ''));
-    const f = q.get('f');
+  // deep links from the tax page: /schemes?f=80c (80C-eligible) or /schemes?f=pension
+  const applyQuery = () => {
+    if (!location.pathname.startsWith('/schemes')) return;
+    const f = new URLSearchParams(location.search).get('f');
     if (!f) return;
     if (f === '80c') { state.only80c = true; c80.checked = true; state.type = 'All'; }
     if (f === 'pension') { state.type = 'Pension'; state.only80c = false; c80.checked = false; }
     renderChips(); render();
   };
-  window.addEventListener('hashchange', applyHash);
-  renderChips(); render(); applyHash();
+  window.addEventListener('routechange', applyQuery);
+  renderChips(); render(); applyQuery();
   return el('div', {}, [
     el('h2', {}, 'Compare schemes at a glance'),
     el('div', { class: 'filters' }, [

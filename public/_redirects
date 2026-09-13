@@ -1,0 +1,2 @@
+# Single-page app: every path that is not a real file serves index.html, and the app routes from the URL.
+/* /index.html 200

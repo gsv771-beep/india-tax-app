@@ -1,6 +1,26 @@
 import { inr, pct, el, debounce, setChildren, disclaimer } from './util.js';
 import { renderFundPanel } from './funds.js';
 import { renderBudget } from './budget.js';
+import { renderCapitalGains } from './capgains.js';
+
+let appData = null;
+let currentCalc = null;
+
+/** Remember a calculator's inputs in the browser and restore them next time. */
+const CALC_STORE = 'taxcompass.calc.v1';
+function remember(name, inputs) {
+  let all; try { all = JSON.parse(localStorage.getItem(CALC_STORE) || '{}'); } catch { all = {}; }
+  const saved = Array.isArray(all[name]) ? all[name] : [];
+  inputs.forEach((inp, i) => {
+    if (saved[i] != null && saved[i] !== '') { inp.value = saved[i]; if (inp.tagName === 'SELECT') inp.dispatchEvent(new Event('change')); }
+  });
+  const persist = () => {
+    let a; try { a = JSON.parse(localStorage.getItem(CALC_STORE) || '{}'); } catch { a = {}; }
+    a[name] = inputs.map((x) => x.value);
+    try { localStorage.setItem(CALC_STORE, JSON.stringify(a)); } catch {}
+  };
+  inputs.forEach((inp) => { inp.addEventListener('input', persist); inp.addEventListener('change', persist); });
+}
 
 // Formulas follow data/formulas.json. SIP uses the annuity-due form (instalment at start of month).
 
@@ -110,18 +130,17 @@ export function requiredSip(target, annualRatePct, years) {
 
 // ---------- UI ----------
 
-export function initCalculators() {
-  const tabs = document.getElementById('calc-tabs');
-  const body = document.getElementById('calc-body');
-  const show = (name) => {
-    tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b.dataset.calc === name));
-    body.replaceChildren(VIEWS[name]());
-  };
-  tabs.addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-calc]');
-    if (b) show(b.dataset.calc);
-  });
-  show('emi');
+export function initCalculators(data) {
+  appData = data;
+}
+
+/** Called by the router for /calculators/<name>. */
+export function showCalc(name) {
+  const key = VIEWS[name] ? name : 'emi';
+  if (key === currentCalc) return;
+  currentCalc = key;
+  document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
+  document.getElementById('calc-body').replaceChildren(VIEWS[key]());
 }
 
 function field(label, attrs, hint) {
@@ -181,6 +200,7 @@ function stepUpControl(labelNoun) {
 
 const VIEWS = {
   budget() { return renderBudget(); },
+  'capital-gains'() { return renderCapitalGains(appData.capgains); },
 
   emi() {
     const P = field(`Loan amount (${RUPEE})`, { value: 5000000, min: 0, step: 50000 });
@@ -278,6 +298,7 @@ const VIEWS = {
         });
       }
     };
+    remember('emi', [P.input, R.input, Y.input, ...step.inputs, L.input, LM.input, A.input, AS.input, M.input]);
     [P, R, Y, L, LM, A, AS].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
     M.input.addEventListener('change', render);
@@ -331,6 +352,7 @@ const VIEWS = {
         });
       }
     };
+    remember('sip', [A.input, R.input, Y.input, ...step.inputs]);
     [A, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
     render();
@@ -374,6 +396,7 @@ const VIEWS = {
         });
       }
     };
+    remember('lumpsum', [P.input, R.input, Y.input]);
     [P, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     render();
     return calcShell([P.node, R.node, Y.node], out);
@@ -402,6 +425,7 @@ const VIEWS = {
         disclaimer('invest'),
       ]);
     };
+    remember('goal', [T.input, Y.input, R.input, I.input]);
     [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     render();
     return calcShell([T.node, Y.node, R.node, I.node], out);

@@ -81,6 +81,14 @@ Every later `git push` to `main` redeploys automatically. The monthly fund-data 
 - Decide who owns two recurring jobs: the small-savings rates (quarterly, end of March, June, September, December) in `public/data/schemes.json`, and Budget-day changes to `public/data/tax_rates.json` and `deductions.json`. The fund data updates itself monthly.
 - Optional: in Cloudflare, **Security**, **WAF**, add a rate-limiting rule for `/api/send-workbook` (for example 5 requests per minute per IP) so nobody can burn through your 300 daily emails.
 
+## 6a. Visitor statistics (two clicks, no cookies)
+
+In the Cloudflare Pages project open the **Web Analytics** tab (or **Metrics**) and click **Enable**. Cloudflare injects its cookie-free beacon on every page and you get visits, top pages and countries. It identifies no individuals, which matches the privacy text on the About page. Nothing in the code needs to change.
+
+## 6b. Search engines
+
+The site has real URLs per section (`/tax`, `/calculators/emi`, `/schemes`, `/about`, and so on), a `sitemap.xml` and a `robots.txt`. To get indexed faster, sign in at https://search.google.com/search-console, add the site, verify it (the DNS or HTML-tag method both work), and submit `https://india-tax-app.pages.dev/sitemap.xml`. When you move to a custom domain, update the domain in `public/sitemap.xml`, `public/robots.txt` and the canonical link in `public/index.html`, and add the new domain in Search Console.
+
 ## 7. Custom domain (optional, later)
 
 Buy a domain from any registrar (a `.in` costs a few hundred rupees a year). In the Pages project open **Custom domains**, **Set up a custom domain**, and follow the DNS instructions. Cloudflare issues the HTTPS certificate for free. If you buy the domain through Cloudflare Registrar the DNS step is automatic.

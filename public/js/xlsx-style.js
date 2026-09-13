@@ -9,7 +9,7 @@ export function loadExcelJS() {
   if (!excelPromise) {
     excelPromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'vendor/exceljs.min.js';
+      s.src = '/vendor/exceljs.min.js';
       s.onload = () => resolve(window.ExcelJS);
       s.onerror = () => reject(new Error('Could not load the spreadsheet library'));
       document.head.append(s);
