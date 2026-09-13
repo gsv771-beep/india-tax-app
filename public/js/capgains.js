@@ -160,7 +160,12 @@ export function renderCapitalGains(data) {
   const mk = (key, attrs, label, hint) => {
     const input = attrs.tag === 'select'
       ? el('select', {}, attrs.options.map(([v, t]) => el('option', { value: v, selected: String(v) === String(st[key]) }, t)))
-      : el('input', { type: attrs.type || 'number', min: 0, step: attrs.step || 1000, ...(attrs.type === 'date' ? {} : { placeholder: attrs.placeholder || '' }), value: st[key] ?? '' });
+      : el('input', {
+        type: attrs.type || 'number',
+        ...(attrs.type && attrs.type !== 'number' ? {} : { min: 0, step: attrs.step || 1000 }),
+        ...(attrs.type === 'date' ? {} : { placeholder: attrs.placeholder || '' }),
+        value: st[key] ?? '',
+      });
     if (attrs.type === 'checkbox') { input.type = 'checkbox'; input.checked = !!st[key]; input.removeAttribute('value'); }
     input.addEventListener(attrs.tag === 'select' || attrs.type === 'checkbox' || attrs.type === 'date' ? 'change' : 'input', () => {
       st[key] = attrs.type === 'checkbox' ? input.checked : input.value; save(); render();
