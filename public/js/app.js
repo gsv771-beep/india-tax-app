@@ -2,25 +2,27 @@ import { loadJSON } from './util.js';
 import { initTax } from './tax-ui.js';
 import { initCalculators, showCalc } from './calculators.js';
 import { initGlossary } from './glossary.js';
-import { initSchemes } from './schemes.js';
+import { initNps } from './nps.js';
 import { initAbout } from './about.js';
 
 const SITE = 'TaxCompass India';
 const PAGES = {
   tax: { title: 'Old vs new tax regime calculator', desc: 'Compare the old and new income tax regimes line by line for FY 2025-26 and FY 2026-27, see how far you are from the other regime winning, and what unused deductions would save.' },
-  calculators: { title: 'Calculators', desc: 'EMI with step-up and prepayment, SIP, lumpsum, goal, capital gains and a monthly expenses and savings planner, with historical mutual fund returns for context.' },
-  schemes: { title: 'Government savings schemes and NPS', desc: 'Compare PPF, EPF, NPS, SCSS, NSC, SSY and other government-backed schemes by type, issuer, rate, lock-in and tax treatment.' },
+  calculators: { title: 'Calculators', desc: 'EMI with step-up and prepayment, SIP, lumpsum, goal, capital gains, advance tax and a monthly expenses and savings planner, with historical mutual fund returns for context.' },
+  nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
   glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
   about: { title: 'About, sources and methodology', desc: 'How TaxCompass India computes its numbers, where the data comes from, how fresh it is, and what stays private.' },
 };
 const CALC_TITLES = {
   budget: 'Expenses and savings calculator', emi: 'EMI calculator with step-up and prepayment', sip: 'SIP calculator with step-up',
-  lumpsum: 'Lumpsum calculator', goal: 'Goal planner', 'capital-gains': 'Capital gains tax calculator',
+  lumpsum: 'Lumpsum calculator', goal: 'Goal planner', 'capital-gains': 'Capital gains tax calculator', 'advance-tax': 'Advance tax schedule and interest calculator',
 };
+const ALIASES = { schemes: 'nps' };
 
 function parsePath(pathname) {
   const parts = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
-  const tab = PAGES[parts[0]] ? parts[0] : 'tax';
+  const first = ALIASES[parts[0]] || parts[0];
+  const tab = PAGES[first] ? first : 'tax';
   return { tab, sub: parts[1] || null };
 }
 
@@ -50,10 +52,11 @@ export function navigate(path, replace = false) {
 
 function route() {
   // Old links used hashes (#schemes?f=80c); turn them into paths once.
-  const m = location.hash.match(/^#(tax|calculators|schemes|glossary|about)(\?.*)?$/);
-  if (m) history.replaceState({}, '', `/${m[1]}${m[2] || ''}`);
+  const m = location.hash.match(/^#(tax|calculators|schemes|nps|glossary|about)(\?.*)?$/);
+  if (m) history.replaceState({}, '', `/${ALIASES[m[1]] || m[1]}${m[2] || ''}`);
   const { tab, sub } = parsePath(location.pathname);
   if (location.pathname === '/' || location.pathname === '/index.html') history.replaceState({}, '', '/tax' + location.search);
+  else if (location.pathname.startsWith('/schemes')) history.replaceState({}, '', '/nps');
   showTab(tab);
   setMeta(tab, sub);
   if (tab === 'calculators') showCalc(sub || 'emi');
@@ -95,11 +98,8 @@ async function boot() {
     initTax(data);
     initCalculators(data);
     initGlossary(data);
-    initSchemes(data);
+    initNps(data);
     initAbout(data);
-
-    const stamp = document.getElementById('data-stamp');
-    if (stamp) stamp.textContent = `Small-savings rates: ${schemes._meta.rate_quarter_in_force}.`;
 
     loading.hidden = true;
     route();

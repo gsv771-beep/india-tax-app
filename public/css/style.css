@@ -105,6 +105,8 @@ input[type=number], input[type=text], input[type=search], input[type=email], sel
 input:hover, select:hover { border-color: #b7c2b3; }
 input:focus, select:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(29, 107, 61, .18); }
 input[type=number] { font-variant-numeric: tabular-nums; }
+select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+.calc .inputs > label, .calc .inputs > div { min-width: 0; }
 .btn { padding: 10px 18px; border-radius: 999px; border: 1px solid var(--accent); background: linear-gradient(180deg, var(--accent-2), var(--accent)); color: #fff; font: inherit; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(20, 83, 45, .25); transition: transform .12s, box-shadow .12s, filter .12s; }
 .btn:hover { filter: brightness(1.06); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(20, 83, 45, .28); }
 .btn:active { transform: translateY(0); }

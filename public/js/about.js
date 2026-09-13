@@ -11,7 +11,7 @@ export function initAbout({ rates, schemes, capgains }) {
 
   setChildren(body, [
     section('What this is', [
-      el('p', {}, 'TaxCompass India is a free, independent tool for salaried and self-employed people in India. It compares the old and new income tax regimes line by line, helps plan loans and investments, and explains government savings schemes in plain language. It is built and maintained by an individual, not a company, bank or fund house, and it earns nothing from anything you do here.'),
+      el('p', {}, 'TaxCompass India is a free, independent tool for salaried and self-employed people in India. It compares the old and new income tax regimes line by line, helps plan loans, investments, capital gains and advance tax, and explains the National Pension System in plain language. It is built and maintained by an individual, not a company, bank or fund house, and it earns nothing from anything you do here.'),
       el('p', {}, 'It is not tax, legal or investment advice, and it is not a substitute for a chartered accountant. Its job is to make the conversation with your CA or adviser shorter and better informed.'),
     ]),
     section('How the numbers are computed', [
@@ -29,7 +29,7 @@ export function initAbout({ rates, schemes, capgains }) {
     section('Data and how fresh it is', [
       el('dl', { class: 'kv' }, [
         el('dt', {}, 'Tax rates and deductions'), el('dd', {}, `Compiled ${rates._meta.compiled_on} for FY 2025-26 (Income-tax Act 1961) and FY 2026-27 (Income-tax Act 2025), as amended by Finance Act 2026. Identical figures for both years; section numbers differ.`),
-        el('dt', {}, 'Small-savings rates'), el('dd', {}, `${schemes._meta.rate_quarter_in_force}. ${schemes._meta.next_rate_notification}`),
+        el('dt', {}, 'NPS rules and returns'), el('dd', {}, `Compiled ${schemes._meta.compiled_on} from PFRDA circulars and published fund returns; exit and withdrawal rules reflect the 2025 liberalisation.`),
         el('dt', {}, 'Cost Inflation Index'), el('dd', {}, `Through FY ${Object.keys(capgains.cii).sort().pop()}. ${capgains._meta.cii_note}`),
         el('dt', {}, 'Mutual fund returns'), el('dd', {}, [fundStamp, '. Rebuilt monthly. Historical returns are shown to sanity-check assumptions, never as recommendations.']),
       ]),
@@ -37,7 +37,7 @@ export function initAbout({ rates, schemes, capgains }) {
     section('Sources', [
       el('p', {}, 'Primary sources used for the tax data, as listed in the compilation notes:'),
       el('ul', { class: 'sources' }, sources),
-      el('p', {}, 'Other sources: Ministry of Finance small-savings notifications via nsiindia.gov.in; PFRDA for NPS and APY; EPFO for EPF; RBI for Floating Rate Savings Bonds; AMFI for mutual fund NAV history; CBDT notifications for the Cost Inflation Index. Where the compiled data marks an item as corroborated rather than verified, the app says so in the relevant place.'),
+      el('p', {}, 'Other sources: PFRDA for NPS; AMFI for mutual fund NAV history; CBDT notifications for the Cost Inflation Index. Where the compiled data marks an item as corroborated rather than verified, the app says so in the relevant place.'),
     ]),
     section('Privacy', [
       el('ul', {}, [

@@ -2,6 +2,7 @@ import { inr, pct, el, debounce, setChildren, disclaimer } from './util.js';
 import { renderFundPanel } from './funds.js';
 import { renderBudget } from './budget.js';
 import { renderCapitalGains } from './capgains.js';
+import { renderAdvanceTax } from './advance-tax.js';
 
 let appData = null;
 let currentCalc = null;
@@ -201,6 +202,7 @@ function stepUpControl(labelNoun) {
 const VIEWS = {
   budget() { return renderBudget(); },
   'capital-gains'() { return renderCapitalGains(appData.capgains); },
+  'advance-tax'() { return renderAdvanceTax(appData); },
 
   emi() {
     const P = field(`Loan amount (${RUPEE})`, { value: 5000000, min: 0, step: 50000 });

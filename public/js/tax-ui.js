@@ -88,8 +88,8 @@ function renderInsights(inputs, cmp, rates, flags) {
   // what-if sliders for old-regime room
   const roomOf = (id) => (hr.items.find((i) => i.id === id) || { room: 0 }).room;
   const sliders = [
-    ['s80c', '80C investments', roomOf('80c'), '80c'],
-    ['nps1b', 'Own NPS, 80CCD(1B)', roomOf('nps1b'), 'pension'],
+    ['s80c', '80C investments', roomOf('80c'), null],
+    ['nps1b', 'Own NPS, 80CCD(1B)', roomOf('nps1b'), 'nps'],
     ['health', 'Health insurance, 80D', roomOf('80d'), null],
   ].filter(([, , room]) => room > 0);
   for (const [key, , room] of sliders) extras[key] = Math.min(extras[key], room);
@@ -111,14 +111,14 @@ function renderInsights(inputs, cmp, rates, flags) {
     const val = el('span', { class: 'slider-val' }, fmt(extras[key]));
     range.addEventListener('input', () => { extras[key] = +range.value; val.textContent = fmt(extras[key]); renderResult(); });
     return el('div', { class: 'slider-row' }, [
-      el('div', { class: 'slider-label' }, [label, el('small', {}, ` room left ${fmt(room)}`), filter ? el('a', { href: `/schemes?f=${filter}`, class: 'slider-link' }, 'compare options') : null]),
+      el('div', { class: 'slider-label' }, [label, el('small', {}, ` room left ${fmt(room)}`), filter ? el('a', { href: '/nps', class: 'slider-link' }, 'how NPS works') : null]),
       el('div', { class: 'slider-ctl' }, [range, val]),
     ]);
   });
   renderResult();
 
   const rows = hr.items.map((it) => el('tr', {}, [
-    el('td', {}, [it.label, it.schemesFilter ? el('a', { href: `/schemes?f=${it.schemesFilter}`, class: 'tag-link' }, 'compare options') : null]),
+    el('td', {}, [it.label, it.schemesFilter ? el('a', { href: '/nps', class: 'tag-link' }, 'how NPS works') : null]),
     el('td', {}, fmt(it.room)),
     el('td', {}, it.regime === 'both' ? [fmt(it.saving), el('div', { class: 'muted small' }, `new regime · old: ${fmt(it.savingOld)}`)] : fmt(it.saving)),
     el('td', {}, it.regime === 'both' ? 'Both' : 'Old only'),

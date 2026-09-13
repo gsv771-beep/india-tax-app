@@ -12,7 +12,8 @@ A static web app for Indian individual taxpayers. No backend, no build step, no 
   - All calculators remember their inputs in the browser.
 - **About page** with methodology, engine assumptions, data sources and dates, privacy and a feedback address.
 - **Real URLs** per section (`/tax`, `/calculators/emi`, `/schemes`, `/glossary`, `/about`) with a title and description each, `sitemap.xml`, `robots.txt` and a favicon. `public/_redirects` makes Cloudflare Pages serve `index.html` for every path; `tools/static-server.mjs` does the same locally.
-- **Schemes and NPS**: a filterable comparison table of government-backed schemes (type, issuer, rate, lock-in, 80C, tax on interest) with details folded under each row, post-tax return by slab, and NPS, APY and closed schemes in collapsible sections. Rates are for the quarter in force and labelled as such.
+- **NPS**: what the National Pension System is, a corpus and pension projector (contributions, step-up, return, annuity share and rate, with the taxable slice above 60% flagged), tax treatment in both regimes, investment choices, exit and withdrawal rules, and historical returns. Other government schemes were removed by decision; their data remains in `public/data/schemes.json` if ever wanted again.
+- **Advance tax** calculator: takes the liability from the tax comparison or a typed figure, subtracts TDS, shows the four instalments with dates, flags the next one due, and computes interest under 234B and 234C from what has been paid, with the 12% and 36% tolerances, the ₹10,000 threshold, the senior-citizen exemption and the presumptive single instalment.
 - **Disclaimers** on the tax comparison, every calculator and the schemes tab asking users to consult their tax consultant or chartered accountant, or a SEBI-registered adviser, before acting.
 - **Glossary**: about 150 India-specific terms, searchable by category.
 

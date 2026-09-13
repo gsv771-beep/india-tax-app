@@ -67,8 +67,8 @@ export function headroom(inputs, rates, flags = DEFAULT_FLAGS) {
     const after = taxAtSlab(oi, oi.slabIncome - usable, rates, flags);
     items.push({ id, label, regime: 'old', room, saving: oldTotal - after, oldAfter: after, flipsToOld: after < newTotal && oldTotal >= newTotal, schemesFilter });
   };
-  oldItem('80c', 'Section 80C investments (PPF, ELSS, EPF, NSC, SSY, life insurance, home loan principal, tuition)', 150000 - Math.min(+d.s80c || 0, 150000), '80c');
-  oldItem('nps1b', 'Own NPS contribution under 80CCD(1B), over and above 80C', 50000 - Math.min(+d.nps1b || 0, 50000), 'pension');
+  oldItem('80c', 'Section 80C investments (PPF, ELSS, EPF, NSC, SSY, life insurance, home loan principal, tuition)', 150000 - Math.min(+d.s80c || 0, 150000), null);
+  oldItem('nps1b', 'Own NPS contribution under 80CCD(1B), over and above 80C', 50000 - Math.min(+d.nps1b || 0, 50000), 'nps');
   const selfCap = inp.ageBand !== AGE_BANDS.below_60 ? 50000 : 25000;
   const parentsCap = d.parentsSenior ? 50000 : 25000;
   oldItem('80d', 'Health insurance premium under 80D (self, family and parents)', (selfCap - Math.min(+d.healthSelf || 0, selfCap)) + (parentsCap - Math.min(+d.healthParents || 0, parentsCap)), null);
@@ -80,7 +80,7 @@ export function headroom(inputs, rates, flags = DEFAULT_FLAGS) {
     if (roomNew > 0 || roomOld > 0) {
       const newAfter = taxAtSlab(ni, ni.slabIncome - Math.min(roomNew, ni.slabIncome), rates, flags);
       const oldAfter = taxAtSlab(oi, oi.slabIncome - Math.min(roomOld, oi.slabIncome), rates, flags);
-      items.push({ id: 'emp_nps', label: 'Employer NPS contribution under 80CCD(2), if your employer restructures your salary', regime: 'both', room: roomNew, roomOld, saving: newTotal - newAfter, savingOld: oldTotal - oldAfter, schemesFilter: 'pension' });
+      items.push({ id: 'emp_nps', label: 'Employer NPS contribution under 80CCD(2), if your employer restructures your salary', regime: 'both', room: roomNew, roomOld, saving: newTotal - newAfter, savingOld: oldTotal - oldAfter, schemesFilter: 'nps' });
     }
   }
   return { items, cmp };
