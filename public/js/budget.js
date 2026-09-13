@@ -8,6 +8,7 @@ import { inr, pct, el, setChildren, disclaimer } from './util.js';
 import { sipFV } from './calculators.js';
 import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName } from './xlsx-style.js';
 import { emailWorkbookCard } from './email-card.js';
+import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
 
 export const CATEGORIES = [
   'Rent / housing', 'Groceries & food', 'Education', 'Medical & health', 'Electricity & utilities',
@@ -281,6 +282,8 @@ async function svgToPng(svg, width) {
 
 export function renderBudget() {
   let state = load();
+  const handoff = takeHandoff('budget');
+  if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
   const root = el('div', { class: 'calc budget' });
   const left = el('div', { class: 'card inputs' });
   const right = el('div');
@@ -327,7 +330,8 @@ export function renderBudget() {
   for (const inv of state.investments) investList.append(investRow(inv));
 
   left.append(
-    el('label', {}, ['Monthly take-home income (₹)', el('small', {}, 'after tax and deductions, as credited to your bank'), incomeInput]),
+    handoff ? handoffNote(handoff.from, `Income set to ${inr(state.income)} a month from `) : null,
+    el('label', {}, ['Monthly take-home income (₹)', el('small', {}, ['after tax and deductions, as credited to your bank. ', el('a', { href: '/calculators/salary' }, 'Work it out from your CTC')]), incomeInput]),
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), el('div', { class: 'row-head' }, ['Category', 'Note', 'Amount', ''].map((t) => el('span', {}, t))), expenseList,
       el('div', { class: 'chips' }, CATEGORIES.map((c) => el('button', { type: 'button', onclick: () => addExpense(c) }, '+ ' + c)))]),
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly investments'), el('div', { class: 'row-head invest-head' }, ['Type', 'Name', 'Amount', 'Return', 'Term', ''].map((t) => el('span', {}, t))), investList,
@@ -357,6 +361,9 @@ export function renderBudget() {
     setChildren(catBox, s.categories.length ? [categoryChart(s)] : [el('p', { class: 'muted' }, 'No expenses yet.')]);
     setChildren(tables, [
       s.deficit ? el('div', { class: 'notice warn' }, `Expenses and investments exceed income by ${inr(-s.surplus)} a month. Something on the left needs to give, or the investments will be funded by debt.`) : null,
+      !s.deficit && s.surplus >= 500 ? el('div', { class: 'btn-row' }, [
+        el('a', { class: 'btn', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.floor(s.surplus / 500) * 500 }, 'budget') }, `See what a ${inr(Math.floor(s.surplus / 500) * 500)} monthly SIP could grow into`),
+      ]) : null,
       !s.deficit && s.income > 0 && s.savingsRate < 0.2 ? el('p', { class: 'muted' }, 'A common rule of thumb is to save or invest at least 20% of take-home pay. This is a guideline, not advice.') : null,
       s.investments.length ? el('div', {}, [
         el('h3', {}, 'What your investments could grow to'),

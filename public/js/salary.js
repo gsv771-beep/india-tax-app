@@ -5,6 +5,7 @@
 import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js';
 import { compareRegimes } from './tax-engine.js';
 import { waterfallChart } from './charts.js';
+import { setHandoff } from './handoff.js';
 
 /**
  * p: { ctc, basicPct (of CTC), hraPct (of basic), includeEmployerPf, includeGratuity, employerNpsPct (of basic),
@@ -116,7 +117,10 @@ export function renderSalary(data) {
         ].filter(Boolean).map(([label, v, cls]) => el('tr', { class: cls || '' }, [el('td', {}, label), el('td', { class: v < 0 ? 'neg' : '' }, inr(v)), el('td', { class: v < 0 ? 'neg' : '' }, inr(v / 12))]))),
       ])),
       el('p', { class: 'muted small' }, `Employer PF ${inr(r.employerPf)} and gratuity ${inr(r.gratuity)} are yours but not paid monthly. HRA exemption${r.inputs.salary.rentPaid ? ' has been applied from the rent you entered' : ' needs the rent you pay; enter it above'}. Bonuses, variable pay, meal cards and other perquisites are not modelled; add them to CTC if they are paid in cash.`),
-      el('div', { class: 'btn-row' }, [el('button', { type: 'button', class: 'btn secondary', onclick: () => openInTaxComparison(r) }, 'Open the full tax comparison with these figures')]),
+      el('div', { class: 'btn-row' }, [
+        el('a', { class: 'btn', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(r.monthly) }, 'salary') }, `Plan a monthly budget with ${inr(r.monthly)}`),
+        el('button', { type: 'button', class: 'btn secondary', onclick: () => openInTaxComparison(r) }, 'Open the full tax comparison with these figures'),
+      ]),
       disclaimer('tax'),
     ]);
   }

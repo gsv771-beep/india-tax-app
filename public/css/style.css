@@ -327,6 +327,12 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 @media (max-width: 560px) { .fb { right: 12px; bottom: 12px; } }
 @media print { .fb { display: none; } }
 
+/* calculator hand-offs */
+.notice.handoff { background: var(--accent-soft); border-color: #bfdccb; color: var(--accent-ink); font-size: .9rem; margin: 0 0 4px; }
+.next-steps { margin-top: 14px; border-left: 4px solid var(--gold); }
+.next-steps .btn-row .btn { font-size: .88rem; padding: 8px 14px; }
+a.btn { text-decoration: none; display: inline-block; text-align: center; }
+
 /* disclaimers */
 .disclaimer { margin-top: 20px; padding: 12px 16px; border-left: 3px solid var(--old); background: var(--old-soft); color: #4b3a12; font-size: .85rem; border-radius: 8px; line-height: 1.5; }
 

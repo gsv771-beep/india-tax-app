@@ -5,6 +5,7 @@ import { renderBudget } from './budget.js';
 import { renderCapitalGains } from './capgains.js';
 import { renderAdvanceTax } from './advance-tax.js';
 import { renderSalary } from './salary.js';
+import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 
 let appData = null;
 let currentCalc = null;
@@ -300,6 +301,15 @@ const VIEWS = {
         el('h3', {}, 'Year-by-year schedule' + (scen ? ' (with your changes)' : '')),
         el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, head.map((h) => el('th', {}, h)))), el('tbody', {}, rows)])),
         el('p', { class: 'muted' }, `Tax note: for a self-occupied home, interest up to ${RUPEE}2,00,000 is deductible in the old regime only. For a let-out home, interest is deductible in both regimes but a loss cannot be set off against salary in the new regime.`),
+        el('div', { class: 'card next-steps' }, [
+          el('h3', { style: 'margin-top:0' }, 'Compare with investing'),
+          el('p', { class: 'muted small' }, scen ? `Prepaying saves ${inr(saved)} in interest, guaranteed. See what the same money might do in the market, with no guarantee, before you decide.` : 'Set a prepayment on the left to compare it with investing the same money, or plan what to do with the EMI once the loan is over.'),
+          el('div', { class: 'btn-row' }, [
+            hasAnnual ? el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(v(A) / 12), years: Math.round(base.months / 12), note: `the ${inr(v(A))} a year you would have prepaid, as a monthly SIP` }, 'emi') }, `Invest ${inr(v(A) / 12)} a month instead`) : null,
+            hasLump ? el('a', { class: 'btn secondary', href: '/calculators/lumpsum', onclick: () => setHandoff('lumpsum', { amount: Math.round(v(L)), years: Math.round(base.months / 12), note: `the ${inr(v(L))} lump sum you would have prepaid` }, 'emi') }, `Invest the ${inr(v(L))} lump sum instead`) : null,
+            el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(base.emi), years: 10, note: `your EMI of ${inr(base.emi)}, continued as a SIP after the loan closes` }, 'emi') }, `After the loan: SIP the ${inr(base.emi)} EMI`),
+          ]),
+        ]),
         fundBox,
         disclaimer(['loan', 'invest']),
       ]);
@@ -377,10 +387,12 @@ const VIEWS = {
       }
     };
     remember('sip', [A.input, R.input, Y.input, ...step.inputs]);
+    const handoff = takeHandoff('sip');
+    if (handoff) { fill(A.input, handoff.values.monthly); if (handoff.values.years) fill(Y.input, handoff.values.years); }
     [A, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
     render();
-    return calcShell([A.node, R.node, Y.node, step.node], out);
+    return calcShell([handoff ? handoffNote(handoff.from, handoff.values.note ? `Prefilled with ${handoff.values.note}, from ` : undefined) : null, A.node, R.node, Y.node, step.node], out);
   },
 
   lumpsum() {
@@ -422,9 +434,11 @@ const VIEWS = {
       }
     };
     remember('lumpsum', [P.input, R.input, Y.input]);
+    const handoff = takeHandoff('lumpsum');
+    if (handoff) { fill(P.input, handoff.values.amount); if (handoff.values.years) fill(Y.input, handoff.values.years); }
     [P, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     render();
-    return calcShell([P.node, R.node, Y.node], out);
+    return calcShell([handoff ? handoffNote(handoff.from, handoff.values.note ? `Prefilled with ${handoff.values.note}, from ` : undefined) : null, P.node, R.node, Y.node], out);
   },
 
   goal() {
