@@ -6,7 +6,7 @@
 import { el, setChildren } from './util.js';
 
 const SIZE = 1080;
-const SITE_URL = 'taxcompass.biz';
+const SITE_URL = 'taxcompass.org';
 
 function drawCard(ctx, { verdict, sub, includeAmounts, fy }) {
   const g = ctx.createLinearGradient(0, 0, SIZE, SIZE);
