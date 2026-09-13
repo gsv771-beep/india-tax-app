@@ -1,8 +1,14 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
-import { inr, pct, el, setPath, debounce, setChildren } from './util.js';
-import { breakEven, headroom, whatIf } from './tax-insights.js';
+import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps } from './tax-insights.js';
 import { buildTaxWorkbookBase64, taxFileName } from './tax-export.js';
 import { emailWorkbookCard } from './email-card.js';
+import { lineChart, waterfallChart, shortINR } from './charts.js';
+import { shareCard } from './share-card.js';
+import { termify } from './tooltips.js';
+
+const OLD_COLOR = '#b7861c', NEW_COLOR = '#1d6b3d';
+const FY_SHORT = { 'FY2026-27': 'FY 2026-27', 'FY2025-26': 'FY 2025-26' };
 
 const STORAGE_KEY = 'taxcompass.inputs.v1';
 let lastInputs = null;
@@ -66,8 +72,43 @@ function render(inputs, rates, flags) {
   renderHeadline(result);
   renderWarnings(result);
   renderInsights(inputs, result, rates, flags);
+  renderCharts(inputs, result, rates, flags);
   renderTable(result);
   renderNotes(result);
+}
+
+function renderCharts(inputs, cmp, rates, flags) {
+  const box = document.getElementById('tax-charts');
+  if (cmp.old.tax.totalIncome === 0 && cmp.new.tax.totalIncome === 0) { box.replaceChildren(); return; }
+  const curve = breakEvenCurve(inputs, rates, flags);
+  const parts = [];
+  if (curve) {
+    const markers = [{ x: curve.current.x, y: curve.current.y, label: 'You are here', color: OLD_COLOR }];
+    const vlines = curve.crossing != null && curve.crossing >= 0 && curve.crossing <= curve.xMax ? [{ x: curve.crossing, label: `Break-even ${shortINR(curve.crossing)}` }] : [];
+    parts.push(el('div', { class: 'card chart-card' }, [
+      el('h3', { style: 'margin-top:0' }, 'Where the regimes cross'),
+      el('p', { class: 'muted small' }, 'Old-regime tax falls as you claim more deductions and exemptions; new-regime tax does not move. The dot is your current position.'),
+      lineChart({
+        series: [
+          { name: 'Old regime', color: OLD_COLOR, points: curve.points },
+          { name: 'New regime', color: NEW_COLOR, points: [[0, curve.newTax], [curve.xMax, curve.newTax]], dash: true },
+        ],
+        xFormat: shortINR, xLabel: 'Total old-regime deductions and exemptions claimed', markers, vlines, height: 260,
+        ariaLabel: 'Tax under each regime as deductions vary',
+      }),
+    ]));
+  }
+  const wo = waterfallSteps(cmp.old), wn = waterfallSteps(cmp.new);
+  const max = Math.max(wo.gross, wn.gross, 1);
+  parts.push(el('div', { class: 'card chart-card' }, [
+    el('h3', { style: 'margin-top:0' }, 'From gross income to tax, in each regime'),
+    el('p', { class: 'muted small' }, 'Same starting income; the two regimes remove different amounts on the way to taxable income.'),
+    el('div', { class: 'two-charts' }, [
+      waterfallChart({ title: 'Old regime', steps: wo.steps, max, color: OLD_COLOR }),
+      waterfallChart({ title: 'New regime', steps: wn.steps, max, color: NEW_COLOR }),
+    ]),
+  ]));
+  setChildren(box, parts);
 }
 
 const fmt = (n) => inr(n);
@@ -118,7 +159,7 @@ function renderInsights(inputs, cmp, rates, flags) {
   renderResult();
 
   const rows = hr.items.map((it) => el('tr', {}, [
-    el('td', {}, [it.label, it.schemesFilter ? el('a', { href: '/nps', class: 'tag-link' }, 'how NPS works') : null]),
+    el('td', {}, [termify(it.label), it.schemesFilter ? el('a', { href: '/nps', class: 'tag-link' }, 'how NPS works') : null]),
     el('td', {}, fmt(it.room)),
     el('td', {}, it.regime === 'both' ? [fmt(it.saving), el('div', { class: 'muted small' }, `new regime · old: ${fmt(it.savingOld)}`)] : fmt(it.saving)),
     el('td', {}, it.regime === 'both' ? 'Both' : 'Old only'),
@@ -151,23 +192,34 @@ function renderHeadline(r) {
   box.replaceChildren();
   const card = (key, label) => {
     const t = r[key].tax;
+    const amount = el('div', { class: 'amount' });
+    animateNumber(amount, `tax:${key}`, inr(t.total));
     return el('div', { class: `regime-card ${key}` }, [
       r.better === key ? el('span', { class: 'winner' }, 'Lower tax') : null,
       el('div', { class: 'label' }, label),
-      el('div', { class: 'amount' }, inr(t.total)),
+      amount,
       el('div', { class: 'eff' }, `Total income ${inr(t.totalIncome)} · effective rate ${pct(t.effectiveRate)}`),
     ]);
   };
   box.append(card('old', 'Old regime'), card('new', 'New regime (default)'));
+  const empty = r.old.tax.totalIncome === 0 && r.new.tax.totalIncome === 0;
   let verdict;
-  if (r.old.tax.totalIncome === 0 && r.new.tax.totalIncome === 0) {
+  if (empty) {
     verdict = el('div', { class: 'verdict same' }, 'Enter your income on the left to see both regimes computed side by side.');
   } else if (r.better === 'same') {
     verdict = el('div', { class: 'verdict same' }, 'Both regimes give the same tax. The new regime is the default and needs no form.');
   } else {
-    verdict = el('div', { class: 'verdict' }, `The ${r.better} regime saves you ${inr(r.saving)} this year.`);
+    const saving = el('span');
+    animateNumber(saving, 'tax:saving', inr(r.saving));
+    verdict = el('div', { class: 'verdict' }, [`The ${r.better} regime saves you `, saving, ' this year.']);
   }
   box.append(verdict);
+  if (!empty) {
+    box.append(el('div', { class: 'headline-foot' }, [
+      el('span', { class: 'trust' }, 'Checked against the 10 statutory worked examples and 190+ automated tests. Rates as compiled 13 Sep 2026.'),
+      shareCard(r, FY_SHORT[lastInputs?.fy] || 'FY 2026-27'),
+    ]));
+  }
 }
 
 function renderWarnings(r) {
@@ -190,7 +242,7 @@ function renderTable(r) {
   const line = (label, ov, nv, cls = '', opts = {}) => {
     const tdO = money(ov, { na: opts.naOld });
     const tdN = money(nv, { na: opts.naNew });
-    rows.push(el('tr', { class: cls }, [el('td', {}, label), tdO, tdN]));
+    rows.push(el('tr', { class: cls }, [el('td', {}, termify(label)), tdO, tdN]));
   };
 
   // Income lines, merged by id in the order they appear in the old regime

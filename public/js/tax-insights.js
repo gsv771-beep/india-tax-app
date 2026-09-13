@@ -86,6 +86,47 @@ export function headroom(inputs, rates, flags = DEFAULT_FLAGS) {
   return { items, cmp };
 }
 
+/**
+ * Points for the break-even chart: old-regime tax as total old-regime deductions vary, with the new
+ * regime's (unaffected) tax alongside. x = total deductions and exemptions claimed under the old regime.
+ */
+export function breakEvenCurve(inputs, rates, flags = DEFAULT_FLAGS, samples = 60) {
+  const be = breakEven(inputs, rates, flags);
+  if (be.kind === 'none') return null;
+  const cmp = be.cmp, oi = cmp.old.income;
+  const claimed = claimedOldRegime(oi);
+  const newTax = cmp.new.tax.total;
+  const ceiling = oi.slabIncome + claimed; // deductions cannot exceed the income they reduce
+  let xMax = Math.max(claimed * 1.5, 250000);
+  if (be.kind === 'need') xMax = Math.max(xMax, (claimed + be.extra) * 1.25);
+  xMax = Math.min(Math.max(xMax, claimed + 50000), ceiling || xMax);
+  const points = [];
+  for (let i = 0; i <= samples; i++) {
+    const d = (xMax * i) / samples;
+    points.push([Math.round(d), taxAtSlab(oi, oi.slabIncome + claimed - d, rates, flags)]);
+  }
+  const crossing = be.kind === 'need' ? claimed + be.extra : be.kind === 'cushion' ? claimed - be.cushion : null;
+  return { points, newTax, current: { x: claimed, y: cmp.old.tax.total }, crossing, xMax, kind: be.kind };
+}
+
+/** Steps for the income-to-tax waterfall of one regime. */
+export function waterfallSteps(regimeResult) {
+  const { income, tax } = regimeResult;
+  const L = Object.fromEntries(income.lines.map((l) => [l.id, l.amount]));
+  const grossSalary = (L.gross_salary || 0) + (L.perq_employer_excess || 0) + (L.perq_other || 0);
+  const netSalary = L.net_salary || 0;
+  const hpNav = L.hp_nav || 0, hpIncome = L.hp_income ?? 0;
+  const other = (L.other_sources || 0) + (L.business || 0);
+  const gross = grossSalary + hpNav + other;
+  const steps = [{ label: 'Gross income', value: gross, kind: 'start' }];
+  if (grossSalary - netSalary > 0) steps.push({ label: 'Salary exemptions and deductions', value: grossSalary - netSalary, kind: 'minus' });
+  if (hpNav - hpIncome > 0) steps.push({ label: 'House property deductions', value: hpNav - hpIncome, kind: 'minus' });
+  if (income.viaTotal > 0) steps.push({ label: 'Chapter VI-A deductions', value: income.viaTotal, kind: 'minus' });
+  steps.push({ label: 'Taxable slab income', value: tax.slabIncome, kind: 'total' });
+  steps.push({ label: 'Tax payable (incl. cess)', value: tax.total, kind: 'tax' });
+  return { steps, gross };
+}
+
 /** Re-run the comparison with extra old-regime deductions the user is considering. */
 export function whatIf(inputs, extras, rates, flags = DEFAULT_FLAGS) {
   const inp = mergeInputs(inputs);

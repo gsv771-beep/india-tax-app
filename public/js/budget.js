@@ -66,7 +66,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 
 // ---------- charts (inline SVG, single-hue for magnitude, three fixed hues for the allocation) ----------
 
-const C = { expenses: '#2a78d6', investments: '#eb6834', surplus: '#1baf7a', ink: '#0b0b0b', muted: '#52514e', grid: '#e1e0d9', surface: '#ffffff', critical: '#d03b3b' };
+const C = { expenses: '#2a78d6', investments: '#eb6834', surplus: '#1baf7a', ink: 'var(--text)', muted: 'var(--muted)', grid: 'var(--line)', surface: 'var(--surface)', critical: '#d03b3b', track: 'var(--surface-2)' };
 const svgEl = (tag, attrs = {}, children = []) => {
   const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
   for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
@@ -85,7 +85,7 @@ export function allocationChart(s) {
   ].filter((x) => x.value > 0);
   const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', 'aria-label': 'How monthly income is allocated' });
   svg.append(svgEl('title', {}, 'How monthly income is allocated'));
-  svg.append(svgEl('rect', { x: pad, y: barY, width: W - 2 * pad, height: barH, rx: 4, fill: '#f0efec' }));
+  svg.append(svgEl('rect', { x: pad, y: barY, width: W - 2 * pad, height: barH, rx: 4, style: `fill:${C.track}` }));
   let x = pad;
   segs.forEach((seg, i) => {
     const w = Math.max(0, ((W - 2 * pad) * seg.value) / total - (i < segs.length - 1 ? 2 : 0));
@@ -104,7 +104,7 @@ export function allocationChart(s) {
   let lx = pad;
   for (const seg of segs) {
     svg.append(svgEl('rect', { x: lx, y: barY + barH + 16, width: 10, height: 10, rx: 2, fill: seg.color }));
-    const t = svgEl('text', { x: lx + 15, y: barY + barH + 25, 'font-size': 12, fill: C.ink }, `${seg.label} ${inr(seg.value)} (${pct(seg.value / (s.income || total), 0)})`);
+    const t = svgEl('text', { x: lx + 15, y: barY + barH + 25, 'font-size': 12, style: `fill:${C.ink}` }, `${seg.label} ${inr(seg.value)} (${pct(seg.value / (s.income || total), 0)})`);
     svg.append(t);
     lx += 15 + 6.6 * t.textContent.length + 18;
   }
@@ -124,9 +124,9 @@ export function categoryChart(s) {
     const w = ((W - labelW - valueW - pad) * r.amount) / max;
     const g = svgEl('g');
     g.append(svgEl('title', {}, `${r.category}: ${inr(r.amount)} a month, ${pct(r.share, 1)} of income`));
-    g.append(svgEl('text', { x: labelW - 8, y: y + 15, 'text-anchor': 'end', 'font-size': 12, fill: C.ink }, r.category));
+    g.append(svgEl('text', { x: labelW - 8, y: y + 15, 'text-anchor': 'end', 'font-size': 12, style: `fill:${C.ink}` }, r.category));
     g.append(svgEl('rect', { x: labelW, y: y + 3, width: Math.max(w, 2), height: rowH - 10, rx: 4, fill: C.expenses }));
-    g.append(svgEl('text', { x: labelW + Math.max(w, 2) + 8, y: y + 15, 'font-size': 12, fill: C.muted }, `${inr(r.amount)} · ${pct(r.share, 0)}`));
+    g.append(svgEl('text', { x: labelW + Math.max(w, 2) + 8, y: y + 15, 'font-size': 12, style: `fill:${C.muted}` }, `${inr(r.amount)} · ${pct(r.share, 0)}`));
     svg.append(g);
   });
   return svg;
@@ -254,6 +254,14 @@ async function svgToPng(svg, width) {
   clone.setAttribute('xmlns', NS);
   clone.setAttribute('width', width); clone.setAttribute('height', height);
   clone.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
+  // CSS variables do not resolve inside a serialised image: bake the computed colours in, and force light-mode ink
+  const src = svg.querySelectorAll('*'), dst = clone.querySelectorAll('*');
+  src.forEach((s, i) => {
+    const cs = getComputedStyle(s);
+    if (s.tagName === 'text') dst[i].setAttribute('fill', /var\(/.test(s.getAttribute('style') || '') ? (cs.fill.includes('rgb(255') || cs.fill.includes('rgb(232') ? '#1c2321' : cs.fill) : cs.fill);
+    if (s.tagName === 'rect' && /var\(/.test(s.getAttribute('style') || '')) dst[i].setAttribute('fill', '#eef2ec');
+    dst[i].removeAttribute('style');
+  });
   const bg = document.createElementNS(NS, 'rect');
   bg.setAttribute('width', '100%'); bg.setAttribute('height', '100%'); bg.setAttribute('fill', '#ffffff');
   clone.insertBefore(bg, clone.firstChild);

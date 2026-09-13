@@ -4,6 +4,7 @@ import { initCalculators, showCalc } from './calculators.js';
 import { initGlossary } from './glossary.js';
 import { initNps } from './nps.js';
 import { initAbout } from './about.js';
+import { initGlossaryTooltips } from './tooltips.js';
 
 const SITE = 'TaxCompass India';
 const PAGES = {
@@ -26,9 +27,15 @@ function parsePath(pathname) {
   return { tab, sub: parts[1] || null };
 }
 
+let currentTab = null;
 function showTab(tab) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
+  if (tab !== currentTab) {
+    const panel = document.getElementById(tab);
+    panel.classList.remove('enter'); void panel.offsetWidth; panel.classList.add('enter');
+    currentTab = tab;
+  }
 }
 
 function setMeta(tab, sub) {
@@ -95,6 +102,7 @@ async function boot() {
     ]);
     const data = { rates, deductions, onboarding, formulas, glossary, schemes, capgains };
 
+    initGlossaryTooltips(glossary);
     initTax(data);
     initCalculators(data);
     initGlossary(data);

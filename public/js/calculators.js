@@ -1,4 +1,5 @@
-import { inr, pct, el, debounce, setChildren, disclaimer } from './util.js';
+import { inr, pct, el, debounce, setChildren, disclaimer, animateNumber } from './util.js';
+import { lineChart, columnChart, shortINR } from './charts.js';
 import { renderFundPanel } from './funds.js';
 import { renderBudget } from './budget.js';
 import { renderCapitalGains } from './capgains.js';
@@ -153,8 +154,11 @@ function selectField(label, options, value, hint) {
   return { node: el('label', {}, [label, hint ? el('small', {}, hint) : null, input]), input };
 }
 function stat(k, v, hi = false) {
-  return el('div', { class: 'stat' + (hi ? ' hi' : '') }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
+  const val = el('div', { class: 'v' });
+  animateNumber(val, `calc:${currentCalc}:${k}`, v);
+  return el('div', { class: 'stat' + (hi ? ' hi' : '') }, [el('div', { class: 'k' }, k), val]);
 }
+const GREEN = '#1d6b3d', GOLD = '#b7861c', GREY = '#8a948e';
 function splitBar(aLabel, a, bLabel, b) {
   const total = a + b || 1;
   return el('div', {}, [
@@ -266,10 +270,18 @@ const VIEWS = {
         hasPrepay ? el('td', {}, a.prepaid ? inr(a.prepaid) : '—') : null, el('td', {}, inr(a.balance)),
       ]));
 
+      const balanceSeries = [{ name: scen ? 'Plain EMI' : 'Outstanding balance', color: scen ? GREY : GREEN, dash: !!scen, points: [[0, p], ...base.years.map((a) => [a.year, a.balance])] }];
+      if (scen) balanceSeries.push({ name: 'With your changes', color: GREEN, area: true, points: [[0, p], ...scen.years.map((a) => [a.year, a.balance])] });
+      const charts = el('div', { class: 'two-charts' }, [
+        el('div', {}, [el('div', { class: 'viz-title' }, 'Outstanding balance over the years'), lineChart({ series: balanceSeries, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `End of year ${Math.round(x)}`, height: 220, ariaLabel: 'Loan balance by year' })]),
+        el('div', {}, [el('div', { class: 'viz-title' }, 'What each year\'s payments went to'), columnChart({ categories: show.years.map((a) => String(a.year)), series: [{ name: 'Principal', color: GREEN, values: show.years.map((a) => a.principal) }, { name: 'Interest', color: GOLD, values: show.years.map((a) => a.interest) }], xLabel: 'Year', height: 220 })]),
+      ]);
+
       setChildren(out, [
         el('div', { class: 'stats' }, stats),
         sentence ? el('p', { class: 'explain' }, sentence) : null,
         splitBar('Principal', p, 'Interest', show.totalInterest),
+        charts,
         scen ? el('div', { class: 'table-wrap' }, el('table', { class: 'compare compare-scen' }, [
           el('thead', {}, el('tr', {}, [el('th', {}, ''), el('th', {}, 'Plain EMI, no changes'), el('th', { class: 'on' }, hasStep && hasPrepay ? 'With step-up and prepayments' : hasStep ? 'With step-up EMI' : 'With prepayments')])),
           el('tbody', {}, [
@@ -331,6 +343,12 @@ const VIEWS = {
       const flat = sipFV(a, r, y, 0);
       const stepped = sp > 0 || sa > 0 ? sipFV(a, r, y, sp, sa) : null;
       const main = stepped || flat;
+      const yrs = Array.from({ length: y + 1 }, (_, k) => k);
+      const series = [
+        { name: 'Amount invested', color: GREY, dash: true, points: yrs.map((k) => [k, (stepped ? sipFV(a, r, k, sp, sa) : sipFV(a, r, k)).invested]) },
+        { name: stepped ? 'Value with step-up' : 'Value', color: GREEN, area: true, points: yrs.map((k) => [k, (stepped ? sipFV(a, r, k, sp, sa) : sipFV(a, r, k)).fv]) },
+      ];
+      if (stepped) series.splice(1, 0, { name: 'Value, flat SIP', color: GOLD, points: yrs.map((k) => [k, sipFV(a, r, k).fv]) });
       setChildren(out, [
         el('div', { class: 'stats' }, [
           stat('Projected value', inr(main.fv), true),
@@ -339,6 +357,8 @@ const VIEWS = {
           stepped ? stat('SIP in the final year', inr(sp > 0 ? main.finalMonthly / (1 + sp / 100) : main.finalMonthly - sa)) : null,
         ]),
         splitBar('Invested', main.invested, 'Gains', main.gain),
+        el('div', { class: 'viz-title' }, 'How it grows'),
+        lineChart({ series, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'SIP growth by year' }),
         stepped ? el('p', { class: 'explain' }, `A flat ${inr(a)} SIP would reach ${inr(flat.fv)}. Stepping it up ${sp > 0 ? `${sp}%` : inr(sa)} every year reaches ${inr(stepped.fv)}, ${inr(stepped.fv - flat.fv)} more, for ${inr(stepped.invested - flat.invested)} more invested.`) : null,
         el('p', { class: 'muted' }, 'Instalments are assumed at the start of each month (annuity-due), the convention most Indian SIP calculators use. Returns are illustrative and not guaranteed.'),
         fundBox,
@@ -381,10 +401,11 @@ const VIEWS = {
           stat('Doubles in about', r > 0 ? `${(72 / r).toFixed(1)} yrs` : '—'),
         ]),
         splitBar('Invested', p, 'Gains', res.gain),
-        el('h3', {}, 'Growth by year'),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('div', { class: 'viz-title' }, 'Growth by year'),
+        lineChart({ series: [{ name: 'Invested', color: GREY, dash: true, points: [[0, p], [y, p]] }, { name: 'Value', color: GREEN, area: true, points: Array.from({ length: y + 1 }, (_, k) => [k, lumpsumFV(p, r, k).fv]) }], xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'Lumpsum growth by year' }),
+        el('details', { class: 'section' }, [el('summary', {}, 'Year-by-year values'), el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
           el('thead', {}, el('tr', {}, [el('th', {}, 'Year'), el('th', {}, 'Value')])), el('tbody', {}, rows),
-        ])),
+        ]))]),
         fundBox,
         disclaimer('invest'),
       ]);

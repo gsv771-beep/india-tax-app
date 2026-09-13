@@ -73,6 +73,31 @@ export function disclaimer(kind = 'tax') {
   return el('div', { class: 'disclaimer', role: 'note' }, [el('strong', {}, 'Please note. '), kinds.map((k) => DISCLAIMERS[k]).join(' ')]);
 }
 
+/**
+ * Animate a formatted number in `node` from its previous value (remembered by `key`) to `text`.
+ * Keeps any prefix/suffix (₹, %, "yrs"). Respects prefers-reduced-motion.
+ */
+const PREV = new Map();
+const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+export function animateNumber(node, key, text) {
+  const m = String(text).match(/-?[\d,]+(?:\.\d+)?/);
+  const target = m ? parseFloat(m[0].replace(/,/g, '')) : NaN;
+  const prev = PREV.get(key);
+  PREV.set(key, target);
+  if (!m || REDUCED || prev == null || !Number.isFinite(prev) || prev === target) { node.textContent = text; return; }
+  const decimals = (m[0].split('.')[1] || '').length;
+  const before = text.slice(0, m.index), after = text.slice(m.index + m[0].length);
+  const useIndian = /,/.test(m[0]) || Math.abs(target) >= 1000;
+  const fmt = (v) => useIndian && decimals === 0 ? formatIndian(Math.round(v)) : v.toFixed(decimals);
+  const t0 = performance.now(), dur = 420;
+  const step = (t) => {
+    const p = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    node.textContent = before + fmt(prev + (target - prev) * e) + after;
+    if (p < 1) requestAnimationFrame(step); else node.textContent = text;
+  };
+  requestAnimationFrame(step);
+}
+
 export function numberInput(label, attrs = {}) {
   const input = el('input', { type: 'number', ...attrs });
   return { wrap: el('label', {}, [label, input]), input };

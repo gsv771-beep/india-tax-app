@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
 import { compareRegimes, DEFAULT_FLAGS } from '../public/js/tax-engine.js';
-import { breakEven, headroom, whatIf } from '../public/js/tax-insights.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps } from '../public/js/tax-insights.js';
 import { buildTaxWorkbookBase64 } from '../public/js/tax-export.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -66,6 +66,24 @@ ok('no income: kind none', breakEven({}, rates).kind === 'none');
   ok('taxSaved matches difference', Math.abs(w.taxSaved - (w.before.old.tax.total - w.after.old.tax.total)) < 0.01);
   const capped = whatIf({ salary: { gross: 1500000 }, deductions: { s80c: 150000 } }, { s80c: 100000 }, rates);
   ok('what-if respects the 80C cap', capped.taxSaved === 0);
+}
+
+// Break-even curve and waterfall data
+{
+  const inputs = { salary: { gross: 1500000, basicDa: 700000 }, deductions: { s80c: 50000 } };
+  const c = breakEvenCurve(inputs, rates);
+  ok('curve has points and a crossing', c && c.points.length === 61 && c.crossing > c.current.x, c && String(c.crossing));
+  ok('curve is non-increasing in deductions', c.points.every((p, i) => i === 0 || p[1] <= c.points[i - 1][1] + 0.01));
+  ok('current point tax equals old total', Math.abs(c.current.y - compareRegimes(inputs, rates).old.tax.total) < 0.5);
+  ok('crossing lies inside the x range', c.crossing <= c.xMax);
+  ok('no income: curve is null', breakEvenCurve({}, rates) === null);
+  const w = waterfallSteps(compareRegimes(inputs, rates).old);
+  const gross = w.steps[0].value, minus = w.steps.filter((s) => s.kind === 'minus').reduce((s, x) => s + x.value, 0), taxable = w.steps.find((s) => s.kind === 'total').value;
+  near('waterfall reconciles: gross minus deductions = taxable', gross - minus, taxable, 1);
+  ok('waterfall ends with the tax bar', w.steps[w.steps.length - 1].kind === 'tax');
+  const wn = waterfallSteps(compareRegimes({ salary: { gross: 2000000 }, houseProperty: { letOut: { rent: 300000, interest: 800000 } } }, rates).new);
+  const g2 = wn.steps[0].value, m2 = wn.steps.filter((s) => s.kind === 'minus').reduce((s, x) => s + x.value, 0);
+  near('waterfall reconciles with the new-regime house property clamp', g2 - m2, wn.steps.find((s) => s.kind === 'total').value, 1);
 }
 
 // Tax workbook

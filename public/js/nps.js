@@ -2,8 +2,9 @@
  * The NPS page: what it is, a corpus and pension projector, tax treatment, choices, exit rules, returns.
  * Data: nps section of data/schemes.json.
  */
-import { inr, pct, el, setChildren, disclaimer } from './util.js';
+import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js';
 import { sipFV } from './calculators.js';
+import { lineChart } from './charts.js';
 
 /**
  * Project an NPS corpus at retirement and what it turns into.
@@ -79,7 +80,9 @@ function projector(nps) {
   ]);
   function render() {
     const r = npsProjection(st);
-    const stat = (k, v, cls = '') => el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
+    const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'nps:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };
+    const ages = Array.from({ length: r.years + 1 }, (_, k) => k);
+    const growth = ages.map((k) => sipFV(r.monthly, +st.returnPct || 0, k, +st.stepUpPct || 0));
     setChildren(out, [
       el('div', { class: 'stats' }, [
         stat('Corpus at ' + st.retireAge, inr(r.corpus), 'hi'),
@@ -87,6 +90,10 @@ function projector(nps) {
         stat('Lump sum in hand', inr(r.lump)),
         stat('Monthly pension', inr(r.pension)),
       ]),
+      r.years > 0 ? el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
+        el('div', { class: 'viz-title' }, 'Corpus by age'),
+        lineChart({ series: [{ name: 'Contributed', color: '#8a948e', dash: true, points: ages.map((k, i) => [+st.age + k, growth[i].invested]) }, { name: 'Corpus', color: '#1d6b3d', area: true, points: ages.map((k, i) => [+st.age + k, growth[i].fv]) }], xFormat: (x) => `Age ${Math.round(x)}`, xTipFormat: (x) => `At age ${Math.round(x)}`, height: 230, ariaLabel: 'NPS corpus by age' }),
+      ]) : null,
       el('p', { class: 'explain' }, `Contributing ${inr(r.monthly)} a month for ${r.years} years, rising ${st.stepUpPct}% a year and earning ${st.returnPct}%, builds about ${inr(r.corpus)}. Using ${pct(r.annuityShare, 0)} of it to buy an annuity at ${st.annuityRatePct}% gives roughly ${inr(r.pension)} a month for life, and you take ${inr(r.lump)} as a lump sum${r.lumpTaxable > 0 ? `, of which ${inr(r.lumpTaxable)} is taxable at your slab because only 60% of the corpus is exempt` : ', all of it tax-free'}.`),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'At retirement'), el('th', {}, 'Amount'), el('th', {}, 'Tax')])),
