@@ -79,7 +79,9 @@ export function emptyInputs() {
       lottery: 0,      // lottery, online gaming, VDA at 30%
     },
     deductions: {
-      s80c: 0,
+      includeEpf: true,      // count the employee's EPF share (12% of Basic + DA) in 80C automatically
+      epfEmployee: 0,        // actual annual employee EPF/VPF contribution, if known; 0 = compute 12% of Basic + DA
+      s80c: 0,               // other 80C items, excluding EPF
       nps1b: 0,
       healthSelf: 0,
       healthParents: 0,
@@ -283,9 +285,11 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
     if (empNps > cap) notes.push(`Employer NPS of Rs ${fmtNum(empNps)} exceeds the ${Math.round(pct * 100)}% cap in the ${regime} regime; only Rs ${fmtNum(cap)} is deductible.`);
   }
 
+  // Employee's own EPF share counts within 80C. Employer's share is exempt income, not a deduction.
+  const epf = gross > 0 && d.includeEpf !== false ? (num(d.epfEmployee) > 0 ? num(d.epfEmployee) : 0.12 * basicDa) : 0;
   if (!isNew) {
-    const s80c = Math.min(num(d.s80c), 150000);
-    addVia('80c', '80C / s.123 investments (cap Rs 1.5L)', s80c);
+    const s80c = Math.min(num(d.s80c) + epf, 150000);
+    addVia('80c', epf > 0 ? `80C / s.123 investments incl. EPF ${fmtNum(epf)} (cap Rs 1.5L)` : '80C / s.123 investments (cap Rs 1.5L)', s80c, { epf });
     addVia('80ccd1b', '80CCD(1B) / s.124 own NPS (cap Rs 50,000)', Math.min(num(d.nps1b), 50000));
 
     const selfSenior = inp.ageBand !== AGE_BANDS.below_60;
@@ -332,6 +336,7 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
     slabIncome,
     buckets,
     dividends,
+    epfEmployee: epf,
     hpLossSetOff,
     hpLossCarried,
     hpLossExtinguished,

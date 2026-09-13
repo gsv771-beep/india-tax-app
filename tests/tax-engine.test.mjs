@@ -124,6 +124,24 @@ function checkTrue(name, cond, detail = '') {
   check('HRA not available in new regime', n.income.lines.find((l) => l.id === 'hra').amount, 0);
 }
 
+// Extra: employee EPF counted in 80C automatically from Basic + DA
+{
+  const via80c = (r) => (r.income.via.find((v) => v.id === '80c') || { amount: 0 }).amount;
+  const auto = computeRegime({ salary: { gross: 1500000, basicDa: 600000 } }, 'old', rates);
+  check('EPF auto: 12% of 6L Basic+DA = 72,000 in 80C', via80c(auto), 72000);
+  check('EPF auto is reported on the income object', auto.income.epfEmployee, 72000);
+  const plusOther = computeRegime({ salary: { gross: 1500000, basicDa: 600000 }, deductions: { s80c: 100000 } }, 'old', rates);
+  check('EPF + other 80C capped at 1.5L', via80c(plusOther), 150000);
+  const override = computeRegime({ salary: { gross: 1500000, basicDa: 600000 }, deductions: { epfEmployee: 21600 } }, 'old', rates);
+  check('typed EPF amount overrides the 12% estimate', via80c(override), 21600);
+  const off = computeRegime({ salary: { gross: 1500000, basicDa: 600000 }, deductions: { includeEpf: false } }, 'old', rates);
+  check('EPF switched off: no 80C', via80c(off), 0);
+  const noSalary = computeRegime({ otherIncome: { other: 1500000 }, salary: { basicDa: 600000 } }, 'old', rates);
+  check('no salary income: no EPF assumed', via80c(noSalary), 0);
+  const newRegime = computeRegime({ salary: { gross: 1500000, basicDa: 600000 } }, 'new', rates);
+  check('new regime: EPF does not create an 80C deduction', via80c(newRegime), 0);
+}
+
 // Extra: compareRegimes picks a winner and reports the saving
 {
   const c = compareRegimes({ salary: { gross: 1500000 } }, rates);

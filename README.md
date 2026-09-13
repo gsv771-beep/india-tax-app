@@ -4,6 +4,7 @@ A static web app for Indian individual taxpayers. No backend, no build step, no 
 
 - **Tax comparison**: answer a short set of questions and see the old and new regimes computed line by line, side by side, with a provision-by-provision reference table. A break-even panel says how far the result is from flipping ("the old regime would win only with ₹X more in deductions"), what-if sliders show the effect of using the 80C, NPS and 80D room the user still has, and a headroom table links straight into the matching schemes. The comparison, break-even and inputs can be emailed as a formatted workbook.
 - **Calculators**:
+  - In-hand salary: CTC split into Basic, HRA, special allowance, employer PF, gratuity and optional employer NPS; then employee PF, professional tax and income tax under the lower (or a chosen) regime, down to the monthly take-home, with a waterfall and a hand-off into the full comparison.
   - Expenses and savings: monthly take-home income, expenses in ten fixed categories plus Others, SIP and recurring-deposit investments with projected values, a summary of where the income goes (charts and tables), and an Excel workbook emailed to the user in exchange for name and email.
   - EMI with step-up EMI (by a percentage or a fixed amount each year), a one-time lump sum prepayment and an extra payment every year (keep the EMI and finish sooner, or keep the tenure and pay less), a plain-English sentence explaining the outcome, a before-and-after comparison and a year-by-year schedule, plus an "invest instead of prepaying?" panel showing fund categories that historically beat the loan rate, lowest risk first.
   - SIP with step-up by percentage or amount, and lumpsum, each followed by "what has historically delivered about X% a year?": fund categories whose typical rolling return sits near the return the user assumed, with the worst and best stretches, and the funds inside each category.
@@ -147,6 +148,8 @@ In `public/js/tax-engine.js`, `DEFAULT_FLAGS`:
 ## Engine assumptions
 
 Documented at the top of `public/js/tax-engine.js`. The ones worth knowing:
+
+0. The employee's own EPF contribution is counted in 80C automatically at 12% of Basic + DA whenever there is salary income, unless switched off or replaced by the actual figure. The employer's share is exempt income, not a deduction, and is not added anywhere.
 
 1. Marginal relief on the new-regime rebate is applied to slab-rate tax only; tax on capital gains and lottery is never reduced by the rebate.
 2. For residents, unused basic exemption is set against STCG on equity first, then LTCG on equity, then other LTCG.

@@ -43,9 +43,11 @@ ok('no income: kind none', breakEven({}, rates).kind === 'none');
 
 // Headroom
 {
-  const hr = headroom({ salary: { gross: 1500000, basicDa: 700000 }, employer: { npsContribution: 20000 }, deductions: { s80c: 50000 } }, rates);
+  const hr = headroom({ salary: { gross: 1500000, basicDa: 700000 }, employer: { npsContribution: 20000 }, deductions: { s80c: 50000, includeEpf: false } }, rates);
   const c80 = hr.items.find((i) => i.id === '80c');
-  ok('80C room is 1L', c80 && c80.room === 100000, String(c80 && c80.room));
+  ok('80C room is 1L when EPF is not counted', c80 && c80.room === 100000, String(c80 && c80.room));
+  const hrEpf = headroom({ salary: { gross: 1500000, basicDa: 700000 }, deductions: { s80c: 50000 } }, rates);
+  near('80C room shrinks by the auto EPF (12% of 7L = 84,000)', hrEpf.items.find((i) => i.id === '80c').room, 16000, 1);
   ok('80C saving positive and old-only', c80.saving > 0 && c80.regime === 'old');
   const nps = hr.items.find((i) => i.id === 'nps1b');
   ok('NPS 1B room is 50k', nps && nps.room === 50000);

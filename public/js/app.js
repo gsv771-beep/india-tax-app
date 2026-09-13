@@ -17,6 +17,7 @@ const PAGES = {
 const CALC_TITLES = {
   budget: 'Expenses and savings calculator', emi: 'EMI calculator with step-up and prepayment', sip: 'SIP calculator with step-up',
   lumpsum: 'Lumpsum calculator', goal: 'Goal planner', 'capital-gains': 'Capital gains tax calculator', 'advance-tax': 'Advance tax schedule and interest calculator',
+  salary: 'In-hand salary calculator from CTC',
 };
 const ALIASES = { schemes: 'nps' };
 

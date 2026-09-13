@@ -4,6 +4,7 @@ import { renderFundPanel } from './funds.js';
 import { renderBudget } from './budget.js';
 import { renderCapitalGains } from './capgains.js';
 import { renderAdvanceTax } from './advance-tax.js';
+import { renderSalary } from './salary.js';
 
 let appData = null;
 let currentCalc = null;
@@ -207,6 +208,7 @@ const VIEWS = {
   budget() { return renderBudget(); },
   'capital-gains'() { return renderCapitalGains(appData.capgains); },
   'advance-tax'() { return renderAdvanceTax(appData); },
+  salary() { return renderSalary(appData); },
 
   emi() {
     const P = field(`Loan amount (${RUPEE})`, { value: 5000000, min: 0, step: 50000 });

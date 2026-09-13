@@ -67,7 +67,8 @@ export function headroom(inputs, rates, flags = DEFAULT_FLAGS) {
     const after = taxAtSlab(oi, oi.slabIncome - usable, rates, flags);
     items.push({ id, label, regime: 'old', room, saving: oldTotal - after, oldAfter: after, flipsToOld: after < newTotal && oldTotal >= newTotal, schemesFilter });
   };
-  oldItem('80c', 'Section 80C investments (PPF, ELSS, EPF, NSC, SSY, life insurance, home loan principal, tuition)', 150000 - Math.min(+d.s80c || 0, 150000), null);
+  const used80c = (oi.via.find((v) => v.id === '80c') || { amount: 0 }).amount;
+  oldItem('80c', 'Section 80C investments beyond EPF (PPF, ELSS, NSC, SSY, life insurance, home loan principal, tuition)', 150000 - Math.min(used80c, 150000), null);
   oldItem('nps1b', 'Own NPS contribution under 80CCD(1B), over and above 80C', 50000 - Math.min(+d.nps1b || 0, 50000), 'nps');
   const selfCap = inp.ageBand !== AGE_BANDS.below_60 ? 50000 : 25000;
   const parentsCap = d.parentsSenior ? 50000 : 25000;
