@@ -25,7 +25,7 @@ public/                 the static site (deploy this folder)
   js/calculators.js     EMI (with loan simulator), SIP, lumpsum, goal
   js/budget.js          expenses and savings calculator, charts, Excel export
   js/funds.js           historical fund returns: category summaries, matching, panel
-  vendor/xlsx.full.min.js  SheetJS, for the Excel export
+  vendor/exceljs.min.js  ExcelJS, for the styled Excel export
 functions/api/send-workbook.js  optional Cloudflare Pages Function that emails the workbook via Brevo
   js/schemes.js         NPS and government schemes
   js/glossary.js
@@ -76,7 +76,7 @@ This is descriptive historical information available identically to every visito
 
 ## Emailing the budget workbook and collecting contacts
 
-The workbook is built in the browser with SheetJS (vendored at `public/vendor/xlsx.full.min.js`, Apache-2.0) and is delivered **only by email**: the user gives a name and email, ticks a consent box, and `functions/api/send-workbook.js` (a Cloudflare Pages Function) sends it through Brevo and then saves the person as a **contact in your Brevo account** so you can ask for feedback later. To switch it on:
+The workbook is built in the browser with ExcelJS (vendored at `public/vendor/exceljs.min.js`, MIT), with styled headers, rupee and percentage formats, banded rows, frozen headers and the two charts embedded as images and is delivered **only by email**: the user gives a name and email, ticks a consent box, and `functions/api/send-workbook.js` (a Cloudflare Pages Function) sends it through Brevo and then saves the person as a **contact in your Brevo account** so you can ask for feedback later. To switch it on:
 
 1. Create a free Brevo account (300 emails a day, unlimited contacts on the free plan). Verify a sender address under **Senders**, create an API key under **SMTP & API**, and optionally create a contact list under **Contacts** and note its numeric id.
 2. In the Cloudflare Pages project, **Settings**, **Variables and Secrets**, add `BREVO_API_KEY` (secret), `MAIL_FROM_EMAIL` (the verified sender), and optionally `MAIL_FROM_NAME` and `BREVO_LIST_ID`.

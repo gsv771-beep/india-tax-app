@@ -132,19 +132,19 @@ export function categoryChart(s) {
 
 // ---------- Excel workbook ----------
 
-let xlsxPromise = null;
-function loadXLSX() {
-  if (window.XLSX) return Promise.resolve(window.XLSX);
-  if (!xlsxPromise) {
-    xlsxPromise = new Promise((resolve, reject) => {
+let excelPromise = null;
+function loadExcelJS() {
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (!excelPromise) {
+    excelPromise = new Promise((resolve, reject) => {
       const s = document.createElement('script');
-      s.src = 'vendor/xlsx.full.min.js';
-      s.onload = () => resolve(window.XLSX);
+      s.src = 'vendor/exceljs.min.js';
+      s.onload = () => resolve(window.ExcelJS);
       s.onerror = () => reject(new Error('Could not load the spreadsheet library'));
       document.head.append(s);
     });
   }
-  return xlsxPromise;
+  return excelPromise;
 }
 
 export function workbookRows(state, s) {
@@ -182,26 +182,152 @@ export function workbookRows(state, s) {
   return { summary, expenses, investments, notes };
 }
 
-async function buildWorkbook(state, s) {
-  const XLSX = await loadXLSX();
-  const rows = workbookRows(state, s);
-  const wb = XLSX.utils.book_new();
-  const add = (name, data, widths) => {
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!cols'] = widths.map((w) => ({ wch: w }));
-    XLSX.utils.book_append_sheet(wb, ws, name);
-  };
-  add('Summary', rows.summary, [44, 16, 16, 12]);
-  add('Expenses', rows.expenses, [26, 30, 14, 14]);
-  add('Investments', rows.investments, [20, 30, 12, 26, 8, 18, 18, 18]);
-  add('Notes', rows.notes, [120]);
-  // percentage formats on the summary sheet
-  const ws = wb.Sheets.Summary;
-  for (const addr of Object.keys(ws)) {
-    if (addr[0] === 'D' && typeof ws[addr].v === 'number' && ws[addr].v <= 1.5) ws[addr].z = '0.0%';
-    if ((addr[0] === 'B' || addr[0] === 'C') && typeof ws[addr].v === 'number') ws[addr].z = '#,##0';
+// Workbook styling
+const X = {
+  green: 'FF14532D', greenSoft: 'FFE3F1E8', amber: 'FF6B4E16', amberSoft: 'FFFBF1DC', red: 'FF9B1C1C', redSoft: 'FFFDE8E8',
+  ink: 'FF1C2321', muted: 'FF5C6763', grid: 'FFD9DED6', zebra: 'FFF6F7F4', white: 'FFFFFFFF',
+  inr: '"₹"#,##0;[Red]-"₹"#,##0', pct: '0.0%',
+};
+const thin = { style: 'thin', color: { argb: X.grid } };
+const border = { top: thin, bottom: thin, left: thin, right: thin };
+const fill = (argb) => ({ type: 'pattern', pattern: 'solid', fgColor: { argb } });
+
+function sheetTitle(ws, text, sub, span = 'D') {
+  ws.mergeCells(`A1:${span}1`); ws.mergeCells(`A2:${span}2`);
+  const t = ws.getCell('A1'); t.value = text; t.font = { name: 'Calibri', bold: true, size: 16, color: { argb: X.green } }; ws.getRow(1).height = 26;
+  const s = ws.getCell('A2'); s.value = sub; s.font = { name: 'Calibri', italic: true, size: 10, color: { argb: X.muted } };
+}
+function headerRow(ws, r, cols) {
+  const row = ws.getRow(r);
+  cols.forEach((t, i) => {
+    const c = row.getCell(i + 1);
+    c.value = t; c.font = { bold: true, color: { argb: X.white } }; c.fill = fill(X.green);
+    c.alignment = { vertical: 'middle', horizontal: i === 0 || t === 'Note' || t === 'Name' || t === 'Type' ? 'left' : 'right', wrapText: true }; c.border = border;
+  });
+  row.height = 22;
+  return row;
+}
+function dataRow(ws, r, values, fmts = [], opts = {}) {
+  const row = ws.getRow(r);
+  values.forEach((val, i) => {
+    const c = row.getCell(i + 1);
+    c.value = val;
+    if (fmts[i]) c.numFmt = fmts[i];
+    c.border = border;
+    c.alignment = { vertical: 'middle', horizontal: typeof val === 'number' ? 'right' : 'left', wrapText: opts.wrap || false };
+    if (opts.zebra) c.fill = fill(X.zebra);
+    if (opts.fillArgb) c.fill = fill(opts.fillArgb);
+    if (opts.bold) c.font = { bold: true, color: { argb: opts.color || X.ink } };
+    else if (opts.color) c.font = { color: { argb: opts.color } };
+  });
+  return row;
+}
+
+/**
+ * Build the styled workbook and return it as a base64 string.
+ * `charts` = { alloc: <svg>, cat: <svg> } from the page (optional; skipped in Node).
+ * `ExcelJSLib` lets tests inject the Node build of ExcelJS.
+ */
+export async function buildWorkbookBase64(state, s, charts = null, ExcelJSLib = null) {
+  const ExcelJS = ExcelJSLib || (await loadExcelJS());
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'TaxCompass India';
+  wb.created = new Date();
+  const today = new Date().toISOString().slice(0, 10);
+  const who = state.person.name ? `for ${state.person.name}` : '';
+
+  // ----- Summary -----
+  const ws = wb.addWorksheet('Summary', { views: [{ showGridLines: false }] });
+  ws.columns = [{ width: 42 }, { width: 16 }, { width: 16 }, { width: 13 }, { width: 3 }, { width: 3 }, { width: 3 }];
+  sheetTitle(ws, 'TaxCompass India: monthly budget summary', `Prepared ${who} on ${today}. Amounts in rupees.`);
+  headerRow(ws, 4, ['Item', 'Monthly', 'Yearly', '% of income']);
+  const pctOf = (v) => (s.income ? v / s.income : 0);
+  dataRow(ws, 5, ['Take-home income', s.income, s.income * 12, 1], [null, X.inr, X.inr, X.pct], { bold: true });
+  dataRow(ws, 6, ['Expenses', s.totalExpenses, s.totalExpenses * 12, pctOf(s.totalExpenses)], [null, X.inr, X.inr, X.pct], { zebra: true });
+  dataRow(ws, 7, ['Investments (SIP and RD)', s.totalInvestments, s.totalInvestments * 12, pctOf(s.totalInvestments)], [null, X.inr, X.inr, X.pct]);
+  dataRow(ws, 8, [s.deficit ? 'Shortfall' : 'Left over after expenses and investments', s.surplus, s.surplus * 12, pctOf(s.surplus)], [null, X.inr, X.inr, X.pct], { bold: true, fillArgb: s.deficit ? X.redSoft : X.greenSoft, color: s.deficit ? X.red : X.green });
+  dataRow(ws, 9, ['Savings rate (investments + left over)', null, null, s.savingsRate], [null, null, null, X.pct], { bold: true });
+
+  headerRow(ws, 11, ['Expenses by category', 'Monthly', 'Yearly', '% of income']);
+  s.categories.forEach((c, i) => dataRow(ws, 12 + i, [c.category, c.amount, c.amount * 12, c.share], [null, X.inr, X.inr, X.pct], { zebra: i % 2 === 1 }));
+  const totalRow = 12 + s.categories.length;
+  dataRow(ws, totalRow, ['Total expenses', s.totalExpenses, s.totalExpenses * 12, pctOf(s.totalExpenses)], [null, X.inr, X.inr, X.pct], { bold: true, fillArgb: X.greenSoft });
+
+  // charts as images, to the right of the tables
+  if (charts && typeof document !== 'undefined') {
+    try {
+      if (charts.alloc) {
+        const png = await svgToPng(charts.alloc, 560);
+        const id = wb.addImage({ base64: png.base64, extension: 'png' });
+        ws.getCell('H3').value = 'Where your income goes'; ws.getCell('H3').font = { bold: true, color: { argb: X.green } };
+        ws.addImage(id, { tl: { col: 7, row: 3 }, ext: { width: png.width, height: png.height } });
+      }
+      if (charts.cat) {
+        const png = await svgToPng(charts.cat, 560);
+        const id = wb.addImage({ base64: png.base64, extension: 'png' });
+        ws.getCell('H10').value = 'Expenses by category'; ws.getCell('H10').font = { bold: true, color: { argb: X.green } };
+        ws.addImage(id, { tl: { col: 7, row: 10 }, ext: { width: png.width, height: png.height } });
+      }
+    } catch { /* charts are a nice-to-have; the tables are the record */ }
   }
-  return { XLSX, wb };
+
+  // ----- Expenses -----
+  const we = wb.addWorksheet('Expenses', { views: [{ state: 'frozen', ySplit: 1 }] });
+  we.columns = [{ width: 28 }, { width: 34 }, { width: 16 }, { width: 16 }];
+  headerRow(we, 1, ['Category', 'Note', 'Monthly', 'Yearly']);
+  const exp = (state.expenses || []).filter((e) => +e.amount > 0);
+  exp.forEach((e, i) => dataRow(we, 2 + i, [e.category, e.note || '', +e.amount, +e.amount * 12], [null, null, X.inr, X.inr], { zebra: i % 2 === 1 }));
+  dataRow(we, 2 + exp.length, ['Total', '', s.totalExpenses, s.totalExpenses * 12], [null, null, X.inr, X.inr], { bold: true, fillArgb: X.greenSoft });
+  if (exp.length) we.autoFilter = { from: 'A1', to: `D${1 + exp.length}` };
+
+  // ----- Investments -----
+  const wi = wb.addWorksheet('Investments', { views: [{ state: 'frozen', ySplit: 1 }] });
+  wi.columns = [{ width: 20 }, { width: 30 }, { width: 14 }, { width: 22 }, { width: 8 }, { width: 18 }, { width: 18 }, { width: 18 }];
+  headerRow(wi, 1, ['Type', 'Name', 'Monthly', 'Expected return / rate (% p.a.)', 'Years', 'Total invested', 'Projected value', 'Projected gain']);
+  s.investments.forEach((inv, i) => dataRow(wi, 2 + i, [inv.type === 'rd' ? 'Recurring deposit' : 'Mutual fund SIP', inv.name || '', +inv.amount, +inv.ratePct / 100, +inv.years, Math.round(inv.invested), Math.round(inv.fv), Math.round(inv.gain)], [null, null, X.inr, X.pct, '0', X.inr, X.inr, X.inr], { zebra: i % 2 === 1 }));
+  if (s.investments.length) {
+    const sum = (k) => s.investments.reduce((a, b) => a + (+b[k] || 0), 0);
+    dataRow(wi, 2 + s.investments.length, ['Total', '', sum('amount'), null, null, Math.round(sum('invested')), Math.round(sum('fv')), Math.round(sum('gain'))], [null, null, X.inr, null, null, X.inr, X.inr, X.inr], { bold: true, fillArgb: X.greenSoft });
+  }
+
+  // ----- Notes -----
+  const wn = wb.addWorksheet('Notes');
+  wn.columns = [{ width: 110 }];
+  const notes = workbookRows(state, s).notes;
+  notes.forEach((r, i) => { const c = wn.getCell(`A${i + 1}`); c.value = r[0]; c.alignment = { wrapText: true, vertical: 'top' }; if (i === 0) c.font = { bold: true, size: 14, color: { argb: X.green } }; });
+
+  const buf = await wb.xlsx.writeBuffer();
+  return toBase64(buf);
+}
+
+async function svgToPng(svg, width) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const vb = svg.viewBox.baseVal;
+  const height = Math.round((width * vb.height) / vb.width);
+  const clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns', NS);
+  clone.setAttribute('width', width); clone.setAttribute('height', height);
+  clone.setAttribute('font-family', 'Arial, Helvetica, sans-serif');
+  const bg = document.createElementNS(NS, 'rect');
+  bg.setAttribute('width', '100%'); bg.setAttribute('height', '100%'); bg.setAttribute('fill', '#ffffff');
+  clone.insertBefore(bg, clone.firstChild);
+  const data = new XMLSerializer().serializeToString(clone);
+  const img = new Image();
+  await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(data); });
+  const scale = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = width * scale; canvas.height = height * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale); ctx.drawImage(img, 0, 0, width, height);
+  return { base64: canvas.toDataURL('image/png').split(',')[1], width, height };
+}
+
+function toBase64(buf) {
+  if (typeof Buffer !== 'undefined') return Buffer.from(buf).toString('base64');
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 function fileName(state) {
@@ -272,7 +398,7 @@ export function renderBudget() {
   const allocBox = el('div', { class: 'chart' });
   const catBox = el('div', { class: 'chart' });
   const tables = el('div');
-  const exportBox = exportCard(() => state, () => summarise(state));
+  const exportBox = exportCard(() => state, () => summarise(state), () => ({ alloc: allocBox.querySelector('svg'), cat: catBox.querySelector('svg') }));
   right.append(stats, el('h3', {}, 'Where your income goes'), allocBox, el('h3', {}, 'Expenses by category'), catBox, tables, exportBox, disclaimer('invest'));
 
   function refresh() {
@@ -319,7 +445,7 @@ function load() {
   return defaultState();
 }
 
-function exportCard(getState, getSummary) {
+function exportCard(getState, getSummary, getCharts) {
   const name = el('input', { type: 'text', placeholder: 'Your name', maxlength: 80, autocomplete: 'name' });
   const email = el('input', { type: 'email', placeholder: 'you@example.com', maxlength: 120, autocomplete: 'email' });
   const consent = el('input', { type: 'checkbox' });
@@ -339,8 +465,7 @@ function exportCard(getState, getSummary) {
     send.disabled = true;
     try {
       status.textContent = 'Preparing and sending…';
-      const { XLSX, wb } = await buildWorkbook(state, getSummary());
-      const base64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+      const base64 = await buildWorkbookBase64(state, getSummary(), getCharts());
       const res = await fetch('/api/send-workbook', {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name: state.person.name, email: state.person.email, filename: fileName(state), xlsxBase64: base64 }),

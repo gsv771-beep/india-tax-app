@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India</title>
   <meta name="description" content="Old vs new regime tax comparison, EMI, SIP and lumpsum calculators with historical mutual fund returns, glossary and government savings schemes for Indian taxpayers.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="site-header">
     <div class="wrap header-inner">
-      <a href="#tax" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span></a>
+      <a href="#tax" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span><span class="brand-tag">Tax, savings and loan decisions, explained</span></a>
       <nav class="tabs" aria-label="Sections">
         <a href="#tax" data-tab="tax">Tax comparison</a>
         <a href="#calculators" data-tab="calculators">Calculators</a>
@@ -26,8 +29,14 @@
     <!-- ============ TAX COMPARISON ============ -->
     <section id="tax" class="panel" hidden>
       <div class="panel-head">
+        <span class="eyebrow">Income tax</span>
         <h1>Old regime or new regime?</h1>
-        <p>Answer a few questions. Both regimes are computed side by side, line by line, for FY 2025-26 and FY 2026-27 (rates are identical; the governing Act and section numbers differ).</p>
+        <p>Answer a few questions and see both regimes computed side by side, line by line, so you can see exactly where the difference comes from.</p>
+        <div class="facts">
+          <span>FY 2025-26 and FY 2026-27</span>
+          <span>Every deduction and exemption, both regimes</span>
+          <span>Nothing leaves your browser</span>
+        </div>
       </div>
 
       <div class="tax-layout">
@@ -163,6 +172,7 @@
     <!-- ============ CALCULATORS ============ -->
     <section id="calculators" class="panel" hidden>
       <div class="panel-head">
+        <span class="eyebrow">Plan</span>
         <h1>Calculators</h1>
         <p>Illustrative projections. Returns are not guaranteed. Mutual fund investments are subject to market risk. Where a calculator shows fund categories and funds, they are historical returns from AMFI NAV data to help you sanity-check the return you assumed, not a recommendation to invest.</p>
       </div>
@@ -179,6 +189,7 @@
     <!-- ============ SCHEMES ============ -->
     <section id="schemes" class="panel" hidden>
       <div class="panel-head">
+        <span class="eyebrow">Government-backed savings</span>
         <h1>NPS and government savings schemes</h1>
         <p>Compare government-backed schemes by type, issuer, rate, lock-in and tax treatment. Information only, not a recommendation.</p>
       </div>
@@ -188,6 +199,7 @@
     <!-- ============ GLOSSARY ============ -->
     <section id="glossary" class="panel" hidden>
       <div class="panel-head">
+        <span class="eyebrow">Learn</span>
         <h1>Glossary</h1>
         <p>Plain-language definitions of Indian tax and personal-finance terms.</p>
       </div>
@@ -202,8 +214,25 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <p><strong>Disclaimer.</strong> The information provided is for general informational and educational purposes only and does not constitute legal, tax, financial or investment advice. It should not be construed as a statement of law. In case of any variance between the information here and the relevant Act, Rules, Regulations, Circulars or Notifications, the latter shall prevail. Tax treatment depends on individual circumstances and on the year concerned, and may change. We are not a SEBI-registered Investment Adviser and do not recommend any security or investment product. Please consult a qualified chartered accountant, tax practitioner or registered investment adviser before acting.</p>
-      <p class="muted">Rates and provisions as compiled on 13 September 2026 for FY 2025-26 and FY 2026-27. <span id="data-stamp"></span></p>
+      <div class="footer-grid">
+        <div>
+          <h4>About</h4>
+          <p>TaxCompass India helps salaried and self-employed Indians see the effect of the old and new tax regimes, plan loans and investments, and understand government savings schemes, in plain language.</p>
+          <p class="muted">Rates and provisions as compiled on 13 September 2026 for FY 2025-26 and FY 2026-27. <span id="data-stamp"></span></p>
+        </div>
+        <div>
+          <h4>Data sources</h4>
+          <p>Income-tax Act 1961 and 2025, Finance Act 2026, CBDT circulars and notifications; Ministry of Finance small-savings notifications; PFRDA; AMFI NAV history for mutual fund returns.</p>
+        </div>
+        <div>
+          <h4>Disclaimer</h4>
+          <p>General information and education only, not legal, tax, financial or investment advice. Where this differs from the Act, Rules, Circulars or Notifications, those prevail. We are not a SEBI-registered Investment Adviser. Please consult a chartered accountant, tax practitioner or registered adviser before acting.</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 TaxCompass India</span>
+        <span>Your entries stay in your browser. Only the emailed workbook leaves it, with your consent.</span>
+      </div>
     </div>
   </footer>
 

@@ -36,10 +36,24 @@ export async function onRequestPost({ request, env }) {
   if (!filename.endsWith('.xlsx')) return json({ error: 'Only .xlsx attachments are sent.' }, 400);
 
   const safeName = escapeHtml(name);
-  const html = `<p>Hi ${safeName},</p>
-<p>Your monthly budget workbook from TaxCompass India is attached. It contains your income and expense summary, expenses by category, and projections for your SIP and recurring deposit investments.</p>
-<p>We may write to you once to ask what you thought of the app. Reply to this email if you would rather we did not.</p>
-<p style="color:#555;font-size:13px">Projections are illustrative and not guaranteed. Mutual fund investments are subject to market risk. This is not tax, legal or investment advice; please consult your chartered accountant or a SEBI-registered investment adviser before acting.</p>`;
+  const site = new URL(request.url).origin;
+  const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4f6f3;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1c2321">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f3;padding:24px 0"><tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e3e8e0">
+<tr><td style="background:#14532d;padding:18px 24px;color:#ffffff;font-size:18px;font-weight:700">&#8377; TaxCompass <span style="opacity:.8;font-weight:500">India</span></td></tr>
+<tr><td style="padding:24px">
+<p style="margin:0 0 12px;font-size:16px">Hi ${safeName},</p>
+<p style="margin:0 0 12px;line-height:1.5">Your monthly budget workbook is attached. It has four sheets:</p>
+<ul style="margin:0 0 16px 18px;padding:0;line-height:1.6">
+<li><strong>Summary</strong>: income, expenses, investments, what is left, and your expenses by category, with charts</li>
+<li><strong>Expenses</strong>: every line you entered</li>
+<li><strong>Investments</strong>: your SIPs and recurring deposits with projected values</li>
+<li><strong>Notes</strong>: the assumptions behind the numbers</li>
+</ul>
+<p style="margin:0 0 16px;line-height:1.5">You can come back to <a href="${site}" style="color:#1d6b3d">${site.replace(/^https?:\/\//, '')}</a> any time; your entries are saved in your browser.</p>
+<p style="margin:0 0 16px;line-height:1.5;color:#5c6763;font-size:13px">We may write to you once to ask what you thought of the app. Reply to this email if you would rather we did not.</p>
+<p style="margin:0;padding-top:12px;border-top:1px solid #e3e8e0;color:#5c6763;font-size:12px;line-height:1.5">Projections are illustrative and not guaranteed. Mutual fund investments are subject to market risk. This is not tax, legal or investment advice; please consult your chartered accountant or a SEBI-registered investment adviser before acting.</p>
+</td></tr></table></td></tr></table></body></html>`;
 
   try {
     await sendViaBrevo(env, { toName: name, toEmail: email, subject: 'Your TaxCompass budget workbook', html, filename, base64: xlsxBase64 });
