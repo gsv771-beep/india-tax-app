@@ -403,29 +403,30 @@ const VIEWS = {
   },
 
   goal() {
-    const T = field(`Goal amount in today's money (${RUPEE})`, { value: 5000000, min: 0, step: 100000 });
-    const Y = field('Years to goal', { value: 15, min: 1, max: 50, step: 1 });
+    const T = field(`Amount you want to have (${RUPEE})`, { value: 5000000, min: 0, step: 100000 }, 'the actual sum you need in hand when the goal arrives');
+    const Y = field('In how many years', { value: 15, min: 1, max: 50, step: 1 });
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
-    const I = field('Inflation (% p.a.)', { value: 6, min: 0, step: 0.5 });
+    const I = field('Inflation (% p.a.)', { value: 6, min: 0, step: 0.5 }, 'only used to show what that amount is worth in today\'s money');
     const out = el('div');
     const render = () => {
-      const t = v(T), y = v(Y), r = v(R), inf = v(I);
-      const future = t * Math.pow(1 + inf / 100, y);
-      const sip = requiredSip(future, r, y);
-      const lump = future / Math.pow(1 + r / 100, y);
-      const real = ((1 + r / 100) / (1 + inf / 100) - 1) * 100;
+      const target = v(T), y = v(Y), r = v(R), inf = v(I);
+      const sip = requiredSip(target, r, y);
+      const lump = target / Math.pow(1 + r / 100, y);
+      const todayValue = target / Math.pow(1 + inf / 100, y);
+      const invested = sip * 12 * y;
       setChildren(out, [
         el('div', { class: 'stats' }, [
-          stat('Future cost of goal', inr(future), true),
-          stat('Monthly SIP needed', inr(sip)),
-          stat('Or invest today', inr(lump)),
-          stat('Real return', real.toFixed(2) + '%'),
+          stat('Monthly SIP needed', inr(sip), true),
+          stat('Or invest today, once', inr(lump)),
+          stat('Total you would put in via SIP', inr(invested)),
+          stat("Worth in today's money", inr(todayValue)),
         ]),
-        el('p', { class: 'muted' }, `${inr(t)} today costs ${inr(future)} in ${y} years at ${inf}% inflation. The real return of ${real.toFixed(2)}% is computed as (1+nominal)/(1+inflation) − 1, not nominal minus inflation.`),
+        el('p', { class: 'explain' }, `To have ${inr(target)} in ${y} years at ${r}% a year, invest ${inr(sip)} every month, or ${inr(lump)} today. With ${inf}% inflation, ${inr(target)} then buys what ${inr(todayValue)} buys now.`),
+        el('p', { class: 'muted' }, 'If the amount you typed is what the goal costs today, it will cost more by the time you get there. Multiply it by (1 + inflation) for each year, or ask for a higher target here.'),
         disclaimer('invest'),
       ]);
     };
-    remember('goal', [T.input, Y.input, R.input, I.input]);
+    remember('goal2', [T.input, Y.input, R.input, I.input]);
     [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     render();
     return calcShell([T.node, Y.node, R.node, I.node], out);

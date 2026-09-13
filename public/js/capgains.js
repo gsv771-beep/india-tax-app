@@ -184,21 +184,24 @@ export function renderCapitalGains(data) {
   const otherLtcg = mk('otherEquityLtcgThisYear', { step: 1000 }, 'Other listed-equity LTCG already booked this year (₹)', 'the ₹1,25,000 exemption is shared across the year');
 
   const out = el('div');
-  const inputsCard = el('div', { class: 'card inputs' });
+  // Build the input panel once; render() only shows or hides the conditional fields, so typing never loses focus.
+  const impRow = el('div', { class: 'two' }, [impAmount.node, impFy.node]);
+  const inputsCard = el('div', { class: 'card inputs' }, [
+    asset.node, el('div', { class: 'two' }, [buyDate.node, sellDate.node]),
+    cost.node, fmv2001.node, impRow, sale.node, expenses.node, fmv2018.node, otherLtcg.node, resident.node, slab.node,
+  ]);
 
   function render() {
     const a = st.asset;
     const buyT = parse(st.buyDate);
-    setChildren(inputsCard, [
-      asset.node, el('div', { class: 'two' }, [buyDate.node, sellDate.node]),
-      a === 'property' && buyT && buyT < parse('2001-04-01') ? fmv2001.node : cost.node,
-      a === 'property' ? el('div', { class: 'two' }, [impAmount.node, impFy.node]) : null,
-      sale.node, expenses.node,
-      a === 'equity' && buyT && buyT <= parse(data.assets.equity.grandfather_date) ? fmv2018.node : null,
-      a === 'equity' ? otherLtcg.node : null,
-      a === 'property' ? resident.node : null,
-      a !== 'equity' ? slab.node : null,
-    ]);
+    const useFmv2001 = a === 'property' && buyT && buyT < parse('2001-04-01');
+    cost.node.hidden = useFmv2001;
+    fmv2001.node.hidden = !useFmv2001;
+    impRow.hidden = a !== 'property';
+    fmv2018.node.hidden = !(a === 'equity' && buyT && buyT <= parse(data.assets.equity.grandfather_date));
+    otherLtcg.node.hidden = a !== 'equity';
+    resident.node.hidden = a !== 'property';
+    slab.node.hidden = a === 'equity';
 
     const r = computeCapitalGains({
       asset: a, buyDate: st.buyDate, sellDate: st.sellDate, cost: st.cost, fmv2001: st.fmv2001, sale: st.sale, expenses: st.expenses,
