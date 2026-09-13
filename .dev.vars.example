@@ -1,0 +1,5 @@
+# Environment for the optional email function (functions/api/send-workbook.js).
+# Set these in Cloudflare Pages -> Settings -> Variables and Secrets. Never commit real values.
+BREVO_API_KEY=xkeysib-...
+MAIL_FROM_EMAIL=you@yourdomain.com
+MAIL_FROM_NAME=TaxCompass India

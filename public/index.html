@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TaxCompass India</title>
+  <meta name="description" content="Old vs new regime tax comparison, EMI, SIP and lumpsum calculators with historical mutual fund returns, glossary and government savings schemes for Indian taxpayers.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a href="#tax" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span></a>
+      <nav class="tabs" aria-label="Sections">
+        <a href="#tax" data-tab="tax">Tax comparison</a>
+        <a href="#calculators" data-tab="calculators">Calculators</a>
+        <a href="#schemes" data-tab="schemes">Schemes &amp; NPS</a>
+        <a href="#glossary" data-tab="glossary">Glossary</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div id="loading" class="notice">Loading data…</div>
+
+    <!-- ============ TAX COMPARISON ============ -->
+    <section id="tax" class="panel" hidden>
+      <div class="panel-head">
+        <h1>Old regime or new regime?</h1>
+        <p>Answer a few questions. Both regimes are computed side by side, line by line, for FY 2025-26 and FY 2026-27 (rates are identical; the governing Act and section numbers differ).</p>
+      </div>
+
+      <div class="tax-layout">
+        <form id="tax-form" class="tax-form" autocomplete="off">
+          <details open class="stage">
+            <summary><span class="step">1</span> Essentials</summary>
+            <div class="grid">
+              <label>Financial year
+                <select data-path="fy">
+                  <option value="FY2026-27">FY 2026-27 (current, Income-tax Act 2025)</option>
+                  <option value="FY2025-26">FY 2025-26 (Income-tax Act 1961)</option>
+                </select>
+              </label>
+              <label>Residential status
+                <select data-path="resident" data-type="bool">
+                  <option value="true">Resident</option>
+                  <option value="false">Non-resident (NRI)</option>
+                </select>
+              </label>
+              <label>Age
+                <select data-path="ageBand">
+                  <option value="below_60">Below 60</option>
+                  <option value="senior_60_to_79">60 to 79</option>
+                  <option value="super_senior_80_plus">80 and above</option>
+                </select>
+              </label>
+              <label>Gross annual salary or pension (₹)
+                <input type="number" min="0" step="1000" data-path="salary.gross" placeholder="e.g. 1500000">
+              </label>
+              <label>Annual Basic + DA (₹) <small>drives HRA and employer NPS caps</small>
+                <input type="number" min="0" step="1000" data-path="salary.basicDa" placeholder="usually 40-50% of gross">
+              </label>
+              <label>Business / professional income (₹)
+                <input type="number" step="1000" data-path="business.income" placeholder="0">
+              </label>
+              <label class="check"><input type="checkbox" data-path="hasBusinessIncome"> I have business or professional income (regime switching is restricted)</label>
+            </div>
+          </details>
+
+          <details class="stage">
+            <summary><span class="step">2</span> Other income and capital gains</summary>
+            <div class="grid">
+              <label>Savings account interest (₹)<input type="number" min="0" step="100" data-path="otherIncome.savingsInterest"></label>
+              <label>FD / RD interest (₹)<input type="number" min="0" step="100" data-path="otherIncome.depositInterest"></label>
+              <label>Dividends (₹)<input type="number" min="0" step="100" data-path="otherIncome.dividends"></label>
+              <label>Other income (₹)<input type="number" step="100" data-path="otherIncome.other"></label>
+              <label>STCG on listed equity / equity MF (₹) <small>held 12 months or less, taxed at 20%</small><input type="number" min="0" step="1000" data-path="capitalGains.stcgEquity"></label>
+              <label>LTCG on listed equity / equity MF (₹) <small>first ₹1,25,000 exempt, then 12.5%</small><input type="number" min="0" step="1000" data-path="capitalGains.ltcgEquity"></label>
+              <label>LTCG on other assets (₹) <small>12.5% without indexation</small><input type="number" min="0" step="1000" data-path="capitalGains.ltcgOther"></label>
+              <label>Lottery / online gaming / crypto gains (₹) <small>30%</small><input type="number" min="0" step="1000" data-path="capitalGains.lottery"></label>
+            </div>
+          </details>
+
+          <details class="stage">
+            <summary><span class="step">3</span> House property</summary>
+            <div class="grid">
+              <label>Home loan interest, self-occupied (₹) <small>old regime only, cap ₹2,00,000</small><input type="number" min="0" step="1000" data-path="houseProperty.selfOccupiedInterest"></label>
+              <label>Rent received, let-out property (₹)<input type="number" min="0" step="1000" data-path="houseProperty.letOut.rent"></label>
+              <label>Municipal tax paid (₹)<input type="number" min="0" step="100" data-path="houseProperty.letOut.municipalTax"></label>
+              <label>Home loan interest, let-out (₹) <small>uncapped in both regimes; loss is stranded in the new</small><input type="number" min="0" step="1000" data-path="houseProperty.letOut.interest"></label>
+            </div>
+          </details>
+
+          <details class="stage">
+            <summary><span class="step">4</span> Salary exemptions and deductions <small>(mostly old regime)</small></summary>
+            <div class="grid">
+              <label>HRA received (₹)<input type="number" min="0" step="1000" data-path="salary.hraReceived"></label>
+              <label>Annual rent paid (₹)<input type="number" min="0" step="1000" data-path="salary.rentPaid"></label>
+              <label>City
+                <select data-path="salary.city">
+                  <option>Other</option><option>Delhi</option><option>Mumbai</option><option>Kolkata</option><option>Chennai</option>
+                  <option>Bengaluru</option><option>Hyderabad</option><option>Pune</option><option>Ahmedabad</option>
+                </select>
+              </label>
+              <label>LTA exemption claimable (₹) <small>travel fare only</small><input type="number" min="0" step="1000" data-path="salary.ltaExempt"></label>
+              <label>Professional tax paid (₹)<input type="number" min="0" step="100" data-path="salary.professionalTax" placeholder="e.g. 2500"></label>
+              <label>80C investments (₹) <small>PPF, ELSS, EPF, LIC, home loan principal, tuition</small><input type="number" min="0" step="1000" data-path="deductions.s80c"></label>
+              <label>Own NPS contribution, 80CCD(1B) (₹)<input type="number" min="0" step="1000" data-path="deductions.nps1b"></label>
+              <label>Health insurance, self and family (₹)<input type="number" min="0" step="500" data-path="deductions.healthSelf"></label>
+              <label>Health insurance, parents (₹)<input type="number" min="0" step="500" data-path="deductions.healthParents"></label>
+              <label class="check"><input type="checkbox" data-path="deductions.parentsSenior"> Parents are 60 or above</label>
+              <label>Education loan interest (₹)<input type="number" min="0" step="1000" data-path="deductions.educationLoanInterest"></label>
+              <label>Donations, 80G (₹)<input type="number" min="0" step="500" data-path="deductions.donations"></label>
+              <label>Donation category
+                <select data-path="deductions.donationCategory">
+                  <option value="D">Approved charity (50%, within 10% of income)</option>
+                  <option value="A">PM National Relief Fund etc. (100%, no limit)</option>
+                  <option value="B">Specified funds (50%, no limit)</option>
+                  <option value="C">Specified purposes (100%, within 10% of income)</option>
+                </select>
+              </label>
+              <label>Disability
+                <select data-path="deductions.disability">
+                  <option value="none">None</option>
+                  <option value="self_40">Self, 40 to 79%</option>
+                  <option value="self_80">Self, 80% or more</option>
+                  <option value="dependant_40">Dependant, 40 to 79%</option>
+                  <option value="dependant_80">Dependant, 80% or more</option>
+                </select>
+              </label>
+            </div>
+          </details>
+
+          <details class="stage">
+            <summary><span class="step">5</span> Employer contributions and perquisites <small>(both regimes)</small></summary>
+            <div class="grid">
+              <label>Employer NPS contribution (₹) <small>14% cap in new regime for everyone; 10% for private employers in old</small><input type="number" min="0" step="1000" data-path="employer.npsContribution"></label>
+              <label class="check"><input type="checkbox" data-path="employer.isGovernment"> Central or State Government employer</label>
+              <label>Employer PF + superannuation + NPS combined (₹) <small>above ₹7,50,000 is a taxable perquisite</small><input type="number" min="0" step="1000" data-path="employer.totalRetirementContribution"></label>
+              <label>Other taxable perquisites (₹) <small>company car, accommodation, per your Form 16</small><input type="number" min="0" step="1000" data-path="perquisites.other"></label>
+            </div>
+          </details>
+
+          <div class="form-actions">
+            <button type="button" id="tax-reset" class="btn secondary">Reset</button>
+          </div>
+        </form>
+
+        <div class="tax-results">
+          <div id="tax-headline" class="headline"></div>
+          <div id="tax-warnings"></div>
+          <div id="tax-table"></div>
+          <div id="tax-notes"></div>
+          <details class="provisions">
+            <summary>Provision-by-provision reference (what each regime allows)</summary>
+            <div id="provision-table"></div>
+          </details>
+          <div class="disclaimer" role="note"><strong>Please note.</strong> This is an estimate for information only and is not tax advice. Please consult your tax consultant or chartered accountant before taking any decision.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CALCULATORS ============ -->
+    <section id="calculators" class="panel" hidden>
+      <div class="panel-head">
+        <h1>Calculators</h1>
+        <p>Illustrative projections. Returns are not guaranteed. Mutual fund investments are subject to market risk. Where a calculator shows fund categories and funds, they are historical returns from AMFI NAV data to help you sanity-check the return you assumed, not a recommendation to invest.</p>
+      </div>
+      <div class="subtabs" id="calc-tabs">
+        <button data-calc="budget">Expenses &amp; savings</button>
+        <button data-calc="emi" class="active">EMI</button>
+        <button data-calc="sip">SIP</button>
+        <button data-calc="lumpsum">Lumpsum</button>
+        <button data-calc="goal">Goal planner</button>
+      </div>
+      <div id="calc-body"></div>
+    </section>
+
+    <!-- ============ SCHEMES ============ -->
+    <section id="schemes" class="panel" hidden>
+      <div class="panel-head">
+        <h1>NPS and government savings schemes</h1>
+        <p>Compare government-backed schemes by type, issuer, rate, lock-in and tax treatment. Information only, not a recommendation.</p>
+      </div>
+      <div id="schemes-body"></div>
+    </section>
+
+    <!-- ============ GLOSSARY ============ -->
+    <section id="glossary" class="panel" hidden>
+      <div class="panel-head">
+        <h1>Glossary</h1>
+        <p>Plain-language definitions of Indian tax and personal-finance terms.</p>
+      </div>
+      <div class="glossary-controls">
+        <input type="search" id="glossary-search" placeholder="Search terms, e.g. 80C, XIRR, marginal relief">
+        <div id="glossary-cats" class="chips"></div>
+      </div>
+      <div id="glossary-list" class="glossary-list"></div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><strong>Disclaimer.</strong> The information provided is for general informational and educational purposes only and does not constitute legal, tax, financial or investment advice. It should not be construed as a statement of law. In case of any variance between the information here and the relevant Act, Rules, Regulations, Circulars or Notifications, the latter shall prevail. Tax treatment depends on individual circumstances and on the year concerned, and may change. We are not a SEBI-registered Investment Adviser and do not recommend any security or investment product. Please consult a qualified chartered accountant, tax practitioner or registered investment adviser before acting.</p>
+      <p class="muted">Rates and provisions as compiled on 13 September 2026 for FY 2025-26 and FY 2026-27. <span id="data-stamp"></span></p>
+    </div>
+  </footer>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

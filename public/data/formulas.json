@@ -1,0 +1,161 @@
+{
+  "_meta": {
+    "file": "formulas.json",
+    "purpose": "Every formula your calculators need, with worked examples you can turn directly into unit tests.",
+    "note": "These are mathematical identities, not tax law. They do not change year to year. The only judgement calls are rounding, compounding frequency and whether to show pre- or post-tax returns.",
+    "convention": "All rates are annual nominal unless stated. n = number of periods. Round only at display time, never mid-calculation."
+  },
+
+  "emi": {
+    "name": "Equated Monthly Instalment",
+    "formula": "EMI = P * r * (1+r)^n / ((1+r)^n - 1)",
+    "variables": {
+      "P": "principal loan amount",
+      "r": "monthly interest rate = annual_rate / 12 / 100",
+      "n": "tenure in months"
+    },
+    "edge_case_zero_interest": "If r = 0, EMI = P / n. Guard against division by zero.",
+    "derived": {
+      "total_payment": "EMI * n",
+      "total_interest": "(EMI * n) - P"
+    },
+    "amortisation_schedule": {
+      "per_month": [
+        "interest_component = outstanding_balance * r",
+        "principal_component = EMI - interest_component",
+        "closing_balance = outstanding_balance - principal_component"
+      ],
+      "note": "Float drift accumulates over 240-360 rows. Compute in integer paise, or force the final instalment to clear the residual balance exactly."
+    },
+    "worked_example": {
+      "inputs": {"P": 5000000, "annual_rate": 8.5, "tenure_years": 20},
+      "r": 0.00708333,
+      "n": 240,
+      "emi": 43391,
+      "total_payment": 10413840,
+      "total_interest": 5413840,
+      "note": "Interest exceeds principal. Worth showing prominently - it is the single most useful thing an EMI calculator can tell a user."
+    },
+    "prepayment_scenarios": {
+      "reduce_tenure": "Recompute n from the reduced balance holding EMI constant. n_new = -log(1 - (B*r)/EMI) / log(1+r)",
+      "reduce_emi": "Recompute EMI from the reduced balance holding n constant.",
+      "guidance": "Reducing tenure almost always saves more interest than reducing EMI. Show both, with the interest saved for each."
+    },
+    "tax_interaction": {
+      "self_occupied": "Interest deductible up to Rs 2,00,000 under 24(b) - OLD REGIME ONLY. Principal within the Rs 1.5L 80C cap - OLD REGIME ONLY.",
+      "let_out": "Interest uncapped in both regimes, but in the new regime any resulting loss cannot be set off against salary or carried forward.",
+      "app_idea": "Show effective post-tax EMI cost by regime. This is a genuine differentiator over generic EMI calculators."
+    }
+  },
+
+  "lumpsum_future_value": {
+    "name": "Mutual fund lumpsum appreciation",
+    "formula": "FV = P * (1 + r)^n",
+    "variables": {"P": "amount invested", "r": "annual rate as a decimal", "n": "years"},
+    "with_compounding_frequency": "FV = P * (1 + r/m)^(n*m), where m = compounding periods per year",
+    "note": "Mutual funds do not 'compound' at a stated frequency - NAV moves continuously. Annual compounding is the correct convention for projections.",
+    "derived": {
+      "absolute_return_pct": "(FV - P) / P * 100",
+      "cagr": "(FV / P)^(1/n) - 1"
+    },
+    "worked_example": {
+      "inputs": {"P": 1000000, "annual_rate": 0.12, "years": 10},
+      "fv": 3105848,
+      "gain": 2105848,
+      "absolute_return_pct": 210.58
+    }
+  },
+
+  "sip_future_value": {
+    "name": "SIP future value (ordinary annuity, end of period)",
+    "formula": "FV = A * [ ((1+i)^n - 1) / i ]",
+    "formula_annuity_due": "FV = A * [ ((1+i)^n - 1) / i ] * (1+i)",
+    "which_to_use": "Most Indian SIP calculators use the ANNUITY-DUE form (multiply by (1+i)) because the instalment is debited at the START of the period. Pick one, state it in the UI, and be consistent. The difference on a 20-year SIP is material.",
+    "variables": {
+      "A": "monthly SIP amount",
+      "i": "monthly rate = annual_rate / 12",
+      "n": "number of instalments = years * 12"
+    },
+    "edge_case_zero_rate": "If i = 0, FV = A * n",
+    "derived": {
+      "total_invested": "A * n",
+      "wealth_gained": "FV - (A * n)"
+    },
+    "worked_example_annuity_due": {
+      "inputs": {"A": 10000, "annual_rate": 0.12, "years": 10},
+      "i": 0.01,
+      "n": 120,
+      "fv": 2323391,
+      "total_invested": 1200000,
+      "wealth_gained": 1123391
+    }
+  },
+
+  "step_up_sip": {
+    "name": "Step-up / top-up SIP (annual increase)",
+    "note": "No clean closed form. Compute year by year and compound each year's accumulated balance forward.",
+    "algorithm": [
+      "balance = 0",
+      "amount = initial_monthly_sip",
+      "for each year y in 1..Y:",
+      "    for each month in 1..12:",
+      "        balance = (balance + amount) * (1 + i)      # annuity due",
+      "    amount = amount * (1 + step_up_rate)",
+      "return balance"
+    ],
+    "worked_example": {
+      "inputs": {"initial_monthly": 10000, "step_up_pct": 0.10, "annual_rate": 0.12, "years": 10},
+      "approx_fv": 3352000,
+      "total_invested": 1912000,
+      "comparison": "A flat Rs 10,000 SIP over the same period reaches about Rs 23.2 lakh. A 10% annual step-up reaches about Rs 33.5 lakh. This comparison is the most persuasive screen a SIP calculator can show."
+    }
+  },
+
+  "swp": {
+    "name": "Systematic Withdrawal Plan",
+    "algorithm": [
+      "balance = corpus",
+      "for each month:",
+      "    balance = balance * (1 + i) - withdrawal",
+      "    if balance <= 0: corpus exhausted at this month"
+    ],
+    "sustainable_withdrawal": "For a perpetual SWP, monthly withdrawal must be <= balance * i. Show the user the crossover point.",
+    "tax_note": "Each SWP withdrawal is a redemption and triggers capital gains on the units redeemed, computed FIFO. Equity: 12.5% LTCG above Rs 1,25,000/year, 20% STCG. Debt funds bought on or after 1 Apr 2023: slab rate regardless of holding period."
+  },
+
+  "xirr": {
+    "name": "Extended Internal Rate of Return",
+    "why": "The ONLY correct return measure for irregular cashflows - a real portfolio with SIPs, lumpsums, redemptions and switches. CAGR is wrong for anything other than a single in and a single out.",
+    "equation": "0 = sum over i of [ CF_i / (1 + rate)^((d_i - d_0) / 365) ]",
+    "method": "Newton-Raphson, falling back to bisection when it fails to converge",
+    "implementation_notes": [
+      "Seed the guess at 0.10. Newton-Raphson usually converges in under 20 iterations.",
+      "Bisection fallback over [-0.99, 10.0] is essential - portfolios with large early losses break Newton-Raphson.",
+      "Sign convention: investments negative, redemptions and current value positive.",
+      "The final row must be the CURRENT VALUE as a positive cashflow dated today.",
+      "Use actual/365 day counting."
+    ],
+    "xirr_vs_cagr": "CAGR = (end/start)^(1/years) - 1 and is valid only for a single lumpsum. Never present CAGR on a SIP portfolio - it will be wrong and users who check elsewhere will lose trust in the whole app."
+  },
+
+  "goal_planning": {
+    "required_sip": "A = FV * i / (((1+i)^n - 1) * (1+i))     # annuity due",
+    "required_lumpsum": "P = FV / (1+r)^n",
+    "inflation_adjusted_target": "future_cost = present_cost * (1 + inflation)^years",
+    "real_rate_of_return": "real_r = (1 + nominal_r) / (1 + inflation) - 1",
+    "note": "Do NOT approximate the real rate as nominal minus inflation. At 12% nominal and 6% inflation the approximation gives 6.00% but the correct figure is 5.66%. Over 25 years that error compounds into a materially wrong SIP target."
+  },
+
+  "other_useful": {
+    "rule_of_72": "years_to_double = 72 / annual_rate_pct. Rough, good for intuition, never for a plan.",
+    "effective_annual_rate": "EAR = (1 + nominal/m)^m - 1, where m = compounding periods per year. Needed to compare a quarterly-compounded NSC against an annually-compounded PPF honestly.",
+    "post_tax_return": "post_tax = pre_tax * (1 - marginal_rate) for fully taxable interest (FD, NSC, SCSS, RBI bonds). Tax-free instruments (PPF, SSY) keep the full rate. Comparing an 8.2% SCSS against a 7.1% PPF without this adjustment is misleading for anyone in the 30% bracket.",
+    "post_tax_worked_example": "SCSS at 8.20% taxable at 30% plus 4% cess gives an effective 5.54%. PPF at 7.10% tax-free stays 7.10%. The apparently lower-yielding instrument wins comfortably for a high-bracket investor. This single comparison is worth building as a feature."
+  },
+
+  "display_conventions": {
+    "rounding": "Round only at display. Currency to the nearest rupee; percentages to 2 decimals.",
+    "indian_numbering": "Format as lakh and crore with Indian digit grouping (12,34,567), not Western (1,234,567). Users will not trust a rupee figure grouped the Western way.",
+    "disclaimers": "Every projection screen needs: 'Returns are illustrative, not guaranteed. Mutual fund investments are subject to market risk.' Non-negotiable for a public-facing app."
+  }
+}

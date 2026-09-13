@@ -1,0 +1,440 @@
+{
+  "_meta": {
+    "file": "deductions.json",
+    "purpose": "Parameter-by-parameter old-regime vs new-regime matrix. This is the data behind your two-column comparison screen.",
+    "compiled_on": "2026-09-13",
+    "applies_to": ["FY2025-26 (AY 2026-27, 1961 Act)", "FY2026-27 (tax year 2026-27, 2025 Act)"],
+    "key_insight": "NOTHING was abolished in the 1961 to 2025 transition. Every deduction was carried over and renumbered. The old-vs-new REGIME split is unchanged; it is the SECTION NUMBERS that moved.",
+    "field_key": {
+      "old_regime": "true = claimable under the old regime",
+      "new_regime": "true = claimable under the new regime (s.115BAC / s.202)",
+      "confidence": "verified | corroborated | unverified"
+    }
+  },
+
+  "new_regime_survivor_list": {
+    "_note": "Build the new-regime branch of your calculator from EXACTLY this list. Everything else is old-regime only.",
+    "items": [
+      "Standard deduction on salary - Rs 75,000",
+      "Family pension deduction - Rs 25,000 or 1/3",
+      "80CCD(2) / s.124 - employer NPS contribution at 14% of Basic+DA for ALL employers",
+      "80CCH / s.125 - Agniveer Corpus Fund",
+      "80JJAA / s.146 - additional employee cost",
+      "24(b) - interest on LET-OUT property, uncapped (but the resulting loss is stranded - see house_property_loss_trap)",
+      "24(a) - 30% standard deduction on Net Annual Value",
+      "Gratuity, leave encashment, commuted pension, VRS, retrenchment compensation (s.19)",
+      "Duty allowances - tour, transfer, daily, conveyance, helper, academic, uniform (actuals only)",
+      "Transport allowance for specially-abled employees",
+      "Employer EPF contribution (within the Rs 7.5L combined cap)",
+      "PPF / SSY / NPS / 10(10D) life insurance maturity exemptions",
+      "Post office savings interest - Rs 3,500 individual / Rs 7,000 joint"
+    ]
+  },
+
+  "deductions": [
+    {
+      "id": "std_deduction_salary", "name": "Standard deduction (salary/pension)",
+      "s1961": "16(ia)", "s2025": "19(1)",
+      "limit_old": 50000, "limit_new": 75000,
+      "conditions": "Salaried and pensioners only. No bills required. Lower of the cap and salary.",
+      "old_regime": true, "new_regime": true, "confidence": "verified"
+    },
+    {
+      "id": "family_pension", "name": "Family pension deduction",
+      "s1961": "57(iia)", "s2025": "93 / 61",
+      "limit_old": 15000, "limit_new": 25000,
+      "conditions": "Lower of one-third of family pension and the cap. Taxed under Income from Other Sources.",
+      "old_regime": true, "new_regime": true, "confidence": "verified"
+    },
+    {
+      "id": "professional_tax", "name": "Professional / employment tax",
+      "s1961": "16(iii)", "s2025": "19",
+      "limit_old": "actual paid (typically Rs 2,400-2,500)", "limit_new": 0,
+      "conditions": "Levied under Article 276(2). Actual amount paid.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "entertainment_allowance", "name": "Entertainment allowance",
+      "s1961": "16(ii)", "s2025": "19",
+      "limit_old": "least of Rs 5,000 / 20% of salary / actual", "limit_new": 0,
+      "conditions": "GOVERNMENT EMPLOYEES ONLY.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80C", "name": "Investments and specified payments",
+      "s1961": "80C (+80CCC, aggregated by 80CCE)", "s2025": "123 r/w Schedule XV",
+      "limit_old": 150000, "limit_new": 0,
+      "conditions": "Individuals and HUFs only. Aggregate cap across 80C + 80CCC + 80CCD(1). Unchanged since FY 2014-15.",
+      "qualifying_items": [
+        "Life insurance premium (self, spouse, children)",
+        "EPF contribution (employee share)",
+        "PPF deposits",
+        "NSC (accrued interest also re-qualifies)",
+        "ELSS mutual funds (3-year lock-in)",
+        "ULIPs",
+        "5-year tax-saver fixed deposits with scheduled banks",
+        "NPS Tier I (overlaps 80CCD(1))",
+        "Senior Citizens Savings Scheme (SCSS)",
+        "Sukanya Samriddhi Yojana (SSY)",
+        "Home loan PRINCIPAL repayment",
+        "Stamp duty and registration charges (year of purchase only)",
+        "Tuition fees - max 2 children, full-time, in India",
+        "Deferred annuity plans",
+        "Notified pension fund contributions"
+      ],
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80CCC", "name": "Pension fund contribution (LIC etc.)",
+      "s1961": "80CCC", "s2025": "123",
+      "limit_old": "within the Rs 1.5L 80C cap", "limit_new": 0,
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80CCD1", "name": "NPS - own contribution",
+      "s1961": "80CCD(1)", "s2025": "124",
+      "limit_old": "Salaried: 10% of Basic+DA. Self-employed: 20% of GTI. Inside the Rs 1.5L cap.", "limit_new": 0,
+      "conditions": "Tier I only.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80CCD1B", "name": "NPS - additional deduction",
+      "s1961": "80CCD(1B)", "s2025": "124",
+      "limit_old": 50000, "limit_new": 0,
+      "conditions": "Over and above the Rs 1.5L cap. Tier I only. Total personal NPS benefit Rs 2L in the old regime.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80CCD2", "name": "NPS - EMPLOYER contribution",
+      "s1961": "80CCD(2)", "s2025": "124",
+      "limit_old": "Government employer: 14% of Basic+DA. Private employer: 10% of Basic+DA.",
+      "limit_new": "ALL employers: 14% of Basic+DA.",
+      "conditions": "Salaried only; the self-employed cannot claim. No rupee ceiling, only a percentage cap. Must ALSO pass the Rs 7.5L combined employer-contribution cap - two independent gates.",
+      "old_regime": true, "new_regime": true, "confidence": "verified",
+      "flag": "HIGHEST-IMPACT NEW-REGIME LEVER. A private-sector employee gains 4 extra percentage points of Basic+DA in the new regime. On Rs 20L of Basic+DA that is Rs 80,000 of deduction available ONLY in the new regime. A comparison engine that ignores this systematically understates the new regime."
+    },
+    {
+      "id": "80CCH", "name": "Agniveer Corpus Fund",
+      "s1961": "80CCH", "s2025": "125",
+      "limit_old": "own contribution PLUS the Government's matching contribution, in full",
+      "limit_new": "same",
+      "conditions": "Agnipath Scheme enrollees, from FY 2022-23.",
+      "old_regime": true, "new_regime": true, "confidence": "verified"
+    },
+    {
+      "id": "80D", "name": "Health insurance premium",
+      "s1961": "80D", "s2025": "126",
+      "limit_new": 0,
+      "limit_old_matrix": [
+        {"scenario": "Self + family, all under 60", "limit": 25000},
+        {"scenario": "Self + family under 60, parents under 60", "limit": 50000, "split": "25000 + 25000"},
+        {"scenario": "Self + family under 60, parents 60+", "limit": 75000, "split": "25000 + 50000"},
+        {"scenario": "Self + family 60+, parents 60+", "limit": 100000, "split": "50000 + 50000"}
+      ],
+      "sub_rules": {
+        "preventive_health_checkup": "Rs 5,000 - WITHIN, not on top of, the above limits",
+        "seniors_without_insurance": "May claim actual medical expenditure up to the Rs 50,000 ceiling instead of premium",
+        "huf_eligible": true,
+        "payment_mode_premium": "any mode EXCEPT cash",
+        "payment_mode_preventive_checkup": "cash allowed",
+        "payment_mode_medical_expenditure": "cash NOT allowed",
+        "maximum_theoretical": 100000
+      },
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80DD", "name": "Maintenance of a disabled dependant",
+      "s1961": "80DD", "s2025": "127",
+      "limit_old": {"disability_40_to_79_pct": 75000, "severe_80_pct_plus": 125000}, "limit_new": 0,
+      "conditions": "FLAT deduction, not expense-linked. Dependant = spouse, children, parents, siblings. Cannot also claim 80U for the same person.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80DDB", "name": "Medical treatment - specified diseases",
+      "s1961": "80DDB", "s2025": "128",
+      "limit_old": {"below_60": 40000, "senior_60_plus": 100000}, "limit_new": 0,
+      "conditions": "Actual expenditure, reduced by insurance or employer reimbursement. Specialist prescription required.",
+      "specified_diseases": ["cancer", "neurological conditions (dementia, dystonia musculorum deformans, Parkinson's, motor neuron disease, chorea, ataxia, aphasia, hemiballismus)", "thalassaemia", "haemophilia", "chronic renal failure", "AIDS"],
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80U", "name": "Self with disability",
+      "s1961": "80U", "s2025": "154",
+      "limit_old": {"disability_40_to_79_pct": 75000, "severe_80_pct_plus": 125000}, "limit_new": 0,
+      "conditions": "Certificate from a Government hospital medical authority; Form 10-IA. Permanent disability needs no annual renewal.",
+      "covered_disabilities": ["blindness", "low vision", "leprosy-cured", "hearing impairment", "locomotor disability", "mental retardation", "mental illness", "autism spectrum disorder", "cerebral palsy", "multiple disabilities"],
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80E", "name": "Education loan interest",
+      "s1961": "80E", "s2025": "129",
+      "limit_old": "no monetary cap - entire interest", "limit_new": 0,
+      "conditions": "Max 8 consecutive years from the year repayment starts, or until interest is fully repaid. Loan from a bank, approved FI or charitable institution. For self, spouse, children or ward. PRINCIPAL is not deductible.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80EE", "name": "Home loan interest - first-time buyer",
+      "s1961": "80EE", "s2025": "130",
+      "limit_old": 50000, "limit_new": 0,
+      "conditions": "Loan sanctioned in FY 2016-17; property value <= Rs 50L; loan <= Rs 35L; no other house owned.",
+      "status": "CLOSED TO NEW LOANS",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80EEA", "name": "Home loan interest - affordable housing",
+      "s1961": "80EEA", "s2025": "131",
+      "limit_old": 150000, "limit_new": 0,
+      "conditions": "Loan sanctioned 1 Apr 2019 - 31 Mar 2022; stamp duty value <= Rs 45L; no other house owned.",
+      "status": "CLOSED TO NEW LOANS",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80EEB", "name": "Electric vehicle loan interest",
+      "s1961": "80EEB", "s2025": "132",
+      "limit_old": 150000, "limit_new": 0,
+      "conditions": "Loan sanctioned 1 Apr 2019 - 31 Mar 2023 from a bank or NBFC.",
+      "status": "CLOSED TO NEW LOANS",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80G", "name": "Donations",
+      "s1961": "80G", "s2025": "133",
+      "limit_new": 0,
+      "categories": [
+        {"cat": "A", "rate": 1.00, "qualifying_limit": false, "examples": "National Defence Fund, PM CARES Fund, PM National Relief Fund, National Children's Fund, approved universities of national eminence, National Blood Transfusion Council"},
+        {"cat": "B", "rate": 0.50, "qualifying_limit": false, "examples": "PM Drought Relief Fund; certain memorial funds (several discontinued from FY 2023-24)"},
+        {"cat": "C", "rate": 1.00, "qualifying_limit": true, "examples": "Family planning promotion; sports infrastructure via approved bodies"},
+        {"cat": "D", "rate": 0.50, "qualifying_limit": true, "examples": "Approved charitable institutions; local authority for charitable purposes (excl. family planning); renovation of notified temples/mosques/churches of historic importance"}
+      ],
+      "qualifying_limit_rule": "10% of adjusted gross total income (adjusted GTI excludes certain capital gains, exempt income and Chapter VI-A deductions)",
+      "cash_cap": 2000,
+      "in_kind": "NOT deductible at all",
+      "documentation": "Donee must report the donation; Form 10BE certificate; donee's 80G registration number",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80GG", "name": "Rent paid where no HRA is received",
+      "s1961": "80GG", "s2025": "134",
+      "limit_old": "LEAST of: (a) Rs 5,000/month = Rs 60,000/yr; (b) 25% of adjusted total income; (c) rent paid minus 10% of adjusted total income",
+      "limit_new": 0,
+      "conditions": "Must NOT receive HRA. Must not own residential property at the work or residence location (nor spouse / minor child / HUF). Form 10BA declaration required.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80GGC", "name": "Political contributions - individual",
+      "s1961": "80GGC", "s2025": "137",
+      "limit_old": "100% of contribution, no upper cap", "limit_new": 0,
+      "conditions": "CASH STRICTLY DISALLOWED. To a registered political party or electoral trust. High scrutiny / notice risk.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80GGA", "name": "Scientific research donations",
+      "s1961": "80GGA", "s2025": "135",
+      "limit_old": "100%", "limit_new": 0,
+      "conditions": "Cash above Rs 2,000 disallowed. Not for those with business income.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80TTA", "name": "Savings account interest (under 60)",
+      "s1961": "80TTA", "s2025": "153",
+      "limit_old": 10000, "limit_new": 0,
+      "conditions": "SAVINGS BANK ACCOUNTS ONLY (bank / co-op / post office). FDs and RDs excluded. Individuals and HUF under 60.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "80TTB", "name": "Deposit interest - senior citizens",
+      "s1961": "80TTB", "s2025": "153",
+      "limit_old": 50000, "limit_new": 0,
+      "conditions": "Savings PLUS fixed PLUS recurring deposits. Senior citizens 60+. Mutually exclusive with 80TTA.",
+      "old_regime": true, "new_regime": false, "confidence": "verified",
+      "rejected_claim": "One source claims the limit rose to Rs 1,00,000 for FY 2026-27. This is UNVERIFIED and traces to pre-Budget advocacy commentary, not enacted law. A dedicated AY 2026-27 source states it has NOT been raised. USE Rs 50,000."
+    },
+    {
+      "id": "80JJAA", "name": "Additional employee cost",
+      "s1961": "80JJAA", "s2025": "146",
+      "limit_old": "30% of additional employee cost, for 3 consecutive tax years", "limit_new": "same",
+      "conditions": "Business audited u/s 44AB; 10+ new employees; business operational 240+ days; employee salary <= Rs 25,000/month; employed 240+ days (150 days for leather/apparel/footwear); member of a recognised PF; not wholly EPF-funded by Government; Form 10DA with CA certification and DSC; not formed by splitting or reconstruction. Claimable even on a belated return.",
+      "old_regime": true, "new_regime": true, "confidence": "verified"
+    },
+    {
+      "id": "HRA", "name": "House Rent Allowance exemption",
+      "s1961": "10(13A)", "s2025": "11 r/w Schedule III",
+      "limit_new": 0,
+      "formula": "Exemption = LEAST of: (1) actual HRA received; (2) 50% of salary (metro) or 40% (non-metro); (3) rent paid minus 10% of salary",
+      "salary_definition": "Basic + DA forming part of retirement benefits + commission based on a fixed percentage of turnover",
+      "metro_list_upto_fy2025_26": ["Delhi", "Mumbai", "Kolkata", "Chennai"],
+      "metro_list_from_fy2026_27": ["Delhi", "Mumbai", "Kolkata", "Chennai", "Bengaluru", "Hyderabad", "Pune", "Ahmedabad"],
+      "metro_expansion_confidence": "corroborated",
+      "metro_expansion_warning": "HIGHEST-IMPACT UNVERIFIED ITEM IN THIS FILE. Five-plus sources agree the metro list expands from 4 to 8 cities from FY 2026-27, lifting Bengaluru/Hyderabad/Pune/Ahmedabad from 40% to 50%. But NO source cited the gazette notification number or the rule number in the Income-tax Rules, 2026. Ship this behind a feature flag and confirm against the bare Rules.",
+      "landlord_pan": "Mandatory if annual rent exceeds Rs 1,00,000. If the landlord has no PAN, a self-declaration is required (Circular 8/2013).",
+      "rent_to_family": "Permitted but needs a genuine payment trail; heavily scrutinised.",
+      "hra_plus_home_loan": "Can be claimed together if genuinely renting (e.g. own house let out, or in another city).",
+      "if_no_hra": "Use 80GG / s.134 instead.",
+      "old_regime": true, "new_regime": false, "confidence": "verified (formula); corroborated (8-city change)"
+    },
+    {
+      "id": "LTA", "name": "Leave Travel Allowance / Concession",
+      "s1961": "10(5)", "s2025": "11 r/w Schedule III",
+      "limit_old": "Lower of LTA received and actual travel fare. Capped at economy air fare or AC first-class rail by the shortest route.",
+      "limit_new": 0,
+      "frequency": "2 journeys in a block of 4 calendar years",
+      "current_block": "2022-2025; next block 2026-2029",
+      "carry_over": "One unused journey may be carried to the FIRST year of the next block",
+      "covered": "TRAVEL FARE ONLY - self, spouse, children (max 2 born after 1.10.1998), dependent parents and siblings",
+      "not_covered": ["food", "hotels", "sightseeing", "local conveyance"],
+      "geography": "DOMESTIC travel only. International journeys are fully taxable.",
+      "fy2026_27_change": "Form 12BB replaced by Form 124. ACTUAL TRAVEL PROOF (tickets, boarding passes, payment confirmation) becomes mandatory.",
+      "draft_only": "A road-travel cap of ~Rs 30/km appears in DRAFT rules only. NOT confirmed as notified. Do not implement.",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "home_loan_interest_sop", "name": "Home loan interest - self-occupied",
+      "s1961": "24(b)", "s2025": "26 (unverified)",
+      "limit_old": 200000, "limit_new": 0,
+      "conditions": "Construction must be complete. Rs 30,000 for pre-1999 loans (legacy).",
+      "old_regime": true, "new_regime": false, "confidence": "verified"
+    },
+    {
+      "id": "home_loan_interest_letout", "name": "Home loan interest - LET OUT property",
+      "s1961": "24(b)", "s2025": "26 (unverified)",
+      "limit_old": "no ceiling - full interest deductible", "limit_new": "no ceiling - full interest deductible",
+      "old_regime": true, "new_regime": true, "confidence": "verified",
+      "flag": "Survives in the new regime - but see house_property_loss_trap. The deduction is only useful up to rental income."
+    },
+    {
+      "id": "house_property_std_deduction", "name": "Standard deduction on let-out property",
+      "s1961": "24(a)", "s2025": "26 (unverified)",
+      "limit_old": "30% of Net Annual Value", "limit_new": "30% of Net Annual Value",
+      "old_regime": true, "new_regime": true, "confidence": "verified"
+    },
+    {
+      "id": "preconstruction_interest", "name": "Pre-construction interest",
+      "s1961": "24(b)", "s2025": "26 (unverified)",
+      "limit_old": "5 equal annual instalments from the year of completion; for self-occupied it sits INSIDE the Rs 2L cap",
+      "limit_new": 0,
+      "old_regime": true, "new_regime": false, "confidence": "corroborated",
+      "note": "For a LET-OUT property this should follow let-out treatment, but that was not separately confirmed for the new regime."
+    }
+  ],
+
+  "house_property_loss_trap": {
+    "_flag": "THE MOST COMMON MODELLING ERROR IN REGIME-COMPARISON TOOLS. Get this wrong and you will materially over-credit the new regime.",
+    "old_regime": {
+      "setoff_against_other_heads": "ALLOWED, capped at Rs 2,00,000 per year",
+      "setoff_against_other_house_property": "allowed",
+      "carry_forward": "8 years, against future house property income"
+    },
+    "new_regime": {
+      "setoff_against_other_heads": "NOT ALLOWED AT ALL - not merely capped, zero",
+      "setoff_against_other_house_property": "allowed (intra-head only)",
+      "carry_forward": "NOT PERMITTED - the loss is extinguished"
+    },
+    "consequence": "A new-regime user with a let-out property gets full interest deduction, but only up to rental income. Any excess creates a loss that cannot touch salary and cannot be carried forward. It simply evaporates. A naive calculator that subtracts interest from total income will over-credit the new regime.",
+    "confidence": "verified"
+  },
+
+  "allowances_surviving_in_new_regime": {
+    "_basis": "s.10(14)(i) / Rule 2BB, now Schedule III. Exempt ONLY to the extent actually spent; the unspent balance is taxable salary.",
+    "items": [
+      {"name": "Travel on tour or transfer", "rule": "2BB(1)(a)", "exemption": "actual travel expenditure"},
+      {"name": "Daily allowance on tour", "rule": "2BB(1)(b)", "exemption": "actual ordinary daily charges during absence from normal duty"},
+      {"name": "Conveyance allowance for official duties", "rule": "2BB(1)(c)", "exemption": "actual - only where free conveyance is not provided. Desk-bound roles: fully taxable"},
+      {"name": "Transfer / relocation allowance", "rule": "2BB(1)", "exemption": "actual relocation expenditure"},
+      {"name": "Helper allowance", "rule": "2BB(1)", "exemption": "actual"},
+      {"name": "Academic / research allowance", "rule": "2BB(1)", "exemption": "actual"},
+      {"name": "Uniform allowance", "rule": "2BB(1)", "exemption": "actual"},
+      {"name": "Transport allowance - specially-abled employee", "rule": "2BB(2)", "exemption": "see perquisite_valuation"}
+    ],
+    "non_salary_exempt_both_regimes": [
+      {"name": "Employer EPF contribution", "treatment": "exempt up to the Rs 7.5L combined cap"},
+      {"name": "Employer NPS contribution", "treatment": "80CCD(2) / s.124, 14% in the new regime"},
+      {"name": "PPF interest and maturity", "treatment": "exempt (EEE)"},
+      {"name": "Sukanya Samriddhi interest and maturity", "treatment": "exempt"},
+      {"name": "NPS maturity and Tier-I partial withdrawal", "treatment": "exempt"},
+      {"name": "Life insurance maturity 10(10D)", "treatment": "exempt, subject to the >Rs 5L annual premium rule for policies issued after 1 Apr 2023 (then slab-taxed)"},
+      {"name": "Post office savings interest 10(15)", "treatment": "Rs 3,500 individual / Rs 7,000 joint"},
+      {"name": "Work-tool perquisites (laptop, phone, official transport)", "treatment": "not a perquisite at all"}
+    ],
+    "disputed_new_regime_availability": {
+      "items": ["meal vouchers", "employer gifts (Rs 5,000 vs Rs 15,000)", "employer medical loan (Rs 20,000 vs Rs 2,00,000)"],
+      "status": "Sources conflict on both availability and amounts. Treat as UNVERIFIED."
+    }
+  },
+
+  "retirement_benefits_s19": {
+    "_note": "The 2025 Act collapses the scattered 10(10)-series exemptions into s.19 as deductions from salary. Structurally different, economically the same. ALL survive in the NEW regime.",
+    "items": [
+      {"name": "Gratuity - Government / defence", "s1961": "10(10)(i)", "limit": "fully exempt, no limit", "both_regimes": true},
+      {"name": "Gratuity - covered by Payment of Gratuity Act", "s1961": "10(10)(ii)", "limit": "least of Rs 20,00,000 / 15 days' salary x years / actual", "both_regimes": true},
+      {"name": "Gratuity - not covered", "s1961": "10(10)(iii)", "limit": "least of 3 limits; lifetime ceiling Rs 20,00,000", "both_regimes": true},
+      {"name": "Leave encashment - Government", "s1961": "10(10AA)(i)", "limit": "fully exempt", "both_regimes": true},
+      {"name": "Leave encashment - non-Government", "s1961": "10(10AA)(ii)", "limit": "least of 4 limits; lifetime ceiling Rs 25,00,000 (raised from Rs 3L w.e.f. FY 2023-24)", "both_regimes": true},
+      {"name": "Commuted pension - Government", "s1961": "10(10A)(i)", "limit": "fully exempt", "both_regimes": true},
+      {"name": "Commuted pension - non-Government", "s1961": "10(10A)(ii)", "limit": "1/3 of commuted value if gratuity also received; 1/2 if not", "both_regimes": true},
+      {"name": "VRS compensation", "s1961": "10(10C)", "limit": 500000, "both_regimes": true},
+      {"name": "Retrenchment compensation", "s1961": "10(10B)", "limit": "least of statutory ID Act amount / actual / Rs 5,00,000", "both_regimes": true, "confidence": "unverified (the Rs 5L ceiling is single-sourced)"},
+      {"name": "Leave encashment DURING service", "limit": "FULLY TAXABLE", "both_regimes": false}
+    ]
+  },
+
+  "perquisite_valuation": {
+    "_note": "Perquisites are income INCLUSIONS, not deductions. They apply in BOTH regimes. Some of these changes are taxpayer-NEGATIVE and must be modelled or you will understate tax.",
+    "cbdt_notification_133_2025_rule_3C": {
+      "effective": "1 April 2025 (FY 2025-26), carries into FY 2026-27",
+      "specified_employee_salary_threshold": {"old": 50000, "new": 400000, "effect": "Employees with monetary salary <= Rs 4L escape perquisite taxation on car, domestic servant, gas/electricity, education etc. entirely"},
+      "overseas_medical_travel_gti_ceiling": {"old": 200000, "new": 800000},
+      "specified_employee_always_includes": ["company directors", "employees with 20%+ voting power"],
+      "confidence": "verified"
+    },
+    "income_tax_rules_2026": {
+      "notified": "20 March 2026", "effective": "1 April 2026",
+      "changes": [
+        {"item": "Children's education allowance", "old": "Rs 100/month/child", "new": "Rs 3,000/month/child (max 2) = Rs 72,000/yr", "direction": "favourable"},
+        {"item": "Hostel expenditure allowance", "old": "Rs 300/month/child", "new": "Rs 9,000/month/child (max 2)", "direction": "favourable"},
+        {"item": "Meal / food perquisite", "old": "Rs 50/meal", "new": "Rs 200/meal", "direction": "favourable"},
+        {"item": "Motor car <= 1.6L cc", "old": "Rs 1,800/month", "new": "Rs 5,000/month", "direction": "TAXPAYER-NEGATIVE"},
+        {"item": "Motor car > 1.6L cc", "old": "Rs 2,400/month", "new": "Rs 7,000/month", "direction": "TAXPAYER-NEGATIVE"},
+        {"item": "Driver allowance", "old": "Rs 900/month", "new": "Rs 3,000/month", "direction": "TAXPAYER-NEGATIVE"},
+        {"item": "Rent-free accommodation - metro", "old": "15% of salary", "new": "10%", "direction": "favourable"},
+        {"item": "Rent-free accommodation - cities 15-40 lakh population", "old": "10%", "new": "7.5%", "direction": "favourable"},
+        {"item": "Rent-free accommodation - other areas", "old": "7.5%", "new": "5%", "direction": "favourable"},
+        {"item": "Transport allowance - specially-abled", "old": "Rs 3,200/month", "new": "Rs 15,000 + DA (metro) / Rs 8,000 + DA (other)", "direction": "favourable", "confidence": "unverified", "warning": "Source does not state whether this is per MONTH or per YEAR. Do not implement until resolved."},
+        {"item": "Free education in employer's school", "old": "Rs 1,000/month/child", "new": "Rs 3,000/month/child", "direction": "favourable"}
+      ],
+      "confidence": "verified except where noted"
+    },
+    "employer_contribution_cap": {
+      "section": "17(2)(vii) [1961]; 2025 Act equivalent not located",
+      "cap": 750000,
+      "rule": "Rs 7,50,000 per year COMBINED across employer contributions to recognised PF + approved superannuation fund + NPS. Excess is a taxable perquisite.",
+      "accretion": "s.17(2)(viia) - annual accretion (interest/dividend/other return) ON THE TAXABLE EXCESS is also a perquisite, computed under Rule 3B.",
+      "rule_3B_formula": "TP = (PC/2) x R + (PC1 + TP1) x R, where R = accrued income / average fund balance",
+      "in_force_since": "Finance Act 2020; accretion taxable from AY 2021-22",
+      "applies_in_both_regimes": true,
+      "interaction_with_80CCD2": "Two SEPARATE gates. A contribution must pass both: (a) within 14%/10% of Basic+DA for the deduction, and (b) within the Rs 7.5L combined ceiling to avoid perquisite treatment. High earners with generous employer NPS plus superannuation can breach Rs 7.5L while still inside the 14% limit. Model both independently.",
+      "confidence": "verified"
+    }
+  },
+
+  "set_off_and_carry_forward": {
+    "general_both_regimes": [
+      {"loss_type": "Business loss (non-speculative)", "carry_forward_years": 8, "restriction": "Once carried forward, cannot be set off against salary"},
+      {"loss_type": "Speculative business loss", "carry_forward_years": 4, "restriction": "Only against speculative profit"},
+      {"loss_type": "Short-term capital loss", "carry_forward_years": 8, "restriction": "Against STCG and LTCG"},
+      {"loss_type": "Long-term capital loss", "carry_forward_years": 8, "restriction": "Against LTCG only"},
+      {"loss_type": "House property loss", "carry_forward_years": 8, "restriction": "Against HP income; inter-head capped at Rs 2L (old regime only)"},
+      {"loss_type": "Unabsorbed depreciation", "carry_forward_years": "indefinite", "restriction": "Broad set-off"},
+      {"loss_type": "Owning/maintaining racehorses", "carry_forward_years": 4, "restriction": "Same source only"}
+    ],
+    "due_date_rule": "Return must be filed by the s.139(1) / s.263 due date to preserve carry-forward of business, speculative and capital losses. EXCEPTIONS: house-property loss and unabsorbed depreciation survive a belated return.",
+    "new_regime_specific_disallowances": [
+      "House property loss - inter-head set-off COMPLETELY disallowed",
+      "House property loss - carry forward NOT permitted",
+      "Any loss arising from disallowed deductions (32(1)(iia) additional depreciation, 32AD, 33AB, 35AD, 10AA SEZ) cannot be set off in the current year and cannot be carried forward",
+      "Brought-forward depreciation attributable to additional depreciation is not allowed; it is adjusted into the WDV of the block as at 1 April of the first new-regime year",
+      "Capital losses are generally UNAFFECTED - normal set-off and 8-year carry-forward preserved"
+    ],
+    "app_implication": "For any user with carried-forward losses, especially business or house property, the old regime can be worth far more than a headline slab comparison suggests. Surface an explicit warning rather than a silent number.",
+    "confidence": "verified (substance); unverified (2025 Act section numbers)"
+  }
+}

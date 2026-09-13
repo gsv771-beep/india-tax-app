@@ -1,0 +1,362 @@
+{
+  "_meta": {
+    "file": "tax_rates.json",
+    "purpose": "Machine-readable rate tables driving the old-vs-new regime tax computation engine.",
+    "compiled_on": "2026-09-13",
+    "currency": "INR",
+    "headline_finding": "The Income-tax Act, 2025 (Act 30 of 2025) came into force on 1 April 2026 and replaced the Income-tax Act, 1961. PIB states the rewrite was done 'without altering the underlying tax policy'. Finance Act 2026 changed NO slab, rate, surcharge, cess, rebate or standard deduction. Every number below is IDENTICAL for FY 2025-26 and FY 2026-27. What changed is section numbering, terminology ('tax year' replaces previous year / assessment year), STT, TCS and procedure.",
+    "app_design_note": "FY 2025-26 is assessed under the 1961 Act (AY 2026-27). FY 2026-27 is the first year under the 2025 Act (tax year 2026-27). Identical arithmetic, two section vocabularies. Store both and let users search by the familiar 1961 numbers.",
+    "confidence_key": {
+      "verified": "Confirmed from primary/official source (statutory text, PIB, incometaxindia.gov.in) or 3+ independent sources.",
+      "corroborated": "Multiple credible secondary sources agree; no primary text retrieved.",
+      "unverified": "Single source, or sources conflict. Do NOT ship without checking the bare Act."
+    }
+  },
+
+  "section_map_1961_to_2025": {
+    "_note": "Build a synonym index on this. Users will type '80C' and '115BAC' for years.",
+    "115BAC": {"new": "202", "subject": "New/default tax regime", "confidence": "verified"},
+    "87A": {"new": "156", "subject": "Rebate", "confidence": "verified"},
+    "16(ia)": {"new": "19", "subject": "Standard deduction - salary", "confidence": "verified"},
+    "16(ii)": {"new": "19", "subject": "Entertainment allowance", "confidence": "corroborated"},
+    "16(iii)": {"new": "19", "subject": "Professional/employment tax", "confidence": "corroborated"},
+    "57(iia)": {"new": "61", "subject": "Family pension deduction", "confidence": "unverified"},
+    "10(10)/10(10A)/10(10AA)/10(10B)/10(10C)": {"new": "19", "subject": "Gratuity, pension commutation, leave encashment, retrenchment, VRS - consolidated", "confidence": "verified"},
+    "10(13A)": {"new": "11 r/w Schedule III", "subject": "HRA", "confidence": "corroborated"},
+    "10(5)": {"new": "11 r/w Schedule III", "subject": "LTA", "confidence": "corroborated"},
+    "10(14)": {"new": "11 r/w Schedule III", "subject": "Duty allowances (Rule 2BB)", "confidence": "corroborated"},
+    "24(a)/24(b)": {"new": "26 (or 22(1)(b)/22(2))", "subject": "House property deductions", "confidence": "unverified", "conflict": "Tax2win maps 24 to 26; ClearTax maps to 22(1)(b)/22(2). Resolve against bare Act."},
+    "80C+80CCC+80CCE": {"new": "123 r/w Schedule XV", "subject": "Investments", "confidence": "verified"},
+    "80CCD": {"new": "124", "subject": "NPS", "confidence": "verified"},
+    "80CCH": {"new": "125", "subject": "Agniveer Corpus Fund", "confidence": "verified"},
+    "80D": {"new": "126", "subject": "Health insurance", "confidence": "verified"},
+    "80DD": {"new": "127", "subject": "Disabled dependant", "confidence": "verified"},
+    "80DDB": {"new": "128", "subject": "Specified diseases", "confidence": "verified"},
+    "80E": {"new": "129", "subject": "Education loan interest", "confidence": "verified"},
+    "80EE": {"new": "130", "subject": "Home loan interest (first property)", "confidence": "verified"},
+    "80EEA": {"new": "131", "subject": "Home loan interest (affordable housing)", "confidence": "verified"},
+    "80EEB": {"new": "132", "subject": "EV loan interest", "confidence": "verified"},
+    "80G": {"new": "133", "subject": "Donations", "confidence": "verified"},
+    "80GG": {"new": "134", "subject": "Rent paid, no HRA", "confidence": "verified"},
+    "80GGA": {"new": "135", "subject": "Scientific research donations", "confidence": "verified"},
+    "80GGB": {"new": "136", "subject": "Political contributions - company", "confidence": "verified"},
+    "80GGC": {"new": "137", "subject": "Political contributions - other", "confidence": "verified"},
+    "80JJAA": {"new": "146", "subject": "Additional employee cost", "confidence": "verified"},
+    "80TTA+80TTB": {"new": "153", "subject": "Interest on deposits (merged)", "confidence": "verified"},
+    "80U": {"new": "154", "subject": "Self disability", "confidence": "verified"},
+    "111A": {"new": "196", "subject": "STCG on listed equity", "confidence": "verified"},
+    "112": {"new": "197", "subject": "LTCG other assets", "confidence": "verified"},
+    "112A": {"new": "198", "subject": "LTCG listed equity", "confidence": "verified"},
+    "115BB/115BBH/115BBJ": {"new": "194", "subject": "Lottery, VDA, online gaming", "confidence": "verified"},
+    "115BBE": {"new": "195", "subject": "Unexplained income @60%", "confidence": "verified"},
+    "139(1)": {"new": "263(1)", "subject": "Return of income / due date", "confidence": "verified"},
+    "211": {"new": "408", "subject": "Advance tax instalments", "confidence": "unverified"},
+    "234A": {"new": "423", "subject": "Interest - late return", "confidence": "unverified"},
+    "234B": {"new": "424", "subject": "Interest - short advance tax", "confidence": "unverified"},
+    "234C": {"new": "425", "subject": "Interest - deferment of instalments", "confidence": "unverified"},
+    "288": {"new": "TBD", "subject": "Authorised representative", "confidence": "unverified"},
+    "70/71/72": {"new": "108/109/112 (or 81/85)", "subject": "Set-off and carry forward", "confidence": "unverified", "conflict": "Two mapping sources disagree."}
+  },
+
+  "years": {
+    "FY2025-26": {
+      "assessment_year": "AY 2026-27",
+      "governing_act": "Income-tax Act, 1961",
+      "rate_source": "Finance Act 2026, First Schedule Part I-A",
+      "is_last_year_of_1961_act": true
+    },
+    "FY2026-27": {
+      "tax_year": "2026-27",
+      "governing_act": "Income-tax Act, 2025",
+      "rules": "Income-tax Rules, 2026 (Notification 22/2026, G.S.R. 198(E), 20 Mar 2026)",
+      "note": "Rates identical to FY2025-26."
+    }
+  },
+
+  "slabs": {
+    "new_regime": {
+      "applies_to_years": ["FY2025-26", "FY2026-27"],
+      "section": {"act_1961": "115BAC(1A)", "act_2025": "202(1)"},
+      "age_based_variation": false,
+      "note": "Basic exemption Rs 4,00,000 for EVERY individual regardless of age. No senior/super-senior concession in the new regime.",
+      "confidence": "verified",
+      "bands": [
+        {"from": 0,       "to": 400000,  "rate": 0.00},
+        {"from": 400001,  "to": 800000,  "rate": 0.05},
+        {"from": 800001,  "to": 1200000, "rate": 0.10},
+        {"from": 1200001, "to": 1600000, "rate": 0.15},
+        {"from": 1600001, "to": 2000000, "rate": 0.20},
+        {"from": 2000001, "to": 2400000, "rate": 0.25},
+        {"from": 2400001, "to": null,    "rate": 0.30}
+      ],
+      "cumulative_tax_checkpoints": {"400000": 0, "800000": 20000, "1200000": 60000, "1600000": 120000, "2000000": 200000, "2400000": 300000}
+    },
+    "old_regime": {
+      "applies_to_years": ["FY2025-26", "FY2026-27"],
+      "age_based_variation": true,
+      "confidence": "verified",
+      "below_60": [
+        {"from": 0,       "to": 250000,  "rate": 0.00},
+        {"from": 250001,  "to": 500000,  "rate": 0.05},
+        {"from": 500001,  "to": 1000000, "rate": 0.20},
+        {"from": 1000001, "to": null,    "rate": 0.30}
+      ],
+      "senior_60_to_79": [
+        {"from": 0,       "to": 300000,  "rate": 0.00},
+        {"from": 300001,  "to": 500000,  "rate": 0.05},
+        {"from": 500001,  "to": 1000000, "rate": 0.20},
+        {"from": 1000001, "to": null,    "rate": 0.30}
+      ],
+      "super_senior_80_plus": [
+        {"from": 0,       "to": 500000,  "rate": 0.00},
+        {"from": 500001,  "to": 1000000, "rate": 0.20},
+        {"from": 1000001, "to": null,    "rate": 0.30}
+      ]
+    }
+  },
+
+  "rebate": {
+    "section": {"act_1961": "87A", "act_2025": "156"},
+    "eligibility": "Resident individuals only. Not NRIs, HUFs, firms or companies.",
+    "new_regime": {"total_income_threshold": 1200000, "max_rebate": 60000, "confidence": "verified"},
+    "old_regime": {"total_income_threshold": 500000, "max_rebate": 12500, "confidence": "verified"},
+    "excludes_special_rate_income": {
+      "value": true,
+      "rule": "s.156(3): rebate cannot exceed tax payable at the rates in s.202(1), i.e. slab-rate tax only. Tax on LTCG (198), STCG (196), lottery/VDA/gaming (194) and unexplained income (195) is NOT wiped out.",
+      "worked_example": "Rs 10L salary + Rs 1L STCG = Rs 11L total income (below Rs 12L). The 20% tax on the Rs 1L STCG is still payable.",
+      "confidence": "verified"
+    },
+    "marginal_relief_new_regime": {
+      "applies": true,
+      "formula": "tax_payable = min(slab_tax_on_X, X - 1200000)",
+      "break_even_income": 1270588,
+      "break_even_derivation": "Relief binds while 60000 + 0.15*(X-12L) > X-12L, i.e. X-12L < 60000/0.85 = 70,588",
+      "note": "Compute from the formula; do not hard-code the break-even constant. Cess applies AFTER relief.",
+      "examples": [
+        {"income": 1200000, "slab_tax": 60000, "payable_before_cess": 0},
+        {"income": 1250000, "slab_tax": 67500, "payable_before_cess": 50000},
+        {"income": 1270588, "slab_tax": 70588, "payable_before_cess": 70588},
+        {"income": 1275000, "slab_tax": 71250, "payable_before_cess": 71250}
+      ],
+      "confidence": "verified"
+    },
+    "marginal_relief_old_regime": {
+      "applies": false,
+      "confidence": "unverified",
+      "warning": "No source asserts marginal relief on the old-regime Rs 5,00,000 / Rs 12,500 rebate; the ITD FAQ implies a hard cliff. VERIFY against s.156 before shipping. Treated as a hard cliff here."
+    }
+  },
+
+  "surcharge": {
+    "levied_on": "income-tax, before cess",
+    "old_regime": [
+      {"income_above": 5000000,  "income_upto": 10000000, "rate": 0.10},
+      {"income_above": 10000000, "income_upto": 20000000, "rate": 0.15},
+      {"income_above": 20000000, "income_upto": 50000000, "rate": 0.25},
+      {"income_above": 50000000, "income_upto": null,     "rate": 0.37}
+    ],
+    "new_regime": [
+      {"income_above": 5000000,  "income_upto": 10000000, "rate": 0.10},
+      {"income_above": 10000000, "income_upto": 20000000, "rate": 0.15},
+      {"income_above": 20000000, "income_upto": null,     "rate": 0.25}
+    ],
+    "new_regime_cap": {
+      "value": 0.25,
+      "confidence": "corroborated",
+      "warning": "HIGHEST-VALUE UNRESOLVED FIGURE. Four sources say the new regime caps surcharge at 25%; CAalley dissents and says 37% applies in both. The 25% cap has been the settled position since Finance Act 2023 and is almost certainly right, but no primary text was retrieved. Confirm against Finance Act 2026 First Schedule."
+    },
+    "effective_top_marginal_rate": {"old_regime": 0.42744, "new_regime": 0.39000},
+    "cap_on_dividend_and_capital_gains": {
+      "cap_rate": 0.15,
+      "applies_to_income_under": ["dividend", "111A/196 STCG", "112A/198 LTCG", "112/197 LTCG", "115AD(1)(b)"],
+      "rule": "Enhanced surcharge of 25% and 37% does not apply to these streams; surcharge on them is capped at 15% regardless of total income.",
+      "implementation": "This is a SPLIT-RATE calculation, not a blanket cap. Bifurcate total income; levy min(applicable_rate, 0.15) on the capped component and the full applicable rate on the residual; sum the two.",
+      "confidence": "verified (principle); unverified (step-by-step bifurcation mechanics)"
+    },
+    "marginal_relief": {
+      "applies": true,
+      "formula": "relief = (tax + surcharge at actual income) - (tax at threshold) - (actual_income - threshold); apply only if positive",
+      "thresholds_old": [5000000, 10000000, 20000000, 50000000],
+      "thresholds_new": [5000000, 10000000, 20000000],
+      "cess_timing": "Cess of 4% is applied AFTER marginal relief.",
+      "worked_example": {
+        "regime": "old", "income": 5100000,
+        "tax_at_threshold_5000000": 1312500,
+        "tax_plus_surcharge_at_actual": 1476750,
+        "incremental_income": 100000,
+        "marginal_relief": 64250,
+        "tax_plus_surcharge_after_relief": 1412500
+      },
+      "confidence": "corroborated"
+    }
+  },
+
+  "cess": {
+    "name": "Health and Education Cess",
+    "rate": 0.04,
+    "base": "income-tax PLUS surcharge, after rebate and after marginal relief",
+    "applies_to": "both regimes, both years, all taxpayer categories",
+    "confidence": "verified"
+  },
+
+  "standard_deductions": {
+    "salary": {
+      "section": {"act_1961": "16(ia)", "act_2025": "19(1)"},
+      "new_regime": 75000,
+      "old_regime": 50000,
+      "rule": "Lower of the amount and the salary itself. Salaried and pensioners only.",
+      "confidence": "verified",
+      "stale_content_warning": "Pre-Budget commentary suggesting the new-regime figure would rise to Rs 1,00,000 in Budget 2026 is WRONG. It did not happen."
+    },
+    "family_pension": {
+      "section": {"act_1961": "57(iia)", "act_2025": "93 / 61"},
+      "new_regime": 25000,
+      "old_regime": 15000,
+      "rule": "Lower of one-third of the family pension and the cap.",
+      "confidence": "verified"
+    }
+  },
+
+  "special_rate_income": {
+    "capital_gains": {
+      "stcg_listed_equity_stt": {"section_2025": "196", "section_1961": "111A", "holding_period_months": 12, "rate": 0.20, "confidence": "verified"},
+      "stcg_other_assets": {"rate": "slab", "confidence": "verified"},
+      "ltcg_listed_equity_stt": {"section_2025": "198", "section_1961": "112A", "holding_period_months": 12, "rate": 0.125, "indexation": false, "annual_exemption": 125000, "confidence": "verified"},
+      "ltcg_other_assets": {"section_2025": "197", "section_1961": "112", "rate": 0.125, "indexation": false, "confidence": "verified"},
+      "ltcg_land_building_grandfathered": {
+        "eligibility": "Resident individuals and HUFs only; LAND OR BUILDING only; acquired BEFORE 23 July 2024",
+        "holding_period_months": 24,
+        "rule": "Pay the LOWER of 12.5% without indexation and 20% with indexation.",
+        "not_available_to": ["non-residents", "companies", "firms", "all other asset classes"],
+        "confidence": "verified"
+      },
+      "ltcg_land_building_post_23jul2024": {"rate": 0.125, "indexation": false, "option": false, "confidence": "verified"},
+      "debt_mutual_funds": {
+        "purchased_on_or_after_2023_04_01": {"stcg": "slab", "ltcg": "slab", "note": "No LTCG treatment regardless of holding period"},
+        "purchased_before_2023_04_01": {"stcg": "slab", "ltcg": 0.125},
+        "confidence": "unverified",
+        "warning": "Single source. Verify against s.197 read with the specified-mutual-fund definition."
+      }
+    },
+    "other_s194_rates": {
+      "_section": {"act_2025": "194"},
+      "lottery_crossword_race_card_game_gambling_betting": 0.30,
+      "virtual_digital_assets": 0.30,
+      "online_gaming_net_winnings": 0.30,
+      "carbon_credits": 0.10,
+      "patent_royalty_eligible_resident": 0.10,
+      "life_insurance_business_profits": 0.125,
+      "no_deduction_no_setoff_for": ["lottery/gambling", "carbon credits", "VDA", "online gaming"],
+      "vda_loss_rule": "VDA losses cannot be set off against other income and cannot be carried forward.",
+      "confidence": "verified"
+    },
+    "unexplained_income": {
+      "section": {"act_1961": "115BBE", "act_2025": "195"},
+      "rate": 0.60,
+      "no_deduction_no_setoff": true,
+      "surcharge": "UNKNOWN",
+      "warning": "Under the 1961 Act a flat 25% surcharge applied (effective ~78%). s.195 of the 2025 Act is SILENT on surcharge. Do NOT hard-code 78%.",
+      "confidence": "unverified"
+    }
+  },
+
+  "advance_tax": {
+    "section": {"act_1961": "211", "act_2025": "408"},
+    "liability_threshold": 10000,
+    "threshold_basis": "net tax liability after TDS/TCS/reliefs",
+    "exemption": "Resident individual aged 60+ with NO business or professional income",
+    "instalments": [
+      {"due": "15 June",      "cumulative_pct": 0.15, "s425_tolerance_pct": 0.12},
+      {"due": "15 September", "cumulative_pct": 0.45, "s425_tolerance_pct": 0.36},
+      {"due": "15 December",  "cumulative_pct": 0.75, "s425_tolerance_pct": null},
+      {"due": "15 March",     "cumulative_pct": 1.00, "s425_tolerance_pct": null}
+    ],
+    "presumptive_taxation": {"instalments": 1, "due": "15 March", "cumulative_pct": 1.00},
+    "confidence": "verified (dates/percentages); unverified (2025 Act section numbers)"
+  },
+
+  "interest": {
+    "late_filing": {"section_1961": "234A", "section_2025": "423", "rate_per_month": 0.01, "type": "simple", "period": "due date to date of filing"},
+    "short_advance_tax": {"section_1961": "234B", "section_2025": "424", "rate_per_month": 0.01, "type": "simple", "trigger": "advance tax paid < 90% of assessed tax", "period": "1 April of AY to assessment/payment"},
+    "deferment_of_instalments": {
+      "section_1961": "234C", "section_2025": "425", "rate_per_month": 0.01, "type": "simple",
+      "period_rule": "3 months for each of instalments 1-3; 1 month for the 15 March instalment",
+      "exclusions": ["capital gains", "lottery/gambling winnings", "income from a newly commenced business or profession", "dividend income (conditions apply)"],
+      "exclusion_condition": "No interest if the tax on such income is paid by the next applicable deadline."
+    },
+    "part_month_rule": "Part of a month treated as a full month (long-standing under 234A/B/C; assumed carried over to 423-425, unverified).",
+    "confidence": "verified (rates); unverified (2025 Act section numbers)"
+  },
+
+  "regime_switching": {
+    "default_regime": "new",
+    "section": {"act_1961": "115BAC(6)", "act_2025": "202(4)"},
+    "form": "Form 10-IEA",
+    "deadline": "On or before the original due date under s.139(1) / s.263. 31 July (non-audit) or 31 October (audit). A belated return does NOT extend this.",
+    "late_consequence": "Opt-out is invalid for that year; tax computed under the new regime; old-regime deductions denied; usually a demand notice.",
+    "rules": {
+      "no_business_income": {"form_required": false, "mechanism": "tick 'opting out' inside the ITR", "switch_frequency": "every year, unlimited"},
+      "with_business_income": {"form_required": true, "switch_frequency": "May opt out of the new regime once; may return to the new regime once. After that the old regime is permanently unavailable unless business income ceases."}
+    },
+    "form_10iea_withdrawal": "Cannot be withdrawn within the same assessment year.",
+    "confidence": "verified"
+  },
+
+  "changed_fy2025_26_to_fy2026_27": {
+    "rates_slabs_surcharge_cess_rebate_standard_deduction": "NO CHANGE",
+    "structural": [
+      "Income-tax Act 2025 replaces the 1961 Act; all sections renumbered; 536 sections, 23 chapters, 16 schedules",
+      "'Previous Year' and 'Assessment Year' replaced by a single 'Tax Year'",
+      "Income-tax Rules 2026 replace the 1962 Rules; simplified ITR forms notified 20 Mar 2026",
+      "Form 12BB replaced by Form 124 for LTA and allowance declarations"
+    ],
+    "stt_increase_from_2026_04_01": {
+      "futures_sale": {"old": 0.0002, "new": 0.0005},
+      "options_sale_on_premium": {"old": 0.0010, "new": 0.0015},
+      "options_exercised": {"old": 0.00125, "new": 0.0015},
+      "confidence": "unverified",
+      "note": "Single source (HDFC Securities note). Equity delivery/intraday STT not covered."
+    },
+    "tcs_reductions": {
+      "overseas_tour_packages": {"old": "5-20%", "new": "2%", "threshold": "none"},
+      "lrs_education_and_medical": {"old": "5%", "new": "2%"},
+      "manpower_services_tds": {"new": "1-2%"},
+      "effective_date": "CONFLICT: PIB undated; KPMG says 1 October 2026. Resolve before display.",
+      "confidence": "unverified"
+    },
+    "procedure": {
+      "revised_return_window": {"old": "9 months from end of AY (31 Dec)", "new": "12 months (31 March), nominal fee Rs 5,000"},
+      "appeal_pre_payment": {"old": "20%", "new": "10% (core tax only)"},
+      "assessment_and_penalty": "consolidated into a single order",
+      "confidence": "unverified"
+    },
+    "charging_changes_single_sourced_KPMG": {
+      "share_buyback": "Now taxed as capital gains rather than as dividend. MATERIAL - changes both rate and head of income.",
+      "sovereign_gold_bonds": "Exemption restricted to original subscribers holding to maturity.",
+      "mact_award_interest": "Made tax-exempt.",
+      "relocation_to_india": "Five-year foreign-income exemption for individuals relocating to India for work.",
+      "confidence": "unverified",
+      "warning": "All four from a single source. Buyback and SGB in particular need independent confirmation before coding."
+    }
+  },
+
+  "scraper_traps": [
+    "incometax.gov.in's own 'Super Senior Citizen - New Tax Regime' block on /help/individual/return-applicable-2 still shows FY 2024-25 slabs (Rs 3L / 3-7L / 7-10L / 10-12L / 12-15L). It is stale. Do not scrape it.",
+    "A TaxGuru article on s.202 publishes a DRAFT-BILL slab table (4/8/12/20/40 lakh, 25% top rate) that contradicts the enacted Act. Reject it.",
+    "ClearTax's standard-deduction page carries a pre-Budget line about Rs 1,00,000. It did not happen.",
+    "The ITD 'Old vs New Regime FAQ' page still carries AY 2024-25 content and a Rs 50,000 standard deduction. Its switching RULES are current; its FIGURES are not."
+  ],
+
+  "primary_sources": {
+    "act_2025_consolidated_pdf": "https://www.incometaxindia.gov.in/documents/d/guest/income_tax_act_2025_as_amended_by_fa_act_2026-pdf",
+    "act_1961_consolidated_pdf": "https://www.incometaxindia.gov.in/documents/d/guest/income_tax_act_1961_as_amended_by_fa_act_2026-1-pdf",
+    "pib_act_in_force": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2248005&reg=3&lang=2",
+    "pib_budget_2026_summary": "https://www.pib.gov.in/PressReleasePage.aspx?PRID=2221458&reg=3&lang=2",
+    "itd_rebate_faq": "https://www.incometaxindia.gov.in/w/what-is-rebate-under-section-87a-for-f.y-2025-26-and-who-can-claim-it-",
+    "itd_capital_gains": "https://www.incometaxindia.gov.in/w/capital-gain",
+    "s202_text": "https://indiankanoon.org/doc/135805753/",
+    "finance_bill_2026": "https://www.indiabudget.gov.in/doc/Finance_Bill.pdf",
+    "memorandum_explaining_provisions": "https://www.indiabudget.gov.in/doc/memo.pdf",
+    "kpmg_budget_2026_personal_tax": "https://kpmg.com/xx/en/our-insights/gms-flash-alert/2026/flash-alert-2026-037.html"
+  }
+}

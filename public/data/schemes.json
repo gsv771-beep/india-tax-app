@@ -1,0 +1,306 @@
+{
+  "_meta": {
+    "file": "schemes.json",
+    "purpose": "Structured NPS and government-scheme data for the app's information section and comparison tools.",
+    "compiled_on": "2026-09-13",
+    "rate_quarter_in_force": "Q2 FY 2026-27 (1 July - 30 September 2026)",
+    "next_rate_notification": "Due around 30 September 2026 for Q3 FY 2026-27 (Oct-Dec 2026). NOT YET ISSUED as at compile date.",
+    "rate_freeze_context": "DEA O.M. dated 30 June 2026 (F.No. 1/4/2019-NS series) kept Q2 rates unchanged from Q1. Small-savings rates have now been static for about nine consecutive quarters; the last real change was Q4 FY 2023-24, effective 1 January 2024.",
+    "CRITICAL_ENGINEERING_NOTE": "Small-savings rates are notified QUARTERLY. Every rate in this file must be stored with its effective quarter and refreshed at the end of March, June, September and December. A hard-coded rate will be wrong within 90 days. Build the quarterly refresh before you build the UI.",
+    "primary_rate_source": "https://www.nsiindia.gov.in (Ministry of Finance quarterly notification)",
+    "full_research_notes": "See RESEARCH_nps_and_govt_schemes.md in this folder for scheme-by-scheme sourcing, premature-exit penalties and per-figure citations."
+  },
+
+  "nps": {
+    "regulator": "PFRDA",
+    "tiers": {
+      "tier_1": {
+        "nature": "Mandatory retirement account, non-withdrawable until exit conditions are met",
+        "eligibility": "Indian citizen (resident, NRI or OCI), age 18-70 at entry",
+        "min_initial_contribution": 500,
+        "min_per_contribution": 500,
+        "min_per_year": 1000,
+        "dormancy_rule": "Below the annual minimum the account is frozen; reactivation costs a Rs 100 penalty plus arrears",
+        "maximum": "no limit",
+        "lock_in": "Until normal exit. For the All-Citizen Model this is now 15 years of subscription OR age 60, whichever is earlier"
+      },
+      "tier_2": {
+        "nature": "Voluntary, fully liquid investment account",
+        "eligibility": "Requires an active Tier I; same age band",
+        "min_initial_contribution": 1000,
+        "min_per_contribution": 250,
+        "min_per_year": 0,
+        "lock_in": "none",
+        "confidence": "unverified on the minimum initial contribution - sources give both Rs 1,000 and Rs 250"
+      }
+    },
+    "asset_classes": {
+      "E": {"name": "Equity and related instruments", "cap_active_choice": "75% (tapering applies above age 50 in Active Choice)", "cap_auto_choice": "100%"},
+      "C": {"name": "Corporate debt", "cap_active_choice": "100%", "cap_auto_choice": "100%"},
+      "G": {"name": "Government securities", "cap_active_choice": "100%", "cap_auto_choice": "100%"},
+      "A": {"name": "Alternative investment funds (CMBS/MBS/REITs/InvITs/AIF Cat I and II)", "cap_active_choice": "5%", "cap_auto_choice": "not available"}
+    },
+    "auto_choice_lifecycle_funds": [
+      {"code": "LC75", "name": "Aggressive", "equity_upto_age_35": "75%", "taper_starts": 35, "equity_at_55": "15%"},
+      {"code": "LC50", "name": "Moderate", "equity_upto_age_35": "50%", "taper_starts": 35, "equity_at_55": "10%", "is_default": true},
+      {"code": "LC25", "name": "Conservative", "equity_upto_age_35": "25%", "taper_starts": 35, "equity_at_55": "5%"},
+      {"code": "BLC", "name": "Balanced Life Cycle", "equity_upto_age_45": "50%", "taper_starts": 45, "equity_at_55": "35%", "launched": "1 October 2024", "availability": "Private sector only - All-Citizen and Corporate models"}
+    ],
+    "pension_fund_managers_count": 10,
+    "tax_treatment": {
+      "_note": "Section numbers under the Income-tax Act 2025 are marked where the mapping was not independently confirmed.",
+      "own_contribution_employee": {"s1961": "80CCD(1)", "s2025": "123 (unverified)", "limit": "10% of Basic+DA, within the Rs 1,50,000 aggregate ceiling", "old_regime": true, "new_regime": false},
+      "own_contribution_self_employed": {"s1961": "80CCD(1)", "s2025": "123 (unverified)", "limit": "20% of gross total income, within Rs 1,50,000", "old_regime": true, "new_regime": false},
+      "additional_deduction": {"s1961": "80CCD(1B)", "s2025": "124(3)", "limit": 50000, "note": "Over and above the Rs 1.5 lakh cap", "old_regime": true, "new_regime": false},
+      "nps_vatsalya": {"s1961": "80CCD(1B)", "s2025": "124(4)", "limit": "Rs 50,000, SHARED with s.124(3) - not additional", "old_regime": true, "new_regime": false},
+      "employer_contribution_government": {"s1961": "80CCD(2)", "s2025": "124(1)-(2)", "limit": "14% of Basic+DA", "old_regime": true, "new_regime": true},
+      "employer_contribution_private": {"s1961": "80CCD(2)", "s2025": "124(1)-(2)", "limit_old_regime": "10% of Basic+DA", "limit_new_regime": "14% of Basic+DA", "old_regime": true, "new_regime": true},
+      "aggregate_employer_cap": {"cap": 750000, "scope": "EPF + NPS + approved superannuation combined", "excess_treatment": "Taxable perquisite, plus tax on the income accruing on the excess", "applies_both_regimes": true},
+      "lumpsum_at_exit": {"s1961": "10(12A)", "exempt_share": "60% of corpus", "old_regime": true, "new_regime": true},
+      "partial_withdrawal": {"s1961": "10(12B)", "exempt": "25% of the subscriber's OWN contributions", "old_regime": true, "new_regime": true},
+      "annuity": {"purchase": "exempt at purchase", "pension_received": "taxable as salary or other income in the year of receipt"},
+      "anti_double_deduction": "s.124(3)/(4) cannot be claimed on an amount already allowed under s.123. 'Salary' for s.124 means basic pay plus dearness allowance only."
+    },
+    "CRITICAL_MISMATCH": {
+      "issue": "PFRDA now permits up to 80% lump sum at normal exit, but the income-tax exemption is still capped at 60% of the corpus. The 20% slice between 60% and 80% is TAXABLE AT SLAB RATES.",
+      "status": "No Budget 2026 amendment raising the exemption to 80% was found.",
+      "action": "RE-VERIFY before showing users a lump-sum figure. This is the kind of gap that produces a nasty surprise for a retiree, and an app that gets it wrong is worse than no app.",
+      "confidence": "corroborated by two sources"
+    },
+    "exit_rules_non_government": {
+      "normal_exit_definition": "All-Citizen: 15 years of subscription OR age 60, whichever is earlier. Corporate: retirement or superannuation.",
+      "normal_exit_split": "Up to 80% lump sum / at least 20% annuity (liberalised from 60/40)",
+      "premature_exit_split": "Up to 20% lump sum / at least 80% annuity (unchanged)",
+      "minimum_lock_in_for_premature_exit": "removed (was 5 years)",
+      "on_death": "100% lump sum to nominee, plus new SLW and SUR phased-payout options; annuity optional",
+      "max_continuation_age": 85,
+      "nps_lite_small_corpus_threshold": 200000
+    },
+    "exit_rules_government": "Ratios unchanged.",
+    "partial_withdrawal": {
+      "min_membership_years": 3,
+      "max_amount": "25% of the subscriber's OWN contributions (excludes employer contributions and investment returns)",
+      "frequency_before_60": "Up to 4 times, with 4-year gaps",
+      "frequency_after_60": "Unlimited, with 3-year gaps",
+      "permitted_reasons": [
+        "Higher education of children",
+        "Marriage of children",
+        "Purchase or construction of a FIRST residential house",
+        "Medical treatment or hospitalisation of subscriber, spouse, children or dependent parents (widened from a closed critical-illness list)",
+        "Disability of 75% or more",
+        "Settling a financial obligation to a regulated lender against a lien on the account (new)"
+      ],
+      "removed_reasons": ["Skill development or re-skilling", "Setting up a start-up"],
+      "lien_facility": "Regulated lenders may place a lien or charge on the NPS account up to 25% of own contributions"
+    },
+    "historical_returns_by_asset_class": {
+      "_caveat": "Point-to-point returns as published. Show rolling returns if you can - point-to-point is flattering or damning depending entirely on the end date.",
+      "E_equity": {"1yr": 3.64, "3yr": 12.07, "5yr": 11.18, "10yr": 13.08},
+      "C_corporate_debt": {"1yr": 5.66, "3yr": 7.56, "5yr": 6.62, "10yr": 7.79},
+      "G_gsec": {"1yr": 4.91, "3yr": 7.78, "5yr": 6.73, "10yr": 7.13}
+    },
+    "ups": {
+      "name": "Unified Pension Scheme",
+      "applies_to": "Central government employees",
+      "option_deadline": "30 November 2025 - extended twice (from 30 June and 30 September 2025) and now CLOSED",
+      "status": "No further extension notified. Employees who did not opt remain in NPS. No belated-application mechanism.",
+      "app_note": "Present this as historical context, not as an available choice."
+    }
+  },
+
+  "apy": {
+    "name": "Atal Pension Yojana",
+    "regulator": "PFRDA; distributed through banks and post offices",
+    "eligibility": "Indian citizen aged 18-40 with a savings bank or post office savings account, Aadhaar and mobile linked",
+    "income_tax_payer_bar": "Anyone who IS or HAS BEEN an income-tax payer cannot join on or after 1 October 2022. IMPORTANT for a tax app - most of your users are disqualified. Present APY as information, not as a recommendation.",
+    "min_contribution_period_years": 20,
+    "pension_slabs_monthly": [1000, 2000, 3000, 4000, 5000],
+    "contribution_basis": "A fixed monthly amount determined by entry age and chosen pension slab, actuarially set. The Government GUARANTEES the pension regardless of fund performance; any shortfall is met by GoI.",
+    "indicative_monthly_contribution": {
+      "_warning": "Sources disagree at the top end (Rs 1,318 vs Rs 1,454 at age 40 for the Rs 5,000 slab). Use the official Jansuraksha chart, not either secondary source.",
+      "official_chart": "https://jansuraksha.gov.in/Files/APY/ENGLISH/APY.pdf",
+      "pension_1000": {"age_18": 42, "age_25": 76, "age_30": 116, "age_35": 181, "age_40": 291},
+      "pension_5000": {"age_18": 210, "age_25": 376, "age_30": 577, "age_35": 902, "age_40": 1318}
+    },
+    "corpus_to_nominee": "About Rs 1.7 lakh for the Rs 1,000 slab, rising to about Rs 8.5 lakh for the Rs 5,000 slab",
+    "on_death": "Spouse receives the same pension for life; on the spouse's death, the corpus goes to the nominee",
+    "exit_before_60": "Permitted. Own contributions plus net accrued returns are refunded; government co-contribution and its returns are forfeited.",
+    "govt_co_contribution": "Only for those who joined between 1 June 2015 and 31 March 2016, for 5 years. NOT available to new joiners.",
+    "tax": {"contribution": "80CCD(1) within Rs 1.5L plus 80CCD(1B) up to Rs 50,000, i.e. s.123 / s.124(3). OLD REGIME ONLY.", "pension_received": "Taxable at slab rates (not explicitly confirmed in sources)"}
+  },
+
+  "small_savings_rates_q2_fy2026_27": {
+    "_effective": "1 July 2026 - 30 September 2026",
+    "_source": "https://www.nsiindia.gov.in",
+    "post_office_savings_account": {"rate": 4.00, "compounding": "calculated on balance between the 10th and month end, credited annually"},
+    "time_deposit_1yr": {"rate": 6.90, "compounding": "quarterly, paid annually"},
+    "time_deposit_2yr": {"rate": 7.00, "compounding": "quarterly"},
+    "time_deposit_3yr": {"rate": 7.10, "compounding": "quarterly", "note": "A TaxGuru table showing 7.00% is WRONG - cross-checked against Indian Bank and India Post reproductions"},
+    "time_deposit_5yr": {"rate": 7.50, "compounding": "quarterly", "tax_benefit": "80C / s.123 - the ONLY time deposit that qualifies"},
+    "recurring_deposit_5yr": {"rate": 6.70, "compounding": "quarterly"},
+    "scss": {"rate": 8.20, "payout": "quarterly, not compounded"},
+    "mis": {"rate": 7.40, "payout": "monthly"},
+    "nsc_viii": {"rate": 7.70, "compounding": "annually, paid at maturity"},
+    "ppf": {"rate": 7.10, "compounding": "annually"},
+    "kvp": {"rate": 7.50, "compounding": "annually", "maturity_months": 115},
+    "ssy": {"rate": 8.20, "compounding": "annually"},
+    "mssc": {"rate": 7.50, "status": "CLOSED to new accounts - locked rate for existing holders only"}
+  },
+
+  "schemes": [
+    {
+      "id": "ppf", "name": "Public Provident Fund",
+      "rate": 7.10, "compounding": "annually, credited 31 March",
+      "interest_calc_quirk": "Interest accrues on the MINIMUM balance between the 5th and the last day of each month. Deposit by the 5th or lose a month's interest - a genuinely useful tip for the app to surface.",
+      "tenure": "15 financial years, extendable indefinitely in 5-year blocks with or without further contributions",
+      "min": 500, "max": 150000, "max_basis": "per financial year, aggregate across all PPF accounts including a minor's",
+      "eligibility": "Resident individual; one account per person; a guardian may open for a minor. NRIs cannot open new accounts - an existing account runs to maturity with no extension.",
+      "loan": "Years 3-6; up to 25% of the balance at the end of the second preceding year; interest 1% above the PPF rate; repay in 36 months",
+      "partial_withdrawal": "From year 7; once per financial year; lower of 50% of the balance 4 years prior and 50% of the prior-year balance",
+      "premature_closure": "After 5 years only for a life-threatening illness (self, spouse, children, dependent parents), higher education, or change of residency status. Penalty: interest recomputed 1% lower for the whole period.",
+      "tax": "EEE. Contribution 80C / s.123; interest and maturity exempt.",
+      "where": "Post office; SBI and nationalised banks; ICICI, HDFC, Axis and other authorised private banks; online in most"
+    },
+    {
+      "id": "epf", "name": "Employees' Provident Fund",
+      "rate": 8.25, "rate_applies_to": "FY 2025-26",
+      "rate_fy2026_27": "NOT YET DECLARED. Historically announced in Feb-Mar of the FOLLOWING year, so around Feb-Mar 2027. DO NOT DISPLAY a FY 2026-27 EPF rate.",
+      "rate_authority": "Recommended by the CBT at its 239th meeting on 2 March 2026, ratified by Government (PIB PRID 2234502)",
+      "compounding": "Calculated monthly on the running balance, credited annually",
+      "contribution": "Employee 12% of wages; employer 12% (8.33% to EPS capped at Rs 15,000 wage, 3.67% to EPF) plus 0.50% EDLI and admin charges",
+      "wage_ceiling": 15000,
+      "new_scheme": "EPF Scheme 2026 notified 29 June 2026 under the Code on Social Security 2020, replacing the 1952 Scheme. EPS 2026 and EDLI 2026 also notified. The Rs 15,000 ceiling was retained.",
+      "tax_contribution": "Employee's share: 80C / s.123, old regime only. Employer's share exempt within the Rs 7.5 lakh aggregate cap.",
+      "tax_interest": "Interest on EMPLOYEE contributions above Rs 2,50,000 a year is TAXABLE (from FY 2021-22). The threshold is Rs 5,00,000 where there is no employer contribution, such as GPF. EPFO maintains separate taxable and non-taxable accounts.",
+      "tax_withdrawal": "Exempt after 5 years of continuous service; otherwise taxable with TDS",
+      "where": "Employer-mediated; epfindia.gov.in"
+    },
+    {
+      "id": "vpf", "name": "Voluntary Provident Fund",
+      "rate": 8.25, "rate_applies_to": "FY 2025-26, same as EPF",
+      "limit": "Up to 100% of wages, subject to the new cap of wages net of permitted deductions under s.18(2) of the Code on Wages 2019",
+      "employer_match": "Optional, not obligatory under EPF Scheme 2026",
+      "exit": "Under EPF Scheme 2026 either party may unilaterally reduce or discontinue voluntary contributions - previously a joint option was required",
+      "tax": "Same as EPF. VPF counts toward the Rs 2.5 lakh taxable-interest threshold - the most commonly missed point about VPF.",
+      "lock_in": "Same as EPF"
+    },
+    {
+      "id": "ssy", "name": "Sukanya Samriddhi Yojana",
+      "rate": 8.20, "compounding": "annually",
+      "eligibility": "Resident girl child under 10 at opening; one account per girl, maximum two per family (more for twins or triplets with a certificate)",
+      "min": 250, "max": 150000, "max_basis": "per financial year",
+      "deposit_period": "15 years from opening",
+      "maturity": "21 years from opening, or on marriage after 18",
+      "partial_withdrawal": "After the girl turns 18 or passes 10th standard - up to 50% of the prior-year balance, for higher education",
+      "premature_closure": "After 5 years on specified grounds (death, life-threatening illness, death of guardian); after 18 for marriage",
+      "tax": "EEE. 80C / s.123; interest and maturity exempt.",
+      "where": "Post offices and authorised banks; in-person KYC required"
+    },
+    {
+      "id": "scss", "name": "Senior Citizens Savings Scheme",
+      "rate": 8.20, "payout": "quarterly, not compounded",
+      "eligibility": "Age 60+; 55-60 for civilian retirees within one month of receiving retirement benefits; 50-60 for retired defence personnel. Joint account only with a spouse. NRIs and HUFs excluded.",
+      "tenure": "5 years, extendable by 3 years (apply within one year of maturity)",
+      "min": 1000, "max": 3000000, "max_basis": "per individual across all SCSS accounts, in multiples of Rs 1,000",
+      "premature_closure": "Before 1 year: no interest, and interest already paid is recovered. 1-2 years: 1.5% of deposit deducted. After 2 years: 1% deducted.",
+      "tax": "Deposit qualifies for 80C / s.123 (old regime). Interest is FULLY TAXABLE; senior-citizen interest deduction under 80TTB / s.153.",
+      "tds_threshold": "Rs 1,00,000 a year under s.194A for senior citizens, from FY 2025-26",
+      "where": "Post offices; SBI, HDFC, ICICI, Axis and other authorised banks",
+      "app_note": "The headline 8.20% is fully taxable. For a 30%-bracket investor the post-tax return is about 5.54%, below tax-free PPF at 7.10%. Show the post-tax comparison."
+    },
+    {
+      "id": "nsc", "name": "National Savings Certificate (VIII Issue)",
+      "rate": 7.70, "compounding": "annually, paid at maturity", "rate_lock": "Locks at purchase for the full term",
+      "tenure": "5 years",
+      "min": 1000, "max": "no maximum", "increments": 100,
+      "eligibility": "Resident individual, including on behalf of a minor; joint accounts allowed. NRIs and HUFs excluded.",
+      "premature": "Not allowed, except on death of the holder, a court order, or forfeiture by a pledgee",
+      "loan": "Can be pledged as security with banks",
+      "tax": "Deposit qualifies for 80C / s.123. Accrued interest of years 1-4 is deemed reinvested and ALSO qualifies for 80C - a genuinely underused feature. Year-5 interest is taxable. No TDS.",
+      "where": "Post offices"
+    },
+    {
+      "id": "kvp", "name": "Kisan Vikas Patra",
+      "rate": 7.50, "compounding": "annually", "maturity_months": 115, "maturity_note": "Money doubles in 9 years 7 months at the current rate. Rate locks at purchase.",
+      "min": 1000, "max": "no maximum", "increments": 100,
+      "premature": "After 2 years 6 months; earlier only on death, court order or pledge forfeiture",
+      "tax": "NO 80C deduction. Interest fully taxable, on either an accrual or a receipt basis.",
+      "where": "Post offices"
+    },
+    {
+      "id": "pomis", "name": "Post Office Monthly Income Scheme",
+      "rate": 7.40, "payout": "monthly",
+      "tenure": "5 years",
+      "min": 1000, "max_single": 900000, "max_joint": 1500000,
+      "eligibility": "Resident individual 18+; a minor via guardian, with the minor's own limit of Rs 3 lakh (unverified)",
+      "premature": "Not before 1 year. 1-3 years: 2% of deposit deducted. 3-5 years: 1% deducted.",
+      "tax": "No 80C. Interest fully taxable. No TDS on MIS itself, but aggregate post office interest counts for s.194A.",
+      "where": "Post offices"
+    },
+    {
+      "id": "po_td", "name": "Post Office Time Deposits",
+      "rates": {"1yr": 6.90, "2yr": 7.00, "3yr": 7.10, "5yr": 7.50},
+      "compounding": "quarterly, paid annually",
+      "min": 1000, "max": "no maximum", "increments": 100,
+      "premature": "Not before 6 months. Closed at 6-12 months: PO Savings Account rate (4%). 2/3/5-year TDs closed after 1 year: 2% below the applicable TD rate.",
+      "loan": "Can be pledged as security",
+      "tax": "ONLY the 5-year TD qualifies for 80C / s.123. Interest taxable in all cases.",
+      "where": "Post offices"
+    },
+    {
+      "id": "po_rd", "name": "Post Office Recurring Deposit (5-year)",
+      "rate": 6.70, "compounding": "quarterly",
+      "tenure": "5 years, extendable by another 5",
+      "min": 100, "min_basis": "per month, in multiples of Rs 10", "max": "no maximum",
+      "loan": "Up to 50% of the balance after 12 monthly deposits",
+      "premature": "After 3 years; interest then paid at the PO Savings Account rate",
+      "default_penalty": "Rs 1 per Rs 100 per month rebate/penalty structure",
+      "tax": "No 80C; interest fully taxable"
+    },
+    {
+      "id": "po_savings", "name": "Post Office Savings Account",
+      "rate": 4.00, "compounding": "calculated on the balance between the 10th and month end, credited annually",
+      "min": 500, "min_basis": "to open and maintain",
+      "tax": "Interest exempt up to Rs 3,500 single / Rs 7,000 joint under 10(15)(i) (not re-verified). Beyond that, 80TTA (Rs 10,000) or 80TTB (Rs 50,000 for seniors) / s.153, old regime only.",
+      "where": "Post offices; cheque book, ATM and mobile/net banking available"
+    },
+    {
+      "id": "rbi_frsb", "name": "RBI Floating Rate Savings Bonds, 2020 (Taxable)",
+      "current_coupon": 8.05, "coupon_period": "1 July 2026 - 31 December 2026",
+      "rate_basis": "NSC rate (7.70%) plus a 0.35% spread, reset every 6 months",
+      "reset_dates": ["1 January", "1 July"],
+      "next_reset": "1 January 2027",
+      "interest_payment": "Half-yearly on 1 January and 1 July. NO cumulative option.",
+      "tenure": "7 years",
+      "min": 1000, "max": "no maximum",
+      "eligibility": "Resident individuals and HUFs. NRIs not eligible.",
+      "premature_exit": "Senior citizens only: 60-70 after 6 years; 70-80 after 5 years; 80+ after 4 years - with a penalty of 50% of the last half-year's interest",
+      "tax": "Interest fully taxable at slab rates. No 80C.",
+      "app_note": "The highest-yielding fully sovereign instrument currently available at 8.05%, but it is fully taxable and has no cumulative option, so it suits someone who needs income rather than accumulation."
+    }
+  ],
+
+  "closed_to_new_money": [
+    {
+      "name": "Mahila Samman Savings Certificate (MSSC)",
+      "status": "CLOSED to new accounts from 31 March 2025",
+      "detail": "A two-year scheme launched April 2023. Existing holders keep 7.5% compounded quarterly to maturity; the last accounts mature by 31 March 2027. Maximum Rs 2 lakh per woman. Partial withdrawal of 40% after 1 year (one source says 6 months - unverified). Premature closure allowed after 6 months at 2% lower. Interest fully taxable, no 80C."
+    },
+    {
+      "name": "Pradhan Mantri Vaya Vandana Yojana (PMVVY)",
+      "status": "CLOSED to new subscriptions from 31 March 2023",
+      "detail": "LIC-operated. Existing policyholders keep their locked rate (7.4% for the final cohort) for the full 10-year term, payable monthly, quarterly, half-yearly or annually. Not extended. The practical successor for seniors is SCSS."
+    },
+    {
+      "name": "Sovereign Gold Bonds (SGB)",
+      "status": "DISCONTINUED for new issues",
+      "detail": "Last tranche February 2024 (2023-24 Series IV). No issuance calendar for FY 2025-26 or FY 2026-27. The Government cited it as a high-cost borrowing method.",
+      "tax_on_redemption": {
+        "original_subscriber_held_to_8yr_maturity": "Capital gains exempt",
+        "original_subscriber_premature_with_rbi_after_year_5": "Exempt - CONTESTED. Some commentary says only redemptions before 1 April 2026 qualify.",
+        "secondary_market_buyer": "Taxable - LTCG at 12.5%",
+        "budget_2026_change": "Reported to restrict the exemption to original subscribers holding to maturity. Single-sourced. VERIFY."
+      }
+    }
+  ]
+}
