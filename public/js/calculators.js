@@ -275,7 +275,7 @@ const VIEWS = {
 
       const balanceSeries = [{ name: scen ? 'Plain EMI' : 'Outstanding balance', color: scen ? GREY : GREEN, dash: !!scen, points: [[0, p], ...base.years.map((a) => [a.year, a.balance])] }];
       if (scen) balanceSeries.push({ name: 'With your changes', color: GREEN, area: true, points: [[0, p], ...scen.years.map((a) => [a.year, a.balance])] });
-      const charts = el('div', { class: 'two-charts' }, [
+      const charts = el('div', { class: 'chart-stack' }, [
         el('div', {}, [el('div', { class: 'viz-title' }, 'Outstanding balance over the years'), lineChart({ series: balanceSeries, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `End of year ${Math.round(x)}`, height: 220, ariaLabel: 'Loan balance by year' })]),
         el('div', {}, [el('div', { class: 'viz-title' }, 'What each year\'s payments went to'), columnChart({ categories: show.years.map((a) => String(a.year)), series: [{ name: 'Principal', color: GREEN, values: show.years.map((a) => a.principal) }, { name: 'Interest', color: GOLD, values: show.years.map((a) => a.interest) }], xLabel: 'Year', height: 220 })]),
       ]);

@@ -275,7 +275,9 @@ table.compare td.neg { color: var(--danger); }
 
 /* charts */
 .chart-card { margin-bottom: 14px; }
-.viz-wrap { position: relative; }
+.viz-wrap { position: relative; width: 100%; min-width: 0; }
+.viz-holder { position: relative; }
+.chart-stack { display: grid; gap: 18px; margin: 10px 0 14px; }
 .viz { display: block; font-family: inherit; overflow: hidden; max-width: 100%; }
 .viz-title { font-size: .82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 4px 0 6px; }
 .viz-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin-bottom: 4px; }
