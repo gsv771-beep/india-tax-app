@@ -55,6 +55,8 @@ It closes items 1, 2, 3, 5 and 9 in one pass.
 
 ## Scraper traps
 
+0. **incometaxindia.gov.in "Tax rates" page (`/w/tax-rates`), reviewed 8 Sep 2026**: note (b) under the new-regime rebate says the ₹60,000 rebate for AY 2026-27 applies where total income "does not exceed Rs. 7,00,000". That figure is stale (carried over from AY 2025-26); the limit is ₹12,00,000, which the same page's MCQ 10 confirms. The engine uses ₹12 lakh. The page's surcharge marginal-relief wording (tax plus surcharge not to exceed tax at the threshold by more than the income above it, at 50 lakh, 1, 2 and 5 crore) matches the engine and is locked by tests at each threshold.
+
 Four live pages will feed you wrong data if you scrape them naively:
 
 1. **incometax.gov.in's own "Super Senior Citizen — New Tax Regime" block** on `/help/individual/return-applicable-2` still shows FY 2024-25 slabs. The senior-citizen block on the *same page* is correct.

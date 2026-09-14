@@ -179,6 +179,23 @@ function checkTrue(name, cond, detail = '') {
   checkTrue('rent below 10% of Basic+DA gives nil exemption, not negative', hlow.income.hraWorking.exempt === 0 && hlow.income.hraWorking.least === -10000);
 }
 
+// Extra: surcharge marginal relief at every threshold, per incometaxindia.gov.in "Tax rates" (tax + surcharge must not
+// exceed tax at the threshold by more than the income above it). Old regime, below 60.
+{
+  const taxAt = (inc) => computeRegime({ otherIncome: { other: inc } }, 'old', rates).tax;
+  for (const th of [5000000, 10000000, 20000000, 50000000]) {
+    const base = taxAt(th), just = taxAt(th + 100000);
+    const capped = base.taxPlusSurcharge + 100000;
+    checkTrue(`relief at ${th}: tax+surcharge just above threshold does not exceed tax at threshold plus extra income`, just.taxPlusSurcharge <= capped + 0.5, `${Math.round(just.taxPlusSurcharge)} vs cap ${Math.round(capped)}`);
+    checkTrue(`relief at ${th}: relief is positive just above the threshold`, just.surchargeRelief > 0);
+    const far = taxAt(th * 1.5);
+    checkTrue(`no relief well above ${th}`, far.surchargeRelief === 0);
+  }
+  // new regime caps at 25% above 2 crore and has no 5 crore step
+  const n = computeRegime({ otherIncome: { other: 60000000 } }, 'new', rates).tax;
+  checkTrue('new regime surcharge capped at 25% above 5 crore', n.scRate === 0.25);
+}
+
 // Extra: compareRegimes picks a winner and reports the saving
 {
   const c = compareRegimes({ salary: { gross: 1500000 } }, rates);
