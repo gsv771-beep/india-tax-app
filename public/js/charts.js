@@ -73,8 +73,6 @@ export function lineChart(o) {
     const d = s.points.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
     if (s.area) root.append(svg('path', { d: d + ` L${X(s.points[s.points.length - 1][0])},${Y(0)} L${X(s.points[0][0])},${Y(0)} Z`, fill: s.color, opacity: 0.08 }));
     root.append(svg('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-dasharray': s.dash ? '6 4' : null }));
-    const last = s.points[s.points.length - 1];
-    if (o.series.length <= 4) root.append(svg('text', { x: Math.min(X(last[0]) + 6, W - 2), y: Y(last[1]) + 4, 'font-size': 11, 'font-weight': 600, fill: s.color }, s.name));
   });
   // markers
   for (const k of o.markers || []) {
@@ -82,7 +80,7 @@ export function lineChart(o) {
     if (k.label) root.append(svg('text', { x: X(k.x), y: Y(k.y) - 10, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 700, style: TEXT }, k.label));
   }
   // legend
-  const legend = o.series.length > 1 ? el('div', { class: 'viz-legend' }, o.series.map((s) => el('span', {}, [el('i', { style: `background:${s.color}` }), s.name]))) : null;
+  const legend = el('div', { class: 'viz-legend' }, o.series.map((s) => el('span', {}, [el('i', { style: `background:${s.color}` }), s.name])));
 
   // hover
   const tip = el('div', { class: 'viz-tip', hidden: true });

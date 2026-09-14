@@ -276,13 +276,14 @@ table.compare td.neg { color: var(--danger); }
 /* charts */
 .chart-card { margin-bottom: 14px; }
 .viz-wrap { position: relative; }
-.viz { display: block; font-family: inherit; overflow: visible; }
+.viz { display: block; font-family: inherit; overflow: hidden; max-width: 100%; }
 .viz-title { font-size: .82rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 4px 0 6px; }
 .viz-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin-bottom: 4px; }
 .viz-legend i, .viz-tip i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
 .viz-tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 10px; font-size: .82rem; box-shadow: var(--shadow-lg); z-index: 5; white-space: nowrap; }
 .viz-tip-x { font-weight: 700; margin-bottom: 4px; }
-.two-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.two-charts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.two-charts > * { min-width: 0; }
 @media (max-width: 820px) { .two-charts { grid-template-columns: 1fr; } }
 
 /* headline extras: trust line and share */
