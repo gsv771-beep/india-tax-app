@@ -65,6 +65,59 @@ export async function buildTaxWorkbookBase64(inputs, cmp, rates, flags, who = ''
   const notes = [...o.income.notes.map((t) => 'Old regime: ' + t.replace(/^Old regime: /, '')), ...n.income.notes.map((t) => 'New regime: ' + t.replace(/^New regime: /, '')), ...cmp.warnings];
   if (notes.length) { headerRow(ws, r++, ['Notes', '', '']); for (const t of notes) { ws.mergeCells(`A${r}:C${r}`); dataRow(ws, r++, [t], [], { wrap: true }); } }
 
+  // ----- Working: slab by slab, rebate, marginal relief, surcharge, cess -----
+  const ww = wb.addWorksheet('Working', { views: [{ showGridLines: false }] });
+  ww.columns = [{ width: 58 }, { width: 18 }, { width: 6 }, { width: 58 }, { width: 18 }];
+  sheetTitle(ww, 'How the tax is worked out', 'Slab by slab, then special-rate income, rebate and marginal relief, surcharge and its marginal relief, and cess.', 'E');
+  const writeWorking = (regimeKey, res, col) => {
+    const t = res.tax; const c = col; const cv = String.fromCharCode(col.charCodeAt(0) + 1);
+    let rr = 4;
+    const head = (text) => { const cell = ww.getCell(`${c}${rr}`); cell.value = text; cell.font = { bold: true, color: { argb: X.white } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: regimeKey === 'old' ? 'FF8A6412' : X.green } }; ww.getCell(`${cv}${rr}`).fill = cell.fill; rr++; };
+    const line = (label, val, bold = false, fillArgb = null) => { const a = ww.getCell(`${c}${rr}`), v = ww.getCell(`${cv}${rr}`); a.value = label; v.value = val; if (typeof val === 'number') v.numFmt = X.inr; a.alignment = { wrapText: true, vertical: 'top' }; v.alignment = { vertical: 'top', horizontal: 'right' }; if (bold) { a.font = { bold: true }; v.font = { bold: true }; } if (fillArgb) { a.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb } }; v.fill = a.fill; } rr++; };
+    head(regimeKey === 'old' ? 'Old regime' : 'New regime');
+    line(`Tax at slab rates on ${fmt(t.slabIncome)}`, '', true);
+    for (const s of t.slabRows) line(`${s.to == null ? 'Above ' + fmt(s.from) : (s.from === 0 ? 'Up to ' : fmt(s.from + 1) + ' to ') + fmt(s.to)} at ${Math.round(s.rate * 100)}% (${fmt(s.amount)})`, s.tax);
+    line('Tax at slab rates', t.slabTax, true);
+    if (t.specialTax > 0) {
+      const sp = t.specialParts;
+      line('Tax at special rates (not rebated)', '', true);
+      if (sp.stcgEquity) line('STCG on listed equity at 20%', sp.stcgEquity);
+      if (sp.ltcgEquity) line('LTCG on listed equity at 12.5% above ₹1,25,000', sp.ltcgEquity);
+      if (sp.ltcgOther) line('LTCG on other assets at 12.5%', sp.ltcgOther);
+      if (sp.lottery) line('Lottery, gaming, crypto at 30%', sp.lottery);
+      line('Tax at special rates', t.specialTax, true);
+    }
+    const rr2 = t.rebateRule;
+    line(`Rebate (total income up to ${fmt(rr2.threshold)})`, '', true);
+    if (!rr2.eligibleResident) line('Not available: residents only', 0);
+    else if (t.rebate > 0) line(`Rebate: income ${fmt(t.totalIncome)} within limit; lower of slab tax and ${fmt(rr2.max)}`, -t.rebate);
+    else if (t.rebateRelief > 0) line(`Marginal relief on rebate APPLIES: income exceeds limit by ${fmt(t.totalIncome - rr2.threshold)}, slab tax capped at that excess`, -t.rebateRelief, false, X.greenSoft);
+    else if (t.totalIncome > rr2.threshold) line(rr2.marginalReliefAvailable ? `Marginal relief on rebate does not apply: excess income ${fmt(t.totalIncome - rr2.threshold)} exceeds slab tax ${fmt(t.slabTax)}` : 'Rebate not available: income above limit; old-regime rebate has no marginal relief', 0);
+    else line('No slab tax to rebate', 0);
+    line('Tax after rebate', t.taxBeforeSurcharge, true);
+    line('Surcharge', '', true);
+    if (t.surcharge > 0) {
+      line(`Surcharge at ${Math.round(t.scRate * 100)}% (income above ${fmt(t.scThreshold)})`, t.surcharge);
+      const w = t.surchargeReliefWorking;
+      if (w && w.relief > 0) line(`Marginal relief on surcharge APPLIES: income exceeds threshold by ${fmt(w.excessIncome)}; tax plus surcharge rose by ${fmt(w.extraTax)}, capped at the extra income`, -w.relief, false, X.greenSoft);
+      else if (w) line(`Marginal relief on surcharge does not apply: tax rose by ${fmt(w.extraTax)}, less than the extra income ${fmt(w.excessIncome)}`, 0);
+    } else line('No surcharge: income below the first threshold', 0);
+    line('Tax plus surcharge', t.taxPlusSurcharge, true);
+    line(`Health and education cess at 4% of ${fmt(t.taxPlusSurcharge)}`, t.cess);
+    line('Total tax payable', t.total, true, X.greenSoft);
+    return rr;
+  };
+  writeWorking('old', o, 'A');
+  writeWorking('new', n, 'D');
+  const hw = o.income.hraWorking;
+  if (hw) {
+    let hr = Math.max(ww.rowCount, 4) + 2;
+    ww.getCell(`A${hr}`).value = 'HRA exemption, step by step (old regime only)'; ww.getCell(`A${hr}`).font = { bold: true, size: 12, color: { argb: X.green } }; hr++;
+    ww.getCell(`A${hr}`).value = `Least of three, s.10(13A) / s.11 read with Schedule III. Basic + DA ${fmt(hw.basicDa)}; ${hw.city} treated as ${hw.metro ? 'metro' : 'non-metro'}.`; hr++;
+    hw.limbs.forEach((l, i) => { ww.getCell(`A${hr}`).value = `(${'abc'[i]}) ${l.label}`; const v = ww.getCell(`B${hr}`); v.value = l.value; v.numFmt = X.inr; if (l.value === hw.least) { ww.getCell(`A${hr}`).font = { bold: true }; v.font = { bold: true }; } hr++; });
+    ww.getCell(`A${hr}`).value = 'Exempt HRA'; ww.getCell(`A${hr}`).font = { bold: true }; const ev = ww.getCell(`B${hr}`); ev.value = hw.exempt; ev.numFmt = X.inr; ev.font = { bold: true };
+  }
+
   // ----- Break-even -----
   const wb2 = wb.addWorksheet('Break-even', { views: [{ showGridLines: false }] });
   wb2.columns = [{ width: 70 }, { width: 18 }, { width: 18 }, { width: 16 }];

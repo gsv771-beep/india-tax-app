@@ -76,7 +76,121 @@ function render(inputs, rates, flags) {
   renderInsights(inputs, result, rates, flags);
   renderCharts(inputs, result, rates, flags);
   renderTable(result);
+  renderWorking(result, rates);
   renderNotes(result);
+}
+
+// ---------- slab-wise working, marginal relief status, HRA working ----------
+
+const fmtBand = (from, to) => (to == null ? `Above ${inr(from)}` : from === 0 ? `Up to ${inr(to)}` : `${inr(from + 1)} to ${inr(to)}`);
+
+function slabWorking(regimeKey, r, rates) {
+  const t = r.tax, isNew = regimeKey === 'new';
+  const rows = [];
+  const row = (label, amount, cls = '', note = null) => rows.push(el('tr', { class: cls }, [el('td', {}, note ? [label, el('div', { class: 'muted small' }, note)] : label), el('td', { class: typeof amount === 'number' && amount < 0 ? 'neg' : '' }, typeof amount === 'number' ? inr(amount) : amount)]));
+  const group = (label) => rows.push(el('tr', { class: 'group' }, [el('td', { colspan: 2 }, label)]));
+
+  group('Tax at slab rates on ' + inr(t.slabIncome));
+  if (t.slabRows.length === 0) row('No slab-rate income', 0);
+  for (const s of t.slabRows) {
+    row(`${fmtBand(s.from, s.to)} at ${Math.round(s.rate * 100)}%`, s.tax, '', s.rate > 0 ? `${inr(s.amount)} × ${Math.round(s.rate * 100)}%` : `${inr(s.amount)}, nil rate`);
+  }
+  row('Tax at slab rates', t.slabTax, 'subtotal');
+
+  const sp = t.specialParts;
+  if (t.specialTax > 0) {
+    group('Tax at special rates (not eligible for rebate)');
+    if (sp.stcgEquity) row('Short-term gains on listed equity at 20%', sp.stcgEquity);
+    if (sp.ltcgEquity) row('Long-term gains on listed equity at 12.5%, above the ₹1,25,000 exemption', sp.ltcgEquity);
+    if (sp.ltcgOther) row('Long-term gains on other assets at 12.5%', sp.ltcgOther);
+    if (sp.lottery) row('Lottery, gaming, crypto at 30%', sp.lottery);
+    if (t.exemptionAdj > 0) row('Unused basic exemption set against gains first', `${inr(t.exemptionAdj)} of gains untaxed`);
+    row('Tax at special rates', t.specialTax, 'subtotal');
+  }
+
+  const rr = t.rebateRule;
+  group(`Rebate under s.87A / s.156 (total income up to ${inr(rr.threshold)})`);
+  if (!rr.eligibleResident) {
+    row('Rebate', 0, '', 'Not available: the rebate is for resident individuals only.');
+  } else if (t.rebate > 0) {
+    row(`Rebate: total income ${inr(t.totalIncome)} is within ${inr(rr.threshold)}`, -t.rebate, '', `Lower of slab-rate tax ${inr(t.slabTax)} and the cap ${inr(rr.max)}. Tax on special-rate income is not rebated.`);
+  } else if (t.rebateRelief > 0) {
+    const excess = t.totalIncome - rr.threshold;
+    row('Marginal relief on the rebate: applies', -t.rebateRelief, 'better', `Total income exceeds ${inr(rr.threshold)} by ${inr(excess)}, but slab tax would be ${inr(t.slabTax)}. Tax is limited to the excess income, so relief of ${inr(t.rebateRelief)} brings slab tax down to ${inr(excess)}.`);
+  } else if (t.totalIncome > rr.threshold) {
+    const excess = t.totalIncome - rr.threshold;
+    if (rr.marginalReliefAvailable) row('Marginal relief on the rebate: does not apply', 0, '', `Total income exceeds ${inr(rr.threshold)} by ${inr(excess)}, which is more than the slab tax of ${inr(t.slabTax)}. Relief applies only while slab tax exceeds the excess income, roughly up to ${inr(rr.threshold + 70588)} of total income in the new regime.`);
+    else row('Rebate: not available', 0, '', `Total income ${inr(t.totalIncome)} is above ${inr(rr.threshold)}. The old-regime rebate has no marginal relief; it is a hard cut-off.`);
+  } else {
+    row('Rebate', 0, '', 'No slab-rate tax to rebate.');
+  }
+  row('Tax after rebate', t.taxBeforeSurcharge, 'subtotal');
+
+  const scTable = isNew ? rates.surcharge.new_regime : rates.surcharge.old_regime;
+  const firstThreshold = scTable[0].income_above;
+  group('Surcharge');
+  if (t.surcharge > 0) {
+    const w = t.surchargeReliefWorking;
+    row(`Surcharge at ${Math.round(t.scRate * 100)}%: total income is above ${inr(t.scThreshold)}`, t.surcharge, '', (sp.stcgEquity || sp.ltcgEquity || sp.ltcgOther) ? 'Surcharge on tax from capital gains and dividends is capped at 15%; the full rate applies to the rest.' : null);
+    if (w && w.relief > 0) {
+      row('Marginal relief on surcharge: applies', -w.relief, 'better', `Income exceeds the ${inr(w.threshold)} threshold by ${inr(w.excessIncome)}, but tax plus surcharge rises by ${inr(w.extraTax)} (from ${inr(w.taxAtThreshold)} to ${inr(w.taxAtActual)}). The rise is capped at the extra income, so relief of ${inr(w.relief)} is given.`);
+    } else if (w) {
+      row('Marginal relief on surcharge: does not apply', 0, '', `Income exceeds the ${inr(w.threshold)} threshold by ${inr(w.excessIncome)}; tax plus surcharge rises by only ${inr(w.extraTax)}, which is less than the extra income, so no relief is needed.`);
+    }
+  } else {
+    row('No surcharge', 0, '', `Surcharge starts when total income exceeds ${inr(firstThreshold)}; yours is ${inr(t.totalIncome)}.`);
+  }
+  row('Tax plus surcharge', t.taxPlusSurcharge, 'subtotal');
+
+  group('Health and education cess');
+  row(`Cess at 4% of ${inr(t.taxPlusSurcharge)}`, t.cess, '', 'Cess is charged on tax plus surcharge, after every rebate and relief.');
+  row('Total tax payable', t.total, 'total');
+
+  return el('div', { class: 'working-col' }, [
+    el('h4', { class: `working-head ${regimeKey}` }, regimeKey === 'old' ? 'Old regime' : 'New regime'),
+    el('div', { class: 'table-wrap' }, el('table', { class: 'compare working' }, [el('tbody', {}, rows)])),
+  ]);
+}
+
+function hraWorking(cmp) {
+  const w = cmp.old.income.hraWorking;
+  if (!w) return null;
+  const rows = w.limbs.map((l, i) => el('tr', { class: l.value === w.least ? 'subtotal hra-least' : '' }, [
+    el('td', {}, [`${['(a)', '(b)', '(c)'][i]} ${l.label}`, l.value === w.least ? el('span', { class: 'tag' }, 'lowest') : null]),
+    el('td', { class: l.value < 0 ? 'neg' : '' }, inr(l.value)),
+  ]));
+  let verdict;
+  if (w.missing === 'rent') verdict = 'You receive HRA but have not entered rent paid, so no exemption is computed. Enter the annual rent to see it.';
+  else if (w.missing === 'hra') verdict = 'You pay rent but receive no HRA. HRA exemption needs an HRA component in salary; look at section 80GG instead (rent paid without HRA, old regime only, up to ₹60,000 a year).';
+  else if (w.exempt <= 0) verdict = `Rent paid minus 10% of Basic + DA is ${inr(w.least)}, which is not positive, so no HRA is exempt. Rent must exceed 10% of Basic + DA for any exemption.`;
+  else verdict = `The exemption is the lowest of the three, ${inr(w.exempt)}. It reduces salary income in the old regime only; the new regime taxes the full HRA of ${inr(w.limbs[0].value)}.`;
+  const taxable = Math.max(0, w.limbs[0].value - w.exempt);
+  return el('div', { class: 'card working-card hra-card' }, [
+    el('h3', { style: 'margin-top:0' }, 'HRA exemption, step by step'),
+    el('p', { class: 'muted small' }, `Section 10(13A) of the 1961 Act, s.11 read with Schedule III of the 2025 Act. Exempt HRA is the least of three amounts. "Salary" here means Basic + DA, ${inr(w.basicDa)}. ${w.city} counts as ${w.metro ? 'a metro' : 'a non-metro'} city, so limb (b) uses ${Math.round(w.pct * 100)}%.`),
+    el('div', { class: 'table-wrap' }, el('table', { class: 'compare working' }, [el('tbody', {}, [
+      ...rows,
+      el('tr', { class: 'total' }, [el('td', {}, 'Exempt HRA (old regime)'), el('td', {}, inr(w.exempt))]),
+      w.limbs[0].value > 0 ? el('tr', {}, [el('td', {}, 'Taxable HRA in the old regime'), el('td', {}, inr(taxable))]) : null,
+      w.limbs[0].value > 0 ? el('tr', {}, [el('td', {}, 'Taxable HRA in the new regime'), el('td', {}, inr(w.limbs[0].value))]) : null,
+    ])])),
+    el('p', { class: 'explain' }, verdict),
+    el('p', { class: 'muted small' }, 'If your annual rent exceeds ₹1,00,000, your employer needs the landlord\u2019s PAN. Rent paid to family is allowed but needs a genuine payment trail. Metro list for this purpose: Delhi, Mumbai, Kolkata, Chennai; the reported expansion to eight cities from FY 2026-27 is not applied until the Rules are confirmed.'),
+  ]);
+}
+
+function renderWorking(cmp, rates) {
+  const box = document.getElementById('tax-working');
+  if (cmp.old.tax.totalIncome === 0 && cmp.new.tax.totalIncome === 0) { box.replaceChildren(); return; }
+  const hra = hraWorking(cmp);
+  setChildren(box, [
+    hra,
+    el('details', { class: 'working-details', open: hra ? null : true }, [
+      el('summary', {}, 'How the tax is worked out, slab by slab, with rebate, marginal relief, surcharge and cess'),
+      el('div', { class: 'working-grid' }, [slabWorking('old', cmp.old, rates), slabWorking('new', cmp.new, rates)]),
+      el('p', { class: 'muted small' }, 'Marginal relief exists in two places: on the rebate when total income crosses the rebate limit by a small margin, and at each surcharge threshold. In both cases the extra tax cannot exceed the extra income that caused it. Both are checked above.'),
+    ]),
+  ]);
 }
 
 function renderCharts(inputs, cmp, rates, flags) {

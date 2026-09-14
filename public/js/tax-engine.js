@@ -110,6 +110,19 @@ function slabTaxFor(income, bands) {
   return tax;
 }
 
+/** Slab-by-slab working: [{from, to, rate, amount, tax}] for the bands the income reaches. */
+export function slabBreakdown(income, bands) {
+  const rows = [];
+  for (const b of bands) {
+    const lower = b.from === 0 ? 0 : b.from - 1;
+    const upper = b.to == null ? Infinity : b.to;
+    if (income <= lower) break;
+    const amount = Math.min(income, upper) - lower;
+    rows.push({ from: lower, to: b.to, rate: b.rate, amount, tax: amount * b.rate });
+  }
+  return rows;
+}
+
 function bandsFor(regime, ageBand, rates) {
   if (regime === 'new') return rates.slabs.new_regime.bands;
   const old = rates.slabs.old_regime;
@@ -147,6 +160,7 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
   const isNew = regime === 'new';
   const lines = [];
   const notes = [];
+  let hraWorking = null;
   const push = (id, label, amount, extra = {}) => lines.push({ id, label, amount, ...extra });
 
   // --- 1.1 Salary ---
@@ -171,14 +185,19 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
 
     // exempt allowances (old regime only)
     let hraExempt = 0;
-    if (!isNew && num(inp.salary.hraReceived) > 0 && num(inp.salary.rentPaid) > 0) {
+    if (num(inp.salary.hraReceived) > 0 || num(inp.salary.rentPaid) > 0) {
       const basicDa = num(inp.salary.basicDa);
-      const pct = isMetro(inp.salary.city, inp.fy, flags) ? 0.5 : 0.4;
-      hraExempt = clamp0(Math.min(
-        num(inp.salary.hraReceived),
-        pct * basicDa,
-        num(inp.salary.rentPaid) - 0.1 * basicDa,
-      ));
+      const metro = isMetro(inp.salary.city, inp.fy, flags);
+      const pct = metro ? 0.5 : 0.4;
+      const limbs = [
+        { id: 'received', label: 'HRA actually received', value: num(inp.salary.hraReceived) },
+        { id: 'salary_pct', label: `${Math.round(pct * 100)}% of Basic + DA (${metro ? 'metro' : 'non-metro'} city)`, value: pct * basicDa },
+        { id: 'rent_excess', label: 'Rent paid minus 10% of Basic + DA', value: num(inp.salary.rentPaid) - 0.1 * basicDa },
+      ];
+      const least = Math.min(...limbs.map((l) => l.value));
+      const exempt = num(inp.salary.hraReceived) > 0 && num(inp.salary.rentPaid) > 0 ? clamp0(least) : 0;
+      hraWorking = { limbs, least, exempt, metro, pct, city: inp.salary.city, basicDa, appliesInRegime: !isNew, missing: num(inp.salary.hraReceived) > 0 && num(inp.salary.rentPaid) <= 0 ? 'rent' : num(inp.salary.rentPaid) > 0 && num(inp.salary.hraReceived) <= 0 ? 'hra' : null };
+      if (!isNew) hraExempt = exempt;
     }
     push('hra', 'Less: HRA exemption', -hraExempt, { unavailableIn: 'new' });
     salary -= hraExempt;
@@ -337,6 +356,7 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
     buckets,
     dividends,
     epfEmployee: epf,
+    hraWorking,
     hpLossSetOff,
     hpLossCarried,
     hpLossExtinguished,
@@ -416,6 +436,8 @@ function taxCore(slabIncomeIn, bucketsIn, ctx) {
     totalIncome, slabIncome, slabTax, specialTax, specialParts, exemptionAdj,
     rebate, rebateRelief, slabTaxAfterRebate, taxBeforeSurcharge,
     surcharge, scRate, scThreshold,
+    bands, slabRows: slabBreakdown(slabIncome, bands),
+    rebateRule: { threshold: reb.total_income_threshold, max: reb.max_rebate, marginalReliefAvailable: isNew || !!flags.oldRegimeRebateMarginalRelief, eligibleResident: !!resident },
   };
 }
 
@@ -426,6 +448,7 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
 
   // Marginal relief on surcharge (A4)
   let surchargeRelief = 0;
+  let surchargeReliefWorking = null;
   if (core.surcharge > 0 && core.scThreshold > 0) {
     const excess = core.totalIncome - core.scThreshold;
     const atThreshold = taxCore(slabIncome - excess, buckets, ctx);
@@ -433,6 +456,7 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
     const base = atThreshold.taxBeforeSurcharge + atThreshold.surcharge;
     const relief = actual - base - excess;
     if (relief > 0) surchargeRelief = relief;
+    surchargeReliefWorking = { threshold: core.scThreshold, excessIncome: excess, taxAtThreshold: base, taxAtActual: actual, extraTax: actual - base, relief: Math.max(0, relief) };
   }
 
   const taxPlusSurcharge = core.taxBeforeSurcharge + core.surcharge - surchargeRelief;
@@ -442,6 +466,7 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
   return {
     ...core,
     surchargeRelief,
+    surchargeReliefWorking,
     taxPlusSurcharge,
     cess,
     total,

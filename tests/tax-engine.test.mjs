@@ -142,6 +142,43 @@ function checkTrue(name, cond, detail = '') {
   check('new regime: EPF does not create an 80C deduction', via80c(newRegime), 0);
 }
 
+// Extra: slab breakdown, HRA working, marginal relief working
+{
+  const r = computeRegime({ otherIncome: { other: 1250000 } }, 'new', rates);
+  const sum = r.tax.slabRows.reduce((s, x) => s + x.tax, 0);
+  check('slab rows sum to slab tax', sum, r.tax.slabTax);
+  check('slab rows cover the whole slab income', r.tax.slabRows.reduce((s, x) => s + x.amount, 0), r.tax.slabIncome);
+  checkTrue('slab rows: first band is nil-rate up to 4L', r.tax.slabRows[0].to === 400000 && r.tax.slabRows[0].rate === 0);
+  checkTrue('rebate rule exposed for the new regime', r.tax.rebateRule.threshold === 1200000 && r.tax.rebateRule.marginalReliefAvailable === true);
+  check('T3 relief is reported through rebateRelief', r.tax.rebateRelief, 17500);
+
+  const old = computeRegime({ otherIncome: { other: 520000 } }, 'old', rates);
+  checkTrue('old regime rebate rule: no marginal relief by default', old.tax.rebateRule.marginalReliefAvailable === false && old.tax.rebate === 0 && old.tax.rebateRelief === 0);
+
+  const s = computeRegime({ otherIncome: { other: 5100000 } }, 'old', rates);
+  const w = s.tax.surchargeReliefWorking;
+  checkTrue('surcharge relief working present', !!w && w.threshold === 5000000 && w.excessIncome === 100000);
+  check('surcharge working: relief matches T6', w.relief, 64250);
+  check('surcharge working: tax at threshold', w.taxAtThreshold, 1312500);
+  const s2 = computeRegime({ otherIncome: { other: 6000000 } }, 'old', rates);
+  checkTrue('no surcharge relief well above the threshold, but working still reported', s2.tax.surchargeReliefWorking && s2.tax.surchargeReliefWorking.relief === 0 && s2.tax.surchargeRelief === 0);
+
+  const h = computeRegime({ salary: { gross: 1200000, basicDa: 600000, hraReceived: 240000, rentPaid: 300000, city: 'Mumbai' } }, 'old', rates);
+  const hw = h.income.hraWorking;
+  checkTrue('HRA working has three limbs', hw && hw.limbs.length === 3);
+  check('HRA limb (a) received', hw.limbs[0].value, 240000);
+  check('HRA limb (b) 50% of Basic+DA in a metro', hw.limbs[1].value, 300000);
+  check('HRA limb (c) rent minus 10% of Basic+DA', hw.limbs[2].value, 240000);
+  check('HRA exempt equals the least limb', hw.exempt, 240000);
+  checkTrue('HRA working flags metro and applies in old regime', hw.metro === true && hw.appliesInRegime === true);
+  const hn = computeRegime({ salary: { gross: 1200000, basicDa: 600000, hraReceived: 240000, rentPaid: 300000, city: 'Mumbai' } }, 'new', rates);
+  checkTrue('new regime: HRA working reported but not applied', hn.income.hraWorking && hn.income.hraWorking.appliesInRegime === false && hn.income.lines.find((l) => l.id === 'hra').amount === 0);
+  const hm = computeRegime({ salary: { gross: 1200000, basicDa: 600000, hraReceived: 240000 } }, 'old', rates);
+  checkTrue('HRA without rent: working says rent is missing and exempt is 0', hm.income.hraWorking.missing === 'rent' && hm.income.hraWorking.exempt === 0);
+  const hlow = computeRegime({ salary: { gross: 1200000, basicDa: 600000, hraReceived: 240000, rentPaid: 50000, city: 'Pune' } }, 'old', rates);
+  checkTrue('rent below 10% of Basic+DA gives nil exemption, not negative', hlow.income.hraWorking.exempt === 0 && hlow.income.hraWorking.least === -10000);
+}
+
 // Extra: compareRegimes picks a winner and reports the saving
 {
   const c = compareRegimes({ salary: { gross: 1500000 } }, rates);

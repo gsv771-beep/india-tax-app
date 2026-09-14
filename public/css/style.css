@@ -336,6 +336,23 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .next-steps .btn-row .btn { font-size: .88rem; padding: 8px 14px; }
 a.btn { text-decoration: none; display: inline-block; text-align: center; }
 
+/* slab-wise working and HRA working */
+.working-card { margin-top: 16px; }
+.working-details { margin-top: 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 0 16px 12px; }
+.working-details > summary { cursor: pointer; font-weight: 600; padding: 14px 0; list-style: none; display: flex; align-items: center; }
+.working-details > summary::-webkit-details-marker { display: none; }
+.working-details > summary::after { content: "+"; margin-left: auto; color: var(--muted); font-size: 1.2rem; }
+.working-details[open] > summary::after { content: "–"; }
+.working-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .working-grid { grid-template-columns: 1fr; } }
+.working-head { margin: 4px 0 8px; font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; padding-left: 10px; border-left: 4px solid; }
+.working-head.old { border-color: var(--old); color: var(--old); }
+.working-head.new { border-color: var(--new); color: var(--new); }
+table.working td { font-size: .88rem; }
+table.working td .small { font-weight: 400; margin-top: 2px; }
+table.working tr.group td { font-size: .74rem; }
+tr.hra-least td { background: var(--accent-soft); }
+
 /* disclaimers */
 .disclaimer { margin-top: 20px; padding: 12px 16px; border-left: 3px solid var(--old); background: var(--old-soft); color: #4b3a12; font-size: .85rem; border-radius: 8px; line-height: 1.5; }
 
