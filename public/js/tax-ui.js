@@ -185,8 +185,9 @@ function renderWorking(cmp, rates) {
   const hra = hraWorking(cmp);
   setChildren(box, [
     hra,
-    el('details', { class: 'working-details', open: hra ? null : true }, [
-      el('summary', {}, 'How the tax is worked out, slab by slab, with rebate, marginal relief, surcharge and cess'),
+    el('details', { class: 'working-details', open: true }, [
+      el('summary', {}, 'How the tax is worked out, slab by slab'),
+      el('p', { class: 'muted small', style: 'margin-top:0' }, 'Each regime step by step: slab bands, special-rate income, rebate and its marginal relief, surcharge and its marginal relief, then cess.'),
       el('div', { class: 'working-grid' }, [slabWorking('old', cmp.old, rates), slabWorking('new', cmp.new, rates)]),
       el('p', { class: 'muted small' }, 'Marginal relief exists in two places: on the rebate when total income crosses the rebate limit by a small margin, and at each surcharge threshold. In both cases the extra tax cannot exceed the extra income that caused it. Both are checked above.'),
     ]),
