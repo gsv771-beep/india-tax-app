@@ -354,6 +354,11 @@ a.btn { text-decoration: none; display: inline-block; text-align: center; }
 .cat td, .cat th { padding: 5px 6px; border-bottom: 1px solid var(--line); text-align: right; }
 .cat td:first-child, .cat th:first-child { text-align: left; }
 .cat th { color: var(--muted); font-weight: 700; font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; }
+.cat tr.grp th { border-bottom: none; padding-bottom: 0; }
+.cat th.grp-head { text-align: center; color: var(--accent-2); border-bottom: 1px solid var(--line-strong); }
+.cat details[open] { overflow-x: auto; }
+.cat table { min-width: 520px; }
+.cat td.neg { color: var(--danger); }
 .risk { font-size: .68rem; padding: 3px 8px; border-radius: 999px; font-weight: 700; letter-spacing: .02em; }
 .risk-1 { background: #e3f1e8; color: #14532d; }
 .risk-2 { background: #e8f0d9; color: #3f5a12; }

@@ -447,6 +447,8 @@ const VIEWS = {
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
     const I = field('Inflation (% p.a.)', { value: 6, min: 0, step: 0.5 }, 'only used to show what that amount is worth in today\'s money');
     const out = el('div');
+    const fundBox = el('div');
+    let fundKey = '';
     const render = () => {
       const target = v(T), y = v(Y), r = v(R), inf = v(I);
       const sip = requiredSip(target, r, y);
@@ -462,8 +464,18 @@ const VIEWS = {
         ]),
         el('p', { class: 'explain' }, `To have ${inr(target)} in ${y} years at ${r}% a year, invest ${inr(sip)} every month, or ${inr(lump)} today. With ${inf}% inflation, ${inr(target)} then buys what ${inr(todayValue)} buys now.`),
         el('p', { class: 'muted' }, 'If the amount you typed is what the goal costs today, it will cost more by the time you get there. Multiply it by (1 + inflation) for each year, or ask for a higher target here.'),
+        fundBox,
         disclaimer('invest'),
       ]);
+      const key = `${r}|${y}`;
+      if (key !== fundKey) {
+        fundKey = key;
+        renderFundPanel(fundBox, {
+          mode: 'near', target: r, horizon: y,
+          title: `What has historically delivered about ${r}% a year?`,
+          intro: `Your SIP of ${inr(sip)} a month assumes ${r}% a year for ${y} years. These fund categories have typically returned about that over ${y >= 5 ? '5' : '3'}-year periods, with the worst and best stretches investors in them have actually lived through. A goal with a fixed date needs the worst case to be survivable.`,
+        });
+      }
     };
     remember('goal2', [T.input, Y.input, R.input, I.input]);
     [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));

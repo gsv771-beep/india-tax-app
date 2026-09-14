@@ -83,6 +83,7 @@ async function main() {
       plans: 'Direct plan, growth option, open-ended schemes only',
       fund_count: funds.length,
       fields: {
+        m1: 'absolute return over the last 1 month, % (not annualised)', m3: '3 months', m6: '6 months',
         cagr1: 'point-to-point CAGR over the last 1 year, % p.a.', cagr3: '3 years', cagr5: '5 years', cagr10: '10 years',
         r3: '[median, worst, best] of all 3-year rolling CAGRs sampled monthly', r5: 'same for 5-year windows',
         since: 'first NAV date available',
@@ -121,6 +122,13 @@ function summarise(h) {
     const a = navAt(t);
     return a ? round(cagr(a, last, n) * 100) : null;
   };
+  // absolute (not annualised) return over the last n months: what Rs 100 became
+  const abs = (months) => {
+    const d = new Date(last.t); d.setUTCMonth(d.getUTCMonth() - months);
+    if (d.getTime() < first.t) return null;
+    const a = navAt(d.getTime());
+    return a ? round((last.nav / a.nav - 1) * 100) : null;
+  };
   const rolling = (n) => {
     const vals = [];
     for (let t = first.t; ; t = addMonths(t, 1)) {
@@ -144,6 +152,7 @@ function summarise(h) {
     rawCategory: String(meta.scheme_category || '').trim(),
     since: fmtDate(first.t),
     asOf: fmtDate(last.t),
+    m1: abs(1), m3: abs(3), m6: abs(6),
     cagr1: p2p(1), cagr3: p2p(3), cagr5: p2p(5), cagr10: p2p(10),
     r3: rolling(3), r5: rolling(5),
   };
