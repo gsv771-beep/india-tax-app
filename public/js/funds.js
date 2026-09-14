@@ -148,10 +148,11 @@ function categoryCard(c, data, horizon, opts, label) {
   const summary = el('summary', {}, `Show funds in this category (${c.count})`);
   detail.append(summary);
   detail.addEventListener('toggle', () => {
+    detail.closest('.cat')?.classList.toggle('wide', detail.open);
     if (!detail.open || detail.dataset.loaded) return;
     detail.dataset.loaded = '1';
     const rows = fundsFor(data, c.category, horizon, opts.target, opts.mode);
-    detail.append(el('table', {}, [
+    detail.append(el('div', { class: 'fund-table' }, el('table', {}, [
       el('thead', {}, [
         el('tr', { class: 'grp' }, [el('th', {}), el('th', { colspan: 3, class: 'grp-head' }, 'Recent, absolute'), el('th', { colspan: 4, class: 'grp-head' }, 'Long-term, % a year')]),
         el('tr', {}, [el('th', {}, 'Fund'), el('th', {}, '1m'), el('th', {}, '3m'), el('th', {}, '6m'), el('th', {}, '1y'), el('th', {}, '3y'), el('th', {}, '5y'), el('th', {}, 'Worst 3y')]),
@@ -161,7 +162,7 @@ function categoryCard(c, data, horizon, opts, label) {
         el('td', { class: signCls(f.m1) }, pctOrDash(f.m1)), el('td', { class: signCls(f.m3) }, pctOrDash(f.m3)), el('td', { class: signCls(f.m6) }, pctOrDash(f.m6)),
         el('td', {}, pctOrDash(f.cagr1)), el('td', {}, pctOrDash(f.cagr3)), el('td', {}, pctOrDash(f.cagr5)), el('td', {}, f.r3 ? pctOrDash(f.r3[1]) : '—'),
       ]))),
-    ]));
+    ])));
     detail.append(el('p', { class: 'muted', style: 'font-size:.75rem;margin:6px 0 0' }, opts.mode === 'near'
       ? `Ordered by closeness of the ${label} to ${opts.target}%. The 1, 3 and 6-month figures are total change over that period, not annualised, and say more about the market's mood than the fund. "Worst 3y" is the fund's weakest 3-year stretch.`
       : `Ordered by ${label}. The 1, 3 and 6-month figures are total change over that period, not annualised. "Worst 3y" is the fund's weakest 3-year stretch, which a loan prepayment never has.`));
