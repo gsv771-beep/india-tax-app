@@ -3,7 +3,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { migrateProfile, toTaxInputs, toSalaryStore, SCHEMA_VERSION } from '../public/engine/profile.js';
+import { migrateProfile, toTaxInputs, toSalaryStore, ctcOf, SCHEMA_VERSION } from '../public/engine/profile.js';
 import { computeRegime } from '../public/js/tax-engine.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -22,7 +22,7 @@ for (const f of files) {
   ok(`${f}: schema version ${SCHEMA_VERSION}`, raw.schemaVersion === SCHEMA_VERSION);
   ok(`${f}: migration is lossless`, JSON.stringify(migrateProfile(p)) === JSON.stringify(p));
   const i = p.income;
-  ok(`${f}: components add up to CTC`, Math.abs(i.basic + i.hra + i.otherAllowances + i.employerNps + i.employerPf + i.esop - i.ctc) < 1);
+  ok(`${f}: components add up to CTC`, Math.abs(ctcOf(i) - i.ctc) < 1);
   ok(`${f}: regime is old or new`, p.tax.regime === 'old' || p.tax.regime === 'new');
   for (const l of p.loans) ok(`${f}: loan EMI matches outstanding/rate/months`, Math.abs(l.emi - Math.round(l.emi)) < 1 && l.emi > 0);
   const t = toTaxInputs(p);

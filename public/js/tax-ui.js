@@ -7,6 +7,8 @@ import { lineChart, waterfallChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
 import { termify } from './tooltips.js';
 import { countEvent } from './feedback.js';
+import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
+import { toTaxInputs, fromTaxInputs, isEmptyProfile } from '../engine/profile.js';
 
 const OLD_COLOR = '#b7861c', NEW_COLOR = '#1d6b3d';
 const FY_SHORT = { 'FY2026-27': 'FY 2026-27', 'FY2025-26': 'FY 2025-26' };
@@ -20,6 +22,7 @@ export function initTax({ rates, onboarding }) {
   const flags = { ...DEFAULT_FLAGS };
 
   restore(form);
+  applyProfile(form, getProfile());
   document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
     title: 'Email me this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
@@ -27,7 +30,8 @@ export function initTax({ rates, onboarding }) {
     fileName: taxFileName,
     buildBase64: async (who) => buildTaxWorkbookBase64(lastInputs, compareRegimes(lastInputs, rates, flags), rates, flags, who),
   }));
-  const run = debounce(() => render(readForm(form), rates, flags), 120);
+  // Every edit re-renders and writes the fields the shared profile owns back to it.
+  const run = debounce(() => { const inputs = readForm(form); render(inputs, rates, flags); updateProfile((p) => fromTaxInputs(p, inputs), 'tax'); }, 120);
   form.addEventListener('input', run);
   form.addEventListener('change', run);
   document.getElementById('tax-reset').addEventListener('click', () => {
@@ -35,9 +39,35 @@ export function initTax({ rates, onboarding }) {
     try { localStorage.removeItem(STORAGE_KEY); } catch {}
     run();
   });
+  // Edits made elsewhere (the profile panel, the salary calculator, a fixture) flow into the form.
+  onProfileChange((p) => { applyProfile(form, p); render(readForm(form), rates, flags); }, 'tax');
 
   renderProvisionTable(onboarding);
-  render(readForm(form), rates, flags);
+  const first = readForm(form);
+  render(first, rates, flags);
+  // Existing users: a form saved before the shared profile existed seeds it once.
+  if (isEmptyProfile(getProfile()) && (first.salary?.gross > 0)) updateProfile((p) => fromTaxInputs(p, first), 'tax');
+}
+
+// Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
+const PROFILE_PATHS = ['fy', 'ageBand', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.rentPaid', 'salary.city', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf'];
+
+function applyProfile(form, profile) {
+  if (isEmptyProfile(profile)) return;
+  const t = toTaxInputs(profile);
+  const paths = [...PROFILE_PATHS];
+  const home = profile.loans.filter((l) => l.type === 'home');
+  if (home.some((l) => l.propertyUse === 'self_occupied')) paths.push('houseProperty.selfOccupiedInterest');
+  if (home.some((l) => l.propertyUse === 'let_out')) paths.push('houseProperty.letOut.interest');
+  for (const path of paths) {
+    const field = form.querySelector(`[data-path="${path}"]`);
+    if (!field) continue;
+    const v = path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), t);
+    if (v === undefined) continue;
+    if (field.type === 'checkbox') field.checked = !!v;
+    else if (field.type === 'number') field.value = v ? String(Math.round(v)) : '';
+    else field.value = String(v);
+  }
 }
 
 function readForm(form) {

@@ -151,6 +151,45 @@ html.non-production .site-header { top: var(--staging-h); }
 }
 
 /* ============================================================
+   "Your profile" panel (js/profile-panel.js), on every page
+   ============================================================ */
+.profile-panel { margin: 16px 0 4px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); }
+.profile-panel.open { border-color: var(--line-strong); }
+.profile-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 6px 8px 6px 6px; }
+.profile-toggle { flex: 1 1 320px; display: flex; align-items: center; gap: 10px; min-width: 0; text-align: left; border: 0; background: none; font: inherit; color: var(--text); cursor: pointer; padding: 8px 10px; border-radius: var(--radius-sm); }
+.profile-toggle:hover { background: var(--surface-2); }
+.profile-title { font-weight: 700; white-space: nowrap; }
+.profile-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .9rem; }
+.profile-toggle .chev { transition: transform .15s; color: var(--muted); }
+.profile-panel.open .chev { transform: rotate(180deg); }
+.privacy-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: .8rem; font-weight: 600; white-space: nowrap; margin-right: 4px; }
+@media (prefers-color-scheme: dark) { .privacy-badge { color: #9fe0b8; } }
+.profile-body { border-top: 1px solid var(--line); padding: 14px 16px 16px; }
+.privacy-note { margin: 0 0 12px; padding: 10px 14px; border-radius: var(--radius-sm); background: var(--accent-soft); font-size: .88rem; }
+@media (prefers-color-scheme: dark) { .privacy-note { color: var(--text); } }
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.profile-group { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 10px 14px 14px; margin: 0; min-width: 0; }
+.profile-group.wide { grid-column: 1 / -1; }
+.profile-group legend { font-weight: 700; padding: 0 6px; }
+.profile-group .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px 12px; }
+.profile-group label { display: flex; flex-direction: column; gap: 3px; font-size: .84rem; font-weight: 500; min-width: 0; }
+.profile-group label small { font-size: .74rem; }
+.profile-group label.check { flex-direction: row; align-items: center; gap: 8px; align-self: end; }
+.profile-group input, .profile-group select { width: 100%; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; }
+.profile-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 12px; align-items: end; padding: 10px 0; border-top: 1px dashed var(--line); }
+.profile-row:first-of-type { border-top: 0; }
+.small-btn { padding: 7px 12px; font-size: .82rem; margin-top: 8px; }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.btn.danger { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); box-shadow: none; }
+.profile-status { margin-top: 8px; font-size: .86rem; color: var(--muted); min-height: 1.2em; }
+@media (max-width: 700px) {
+  .profile-bar { padding: 4px 6px; }
+  .profile-summary { display: none; }
+  .privacy-badge { font-size: .74rem; padding: 5px 10px; }
+  .profile-panel.open .profile-summary { display: none; }
+}
+
+/* ============================================================
    Panels and section heads
    ============================================================ */
 .panel { padding: 30px 0 48px; }

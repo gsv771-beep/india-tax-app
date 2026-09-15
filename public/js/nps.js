@@ -5,6 +5,8 @@
 import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js';
 import { sipFV } from './calculators.js';
 import { lineChart } from './charts.js';
+import { getProfile } from './profile-store.js';
+import { isEmptyProfile } from '../engine/profile.js';
 
 /**
  * Project an NPS corpus at retirement and what it turns into.
@@ -63,6 +65,8 @@ function overview(nps) {
 function projector(nps) {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch {}
   const st = { age: 30, retireAge: 60, monthly: 5000, employerMonthly: 0, stepUpPct: 5, returnPct: 10, annuityPct: 40, annuityRatePct: 6, ...saved };
+  // Pre-fill contributions from the shared profile when it has them.
+  { const p = getProfile(); if (!isEmptyProfile(p)) { if (p.income.employerNps > 0) st.employerMonthly = Math.round(p.income.employerNps / 12); if (p.tax.nps1bUsed > 0) st.monthly = Math.round(p.tax.nps1bUsed / 12); } }
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
   const f = (key, label, attrs, hint) => {
     const input = el('input', { type: 'number', ...attrs, value: st[key] });

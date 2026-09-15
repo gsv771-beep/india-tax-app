@@ -2,12 +2,11 @@
  * Dev-only controls, loaded by app.js on non-production hosts only (see env.js).
  * "Load fixture" drops a test profile from /fixtures/profiles/ into localStorage in one click,
  * because every preview URL is a fresh origin with empty storage.
- * Until the shared profile store lands (Phase 1) the fixture is also projected onto the
- * existing per-tool stores so the tax comparison and salary pages pick it up immediately.
+ * Loading wipes every TaxCompass key first so no per-tool memory from a previous profile lingers.
  */
 import { el, setChildren, loadJSON } from './util.js';
 import { environmentName } from './env.js';
-import { PROFILE_KEY, migrateProfile, toTaxInputs, toSalaryStore } from '../engine/profile.js';
+import { wipeEverything, importProfileJSON } from './profile-store.js';
 
 export async function initDevtools() {
   let index;
@@ -30,11 +29,11 @@ export async function initDevtools() {
   async function load(p) {
     status.textContent = 'Loading…';
     try {
-      const raw = await loadJSON('/fixtures/profiles/' + p.file);
-      const profile = migrateProfile(raw);
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
-      localStorage.setItem('taxcompass.inputs.v1', JSON.stringify(toTaxInputs(profile)));
-      localStorage.setItem('taxcompass.salary.v1', JSON.stringify(toSalaryStore(profile)));
+      const res = await fetch('/fixtures/profiles/' + p.file, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`${res.status} fetching ${p.file}`);
+      const text = await res.text();
+      wipeEverything();
+      importProfileJSON(text, 'fixture');
       status.textContent = `Loaded ${p.file}. Reloading…`;
       setTimeout(() => location.reload(), 300);
     } catch (e) {
@@ -42,7 +41,7 @@ export async function initDevtools() {
     }
   }
   function wipe() {
-    for (const k of Object.keys(localStorage)) if (k.startsWith('taxcompass.')) localStorage.removeItem(k);
+    wipeEverything();
     status.textContent = 'Wiped. Reloading…';
     setTimeout(() => location.reload(), 300);
   }

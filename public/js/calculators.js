@@ -6,6 +6,8 @@ import { renderCapitalGains } from './capgains.js';
 import { renderAdvanceTax } from './advance-tax.js';
 import { renderSalary } from './salary.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
+import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
+import { fromLoanInputs } from '../engine/profile.js';
 
 let appData = null;
 let currentCalc = null;
@@ -136,6 +138,10 @@ export function requiredSip(target, annualRatePct, years) {
 
 export function initCalculators(data) {
   appData = data;
+  // A change to the shared profile made anywhere else rebuilds the calculator on screen so it pre-fills afresh.
+  onProfileChange(debounce((p, source) => {
+    if (currentCalc && source !== 'calc:' + currentCalc) document.getElementById('calc-body').replaceChildren(VIEWS[currentCalc]());
+  }, 200));
 }
 
 /** Called by the router for /calculators/<name>. */
@@ -206,7 +212,7 @@ function stepUpControl(labelNoun) {
 }
 
 const VIEWS = {
-  budget() { return renderBudget(); },
+  budget() { return renderBudget(appData); },
   'capital-gains'() { return renderCapitalGains(appData.capgains); },
   'advance-tax'() { return renderAdvanceTax(appData); },
   salary() { return renderSalary(appData); },
@@ -325,6 +331,11 @@ const VIEWS = {
       }
     };
     remember('emi', [P.input, R.input, Y.input, ...step.inputs, L.input, LM.input, A.input, AS.input, M.input]);
+    // Pre-fill from the first loan in the shared profile; edits to amount, rate or tenure write back to it.
+    const loan = getProfile().loans[0];
+    if (loan && loan.outstanding > 0) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
+    const writeBack = debounce(() => updateProfile((p) => fromLoanInputs(p, { principal: v(P), ratePct: v(R), years: v(Y) }), 'calc:emi'), 300);
+    [P, R, Y].forEach((f) => f.input.addEventListener('input', writeBack));
     [P, R, Y, L, LM, A, AS].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
     M.input.addEventListener('change', render);
@@ -387,6 +398,8 @@ const VIEWS = {
       }
     };
     remember('sip', [A.input, R.input, Y.input, ...step.inputs]);
+    // Pre-fill from the shared profile: the monthly surplus and the nearest goal's horizon.
+    { const p = getProfile(); if (p.cashflow.monthlySurplus > 0) A.input.value = Math.round(p.cashflow.monthlySurplus); if (p.horizon.goals[0]?.years > 0) Y.input.value = p.horizon.goals[0].years; }
     const handoff = takeHandoff('sip');
     if (handoff) { fill(A.input, handoff.values.monthly); if (handoff.values.years) fill(Y.input, handoff.values.years); }
     [A, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
@@ -478,6 +491,10 @@ const VIEWS = {
       }
     };
     remember('goal2', [T.input, Y.input, R.input, I.input]);
+    // Pre-fill from the first goal in the shared profile; edits to the amount or years write back to it.
+    { const g = getProfile().horizon.goals[0]; if (g) { if (g.target > 0) T.input.value = Math.round(g.target); if (g.years > 0) Y.input.value = g.years; } }
+    const writeGoal = debounce(() => updateProfile((p) => { const g = p.horizon.goals[0] || (p.horizon.goals[0] = { name: 'Goal', years: 0, target: 0 }); g.target = v(T); g.years = v(Y); return p; }, 'calc:goal'), 300);
+    [T, Y].forEach((f) => f.input.addEventListener('input', writeGoal));
     [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     render();
     return calcShell([T.node, Y.node, R.node, I.node], out);

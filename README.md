@@ -2,6 +2,7 @@
 
 A static web app for Indian individual taxpayers. No backend, no build step, no API keys.
 
+- **Shared profile**: one set of figures (pay structure, regime, city, loans, what you hold, monthly surplus, household, goals) saved in the browser under `taxcompass.profile.v1` and read by every tool. The tax comparison, in-hand salary, EMI, SIP, goal and budget calculators pre-fill from it and write their edits back; the NPS projector pre-fills from it. A collapsible "Your profile" panel on every page edits it directly, with export and import as JSON, one-click reset and one-click wipe, and a visible "stays on this device" indicator. The schema is versioned with a migration hook (`public/engine/profile.js`), so older saved profiles keep working.
 - **Tax comparison**: answer a short set of questions and see the old and new regimes computed line by line, side by side, with a provision-by-provision reference table. A break-even panel says how far the result is from flipping ("the old regime would win only with ₹X more in deductions"), what-if sliders show the effect of using the 80C, NPS and 80D room the user still has, and a headroom table links straight into the matching schemes. The comparison, break-even and inputs can be emailed as a formatted workbook.
 - **Calculators**:
   - In-hand salary: CTC split into Basic, HRA, special allowance, employer PF, gratuity and optional employer NPS; then employee PF, professional tax and income tax under the lower (or a chosen) regime, down to the monthly take-home, with a waterfall and a hand-off into the full comparison.
@@ -47,6 +48,8 @@ functions/api/send-workbook.js  optional Cloudflare Pages Function that emails t
   js/data/*.json        rates, deductions, comparison rows, formulas, glossary, schemes, mf_returns
   _headers              security headers; noindex + no-store on non-production hosts
   engine/profile.js     shared financial profile: schema, defaults, migrations, adapters (pure)
+  js/profile-store.js   the profile in localStorage; updateProfile(), onProfileChange()
+  js/profile-panel.js   the "Your profile" panel: edit, export, import, reset, wipe
   fixtures/profiles/    test profiles for previews and staging
   js/env.js             production / staging / preview detection
   js/devtools.js        dev-only fixture loader (non-production hosts only)

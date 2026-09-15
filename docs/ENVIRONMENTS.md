@@ -22,7 +22,7 @@ Detection is by hostname, in three independent places that must stay in sync:
    - `functions/robots.txt.js` serves `Disallow: /` unless the hostname is production
      (production gets the static `public/robots.txt`). `tools/static-server.mjs` does the same locally.
    - The inline script adds `<meta name="robots" content="noindex, nofollow">` to the page.
-3. **Dev tools.** A red **DEV** button at the bottom right opens the fixture loader
+3. **Dev tools.** A red **DEV** button at the bottom left opens the fixture loader
    (`public/js/devtools.js`). It is never loaded on production.
 
 ## One-time Cloudflare setup (dashboard; cannot be done from the repo)
@@ -70,8 +70,8 @@ profiles in `public/fixtures/profiles/` are complete v1 profiles (schema in
 | `rebate-boundary.json` | Total income exactly ₹12,00,000 under the new regime: the s.87A cliff |
 
 `npm run test:fixtures` checks each one adds up and that the boundary fixture is on the boundary.
-Until the shared profile store lands (Phase 1) the loader also projects the profile onto the
-existing tax-comparison and salary stores so the current pages pick it up.
+Loading a fixture wipes every TaxCompass key in the browser first, then imports the profile
+through the same path as the panel's Import button, so every tool pre-fills from it.
 
 ## Tests and the merge gate
 

@@ -7,6 +7,7 @@ import { initAbout } from './about.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { isProduction } from './env.js';
+import { initProfilePanel } from './profile-panel.js';
 
 const SITE = 'TaxCompass India';
 const PAGES = {
@@ -107,6 +108,7 @@ async function boot() {
     const data = { rates, deductions, onboarding, formulas, glossary, schemes, capgains };
 
     initGlossaryTooltips(glossary);
+    initProfilePanel();
     initTax(data);
     initCalculators(data);
     initGlossary(data);

@@ -42,6 +42,7 @@ export function initAbout({ rates, schemes, capgains }) {
     section('Privacy', [
       el('ul', {}, [
         'Everything you type into the tax comparison and the calculators stays in your own browser, in its local storage. It is never sent anywhere, and the site has no user accounts.',
+        'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Export it as a JSON file to move it to another browser, import it there, or wipe it with one click. Nothing in it is uploaded, and TaxCompass keeps no copy.',
         'If you ask for an Excel workbook by email, your name, email address and the workbook are sent once to our email provider (Brevo) for delivery. With your consent on that form, we keep your name and email to ask for feedback about the app. We do not sell or share them, and you can ask to be removed by replying to any email.',
         'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. A simple counter records how many visits and comparisons happen; it stores numbers, not people.',
         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',

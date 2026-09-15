@@ -9,6 +9,9 @@ import { sipFV } from './calculators.js';
 import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName } from './xlsx-style.js';
 import { emailWorkbookCard } from './email-card.js';
 import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
+import { getProfile, updateProfile } from './profile-store.js';
+import { toSalaryStore, isEmptyProfile } from '../engine/profile.js';
+import { salaryBreakdown } from './salary.js';
 
 export const CATEGORIES = [
   'Rent / housing', 'Groceries & food', 'Education', 'Medical & health', 'Electricity & utilities',
@@ -280,10 +283,15 @@ async function svgToPng(svg, width) {
 
 // ---------- UI ----------
 
-export function renderBudget() {
+export function renderBudget(appData) {
   let state = load();
   const handoff = takeHandoff('budget');
   if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+  // First visit with a profile but no budget yet: start from the monthly in-hand the profile implies.
+  if (!state.income && appData?.rates) {
+    const p = getProfile();
+    if (!isEmptyProfile(p) && p.income.ctc > 0) { const r = salaryBreakdown(toSalaryStore(p), appData.rates); if (!r.error && r.monthly > 0) state.income = Math.round(r.monthly); }
+  }
   const root = el('div', { class: 'calc budget' });
   const left = el('div', { class: 'card inputs' });
   const right = el('div');
@@ -377,7 +385,12 @@ export function renderBudget() {
       ]) : null,
     ]);
   }
-  function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    // What is free each month after expenses feeds the shared profile (the Decide tool allocates it).
+    const s = summarise(state);
+    if (s.income > 0) updateProfile((p) => { p.cashflow.monthlySurplus = Math.max(0, Math.round(s.income - s.totalExpenses)); return p; }, 'calc:budget');
+  }
   refresh();
   return root;
 }

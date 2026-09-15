@@ -6,6 +6,10 @@ import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js'
 import { compareRegimes } from './tax-engine.js';
 import { waterfallChart } from './charts.js';
 import { setHandoff } from './handoff.js';
+import { getProfile, updateProfile } from './profile-store.js';
+import { toSalaryStore, fromSalaryStore, isEmptyProfile } from '../engine/profile.js';
+
+const SOURCE = 'calc:salary';
 
 /**
  * p: { ctc, basicPct (of CTC), hraPct (of basic), includeEmployerPf, includeGratuity, employerNpsPct (of basic),
@@ -50,8 +54,15 @@ const STORE = 'taxcompass.salary.v1';
 export function renderSalary(data) {
   const rates = data.rates;
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch {}
-  const st = { ctc: 1200000, basicPct: 40, hraPct: 50, includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved };
-  const save = () => { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
+  // The shared profile wins over this calculator's own memory whenever it has anything in it.
+  const profile = getProfile();
+  const fromProfile = isEmptyProfile(profile) ? {} : toSalaryStore(profile);
+  const st = { ctc: 1200000, basicPct: 40, hraPct: 50, includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
+  const save = () => {
+    try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {}
+    const r = salaryBreakdown(st, rates);
+    if (!r.error) updateProfile((p) => fromSalaryStore(p, st, r), SOURCE);
+  };
 
   const field = (key, label, attrs = {}, hint) => {
     let input;
