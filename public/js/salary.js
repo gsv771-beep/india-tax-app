@@ -2,7 +2,7 @@
  * In-hand salary calculator: CTC -> salary structure -> deductions -> monthly take-home,
  * using the tax engine for income tax under either regime.
  */
-import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js';
+import { inr, pct, el, setChildren, disclaimer, animateNumber, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { compareRegimes } from './tax-engine.js';
 import { waterfallChart } from './charts.js';
 import { setHandoff } from './handoff.js';
@@ -56,10 +56,12 @@ export function renderSalary(data) {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch {}
   // The shared profile wins over this calculator's own memory whenever it has anything in it.
   const profile = getProfile();
-  const fromProfile = isEmptyProfile(profile) ? {} : toSalaryStore(profile);
-  const st = { ctc: 1200000, basicPct: 40, hraPct: 50, includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
+  const fromProfile = isEmptyProfile(profile) || isBlankAfterReset('salary') ? {} : toSalaryStore(profile);
+  const st = { ctc: '', basicPct: 40, hraPct: 50, includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
   const save = () => {
+    clearBlankAfterReset('salary');
     try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {}
+    if (!(+st.ctc > 0)) return;
     const r = salaryBreakdown(st, rates);
     if (!r.error) updateProfile((p) => fromSalaryStore(p, st, r), SOURCE);
   };
@@ -68,13 +70,13 @@ export function renderSalary(data) {
     let input;
     if (attrs.options) input = el('select', {}, attrs.options.map(([v, t]) => el('option', { value: v, selected: String(v) === String(st[key]) }, t)));
     else if (attrs.type === 'checkbox') { input = el('input', { type: 'checkbox' }); input.checked = !!st[key]; }
-    else input = el('input', { type: 'number', min: 0, step: attrs.step || 1, value: st[key] });
+    else input = el('input', { type: 'number', min: 0, step: attrs.step || 1, value: st[key], placeholder: attrs.placeholder });
     input.addEventListener(attrs.options || attrs.type === 'checkbox' ? 'change' : 'input', () => { st[key] = attrs.type === 'checkbox' ? input.checked : input.value; save(); render(); });
     return attrs.type === 'checkbox' ? el('label', { class: 'check' }, [input, label]) : el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
   };
   const out = el('div');
   const inputs = el('div', { class: 'card inputs' }, [
-    field('ctc', 'Annual CTC (₹)', { step: 10000 }, 'cost to company, as on your offer letter'),
+    field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'cost to company, as on your offer letter'),
     el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, 'usually 35 to 50%'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
     el('div', { class: 'opts' }, [
       el('div', { class: 'opt-title' }, 'Inside the CTC'),
@@ -93,6 +95,7 @@ export function renderSalary(data) {
   ]);
 
   function render() {
+    if (!(+st.ctc > 0)) { setChildren(out, [beginPrompt('Enter your annual CTC to begin.')]); return; }
     const r = salaryBreakdown(st, rates);
     if (r.error) { setChildren(out, [el('div', { class: 'notice warn' }, r.error)]); return; }
     const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'salary:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };

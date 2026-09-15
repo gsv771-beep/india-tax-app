@@ -4,7 +4,7 @@
  *
  * Pure functions at the top (tested in tests/budget.test.mjs); DOM code below.
  */
-import { inr, pct, el, setChildren, disclaimer } from './util.js';
+import { inr, pct, el, setChildren, disclaimer, isBlankAfterReset, clearBlankAfterReset } from './util.js';
 import { sipFV } from './calculators.js';
 import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName } from './xlsx-style.js';
 import { emailWorkbookCard } from './email-card.js';
@@ -288,7 +288,7 @@ export function renderBudget(appData) {
   const handoff = takeHandoff('budget');
   if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
   // First visit with a profile but no budget yet: start from the monthly in-hand the profile implies.
-  if (!state.income && appData?.rates) {
+  if (!state.income && appData?.rates && !isBlankAfterReset('budget')) {
     const p = getProfile();
     if (!isEmptyProfile(p) && p.income.ctc > 0) { const r = salaryBreakdown(toSalaryStore(p), appData.rates); if (!r.error && r.monthly > 0) state.income = Math.round(r.monthly); }
   }
@@ -386,6 +386,7 @@ export function renderBudget(appData) {
     ]);
   }
   function save() {
+    clearBlankAfterReset('budget');
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
     // What is free each month after expenses feeds the shared profile (the Decide tool allocates it).
     const s = summarise(state);

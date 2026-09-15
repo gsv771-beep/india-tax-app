@@ -6,6 +6,7 @@ import path from 'node:path';
 import { propertyCost, stampDuty, registrationFee, gstOnPurchase, PROPERTY_CITIES } from '../public/engine/property.js';
 import { loanEligibility, maxLoanByLtv, principalForEmi, emiFor, foirFor, scorePremiumBps } from '../public/engine/loan-eligibility.js';
 import { sipFV, lumpsumFV } from '../public/js/calculators.js';
+import { paymentPlan, PLAN_PRESETS, presetFor } from '../public/engine/payment-plan.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const charges = JSON.parse(readFileSync(path.join(here, '../public/data/property_charges.json'), 'utf8'));
@@ -138,6 +139,39 @@ near('lump sum at end of year 5 compounds 5 years', sipFV(0, 12, 10, 0, 0, [{ am
   near('invested includes the lump sum', withLump.invested, plain.invested + 200000, 0.01);
   ok('lump sums beyond the horizon are ignored', sipFV(10000, 12, 10, 0, 0, [{ amount: 200000, atYear: 11 }]).fv === plain.fv);
   ok('sipFV without lump sums is unchanged', sipFV(10000, 12, 10).fv === plain.fv);
+}
+
+// ---- phase-wise payment plan ----
+ok('every preset adds up to 100%', Object.values(PLAN_PRESETS).every((p) => Math.abs(p.tranches.reduce((s, t) => s + t.pct, 0) - 100) < 1e-9));
+ok('preset follows the purchase type', presetFor('under_construction') === 'construction_linked' && presetFor('resale') === 'single' && presetFor('ready') === 'single');
+{
+  // 1cr under construction, 25L down, 75L loan, 8%, 20 years, 5% GST, 12L of charges up front
+  const r = paymentPlan({ price: CR, tranches: PLAN_PRESETS.construction_linked.tranches, downPayment: 2500000, loan: 7500000, ratePct: 8, tenureMonths: 240, gstRate: 0.05, upfrontCharges: 1200000 });
+  ok('ten stages, in month order', r.rows.length === 10 && r.rows.every((x, k) => k === 0 || x.month >= r.rows[k - 1].month));
+  near('your money covers the first 2.5 stages', r.rows[0].fromBank + r.rows[1].fromBank, 0, 0.01);
+  near('stage 3 is split: 5L you, 5L bank', r.rows[2].fromBank, 500000, 0.01);
+  near('bank releases the whole loan by possession', r.loan, 7500000, 0.01);
+  near('GST rides on every stage', r.gstTotal, 500000, 0.01);
+  near('cash at booking = 10L stage + 50k GST + 12L charges', r.cashAtBooking, 1000000 + 50000 + 1200000, 0.01);
+  ok('construction runs 36 months, EMI starts month 37', r.constructionMonths === 36 && r.emiStartMonth === 37);
+  near('EMI on 75L at 8% for 20y', r.emi, 62733.01, 0.01);
+  let expect = 0; for (let m = 0; m < 36; m++) expect += r.rows.filter((x) => x.month <= m).reduce((s, x) => s + x.fromBank, 0) * (8 / 1200);
+  near('pre-EMI interest equals the month-by-month sum', r.preEmiTotal, expect, 0.01);
+  ok('pre-EMI is well below a year of EMIs but not trivial', r.preEmiTotal > 500000 && r.preEmiTotal < 1200000, String(Math.round(r.preEmiTotal)));
+  near('paid by you by possession = down + GST + charges + pre-EMI', r.youByPossession, 2500000 + 500000 + 1200000 + r.preEmiTotal, 0.01);
+  ok('no warnings on a clean plan', r.warnings.length === 0, r.warnings.join('; '));
+}
+{
+  const r = paymentPlan({ price: 8000000, tranches: PLAN_PRESETS.single.tranches, downPayment: 2000000, loan: 6000000, ratePct: 8.5, tenureMonths: 180, gstRate: 0, upfrontCharges: 600000 });
+  ok('single stage: no pre-EMI, EMI from month 1', r.preEmiTotal === 0 && r.emiStartMonth === 1 && r.constructionMonths === 0);
+  near('single stage: bank releases the full loan at once', r.rows[0].fromBank, 6000000, 0.01);
+  near('single stage: you pay down payment + charges', r.rows[0].fromYou, 2600000, 0.01);
+}
+{
+  const r = paymentPlan({ price: CR, tranches: PLAN_PRESETS.construction_linked.tranches, downPayment: 1000000, loan: 6000000, ratePct: 8, tenureMonths: 240, gstRate: 0.05, upfrontCharges: 0 });
+  ok('down payment + loan short of the price is flagged and charged to you', r.shortfall > 0 && Math.abs(r.shortfall - 3000000) < 1 && r.warnings.some((w) => /short/.test(w)));
+  const bad = paymentPlan({ price: CR, tranches: [{ label: 'a', pct: 60, month: 0 }, { label: 'b', pct: 30, month: 6 }], downPayment: 2500000, loan: 7500000, ratePct: 8, tenureMonths: 240 });
+  ok('stages not adding to 100% are flagged', bad.warnings.some((w) => /100%/.test(w)) && Math.abs(bad.pctTotal - 90) < 1e-9);
 }
 
 console.log(failures === 0 ? '\nAll home-buying tests passed.' : `\n${failures} home-buying test(s) FAILED.`);

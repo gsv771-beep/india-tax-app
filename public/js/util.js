@@ -98,6 +98,22 @@ export function animateNumber(node, key, text) {
   requestAnimationFrame(step);
 }
 
+/**
+ * After Reset a calculator stays blank, including the fields it would otherwise pre-fill from the
+ * shared profile, until the user types something. The marker lives outside the calculator's own store
+ * so clearing that store does not lose it.
+ */
+const BLANK_KEY = 'taxcompass.calc-blank.v1';
+function blankSet() { try { return new Set(JSON.parse(localStorage.getItem(BLANK_KEY) || '[]')); } catch { return new Set(); } }
+function saveBlank(set) { try { localStorage.setItem(BLANK_KEY, JSON.stringify([...set])); } catch {} }
+export function isBlankAfterReset(calc) { return blankSet().has(calc); }
+export function markBlankAfterReset(calc) { const s = blankSet(); s.add(calc); saveBlank(s); }
+export function clearBlankAfterReset(calc) { const s = blankSet(); if (s.delete(calc)) saveBlank(s); }
+/** The empty-state card a calculator shows until its key figure is entered. */
+export function beginPrompt(text) {
+  return el('div', { class: 'notice' }, [el('strong', {}, text), ' Nothing is worked out until it is in.']);
+}
+
 export function numberInput(label, attrs = {}) {
   const input = el('input', { type: 'number', ...attrs });
   return { wrap: el('label', {}, [label, input]), input };

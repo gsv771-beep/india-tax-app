@@ -1,4 +1,4 @@
-import { inr, pct, el, debounce, setChildren, disclaimer, animateNumber } from './util.js';
+import { inr, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { lineChart, columnChart, shortINR } from './charts.js';
 import { renderFundPanel } from './funds.js';
 import { renderBudget } from './budget.js';
@@ -21,6 +21,7 @@ function remember(name, inputs) {
     if (saved[i] != null && saved[i] !== '') { inp.value = saved[i]; if (inp.tagName === 'SELECT') inp.dispatchEvent(new Event('change')); }
   });
   const persist = () => {
+    clearBlankAfterReset(name);
     let a; try { a = JSON.parse(localStorage.getItem(CALC_STORE) || '{}'); } catch { a = {}; }
     a[name] = inputs.map((x) => x.value);
     try { localStorage.setItem(CALC_STORE, JSON.stringify(a)); } catch {}
@@ -163,7 +164,7 @@ export function showCalc(name) {
 // What each calculator remembers in the browser. Reset clears only that; the shared profile is untouched,
 // so anything a calculator pre-fills from the profile comes back after the reset.
 const CALC_KEYS = {
-  emi: { calc: ['emi'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'] },
+  emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
   'capital-gains': { keys: ['taxcompass.capgains.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
@@ -177,6 +178,8 @@ function resetCalc(key) {
       localStorage.setItem(CALC_STORE, JSON.stringify(all));
     }
   } catch {}
+  markBlankAfterReset(key);
+  for (const c of spec.calc || []) markBlankAfterReset(c);
   currentCalc = null;
   showCalc(key);
 }
@@ -252,9 +255,15 @@ const VIEWS = {
   home() { return renderHomeBuying(appData); },
 
   emi() {
-    const P = field(`Loan amount (${RUPEE})`, { value: 5000000, min: 0, step: 50000 });
+    const P = field(`Loan amount (${RUPEE})`, { value: '', min: 0, step: 50000, placeholder: 'e.g. 5000000' });
     const R = field('Interest rate (% p.a.)', { value: 8.5, min: 0, step: 0.05 });
     const Y = field('Tenure (years)', { value: 20, min: 1, max: 40, step: 1 });
+    // Optional: work the loan out from the price and the down payment, and estimate pre-EMI interest
+    // if the bank releases it in stages while the home is being built.
+    const PR = field(`Property price (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'optional' });
+    const DP = field(`Down payment (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'optional' });
+    const CM = field('Under construction: months until the last release', { value: '', min: 0, max: 120, step: 1, placeholder: '0 or blank = released in one go' }, 'the loan is released evenly over these months; you pay interest only on what is released, then the EMI starts');
+    const syncFromPrice = () => { if (v(PR) > 0) { P.input.value = Math.max(0, Math.round(v(PR) - v(DP))); P.input.readOnly = true; P.input.title = 'price less down payment'; } else { P.input.readOnly = false; P.input.title = ''; } };
     const step = stepUpControl('EMI');
 
     const L = field(`Lump sum amount (${RUPEE})`, { value: 0, min: 0, step: 10000 }, 'leave 0 if none');
@@ -271,6 +280,10 @@ const VIEWS = {
 
     const render = () => {
       const p = v(P), r = v(R), y = v(Y), n = Math.round(y * 12);
+      if (!(p > 0)) { setChildren(out, [beginPrompt(v(PR) > 0 ? 'The down payment covers the whole price: there is no loan to plan.' : 'Enter the loan amount, or a property price and down payment, to begin.')]); fundKey = ''; return; }
+      // pre-EMI while the loan is released evenly over the construction months
+      const cm = Math.round(v(CM));
+      const preEmi = cm > 0 ? Array.from({ length: cm }, (_, k) => (p * (k + 1) / cm) * (r / 1200)).reduce((s, x) => s + x, 0) : 0;
       const stepPct = step.pct(), stepAmt = step.amount();
       const hasStep = stepPct > 0 || stepAmt > 0;
       const hasLump = v(L) > 0, hasAnnual = v(A) > 0, hasPrepay = hasLump || hasAnnual;
@@ -287,6 +300,8 @@ const VIEWS = {
       const monthsSaved = scen ? base.months - scen.months : 0;
 
       const stats = [stat('Monthly EMI' + (hasStep ? ' (first year)' : ''), inr(base.emi), true)];
+      if (v(PR) > 0) stats.push(stat('Loan = price − down payment', inr(p)));
+      if (preEmi > 0) stats.push(stat(`Pre-EMI interest, ${cm} months`, inr(preEmi)));
       if (hasStep) stats.push(stat('EMI in the final year', inr(scen.maxEmi)));
       if (scen && mode === 'reduce_emi') stats.push(stat('EMI after prepayments', inr(scen.finalEmi)));
       stats.push(stat('Total interest', inr(show.totalInterest)));
@@ -365,11 +380,19 @@ const VIEWS = {
       }
     };
     remember('emi', [P.input, R.input, Y.input, ...step.inputs, L.input, LM.input, A.input, AS.input, M.input]);
+    remember('emi-price', [PR.input, DP.input, CM.input]);
+    // Pre-fill from the first loan in the shared profile (a handoff from another tool wins over it);
+    // edits to amount, rate or tenure write back to the profile.
+    const loan = isBlankAfterReset('emi') ? null : getProfile().loans[0];
+    if (loan && loan.outstanding > 0 && !(v(PR) > 0)) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
     const emiHandoff = takeHandoff('emi');
-    if (emiHandoff) { fill(P.input, emiHandoff.values.principal); fill(R.input, +(+emiHandoff.values.ratePct).toFixed(2)); fill(Y.input, emiHandoff.values.years); }
-    // Pre-fill from the first loan in the shared profile; edits to amount, rate or tenure write back to it.
-    const loan = getProfile().loans[0];
-    if (loan && loan.outstanding > 0) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
+    if (emiHandoff) {
+      fill(R.input, +(+emiHandoff.values.ratePct).toFixed(2)); fill(Y.input, emiHandoff.values.years);
+      if (emiHandoff.values.price > 0) { fill(PR.input, emiHandoff.values.price); fill(DP.input, emiHandoff.values.downPayment || 0); fill(CM.input, emiHandoff.values.constructionMonths || 0); }
+      else fill(P.input, emiHandoff.values.principal);
+    }
+    syncFromPrice();
+    [PR, DP, CM].forEach((f) => f.input.addEventListener('input', () => { syncFromPrice(); debounce(render, 80)(); }));
     const writeBack = debounce(() => updateProfile((p) => fromLoanInputs(p, { principal: v(P), ratePct: v(R), years: v(Y) }), 'calc:emi'), 300);
     [P, R, Y].forEach((f) => f.input.addEventListener('input', writeBack));
     [P, R, Y, L, LM, A, AS].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
@@ -379,6 +402,12 @@ const VIEWS = {
     return calcShell([
       emiHandoff ? handoffNote(emiHandoff.from, emiHandoff.values.note ? `Prefilled with ${emiHandoff.values.note}, from ` : undefined) : null,
       P.node, R.node, Y.node,
+      el('div', { class: 'opts' }, [
+        el('div', { class: 'opt-title' }, 'Buying a home?'),
+        el('p', { class: 'opt-help' }, 'Enter the price and your down payment and the loan amount fills itself in. If the home is under construction, say how long the bank will take to release the whole loan.'),
+        el('div', { class: 'two' }, [PR.node, DP.node]),
+        CM.node,
+      ]),
       step.node,
       el('div', { class: 'opts' }, [
         el('div', { class: 'opt-title' }, 'Prepay principal'),
@@ -391,7 +420,7 @@ const VIEWS = {
   },
 
   sip() {
-    const A = field(`Monthly SIP (${RUPEE})`, { value: 10000, min: 0, step: 500 }, '0 if you are only investing lump sums');
+    const A = field(`Monthly SIP (${RUPEE})`, { value: '', min: 0, step: 500, placeholder: 'e.g. 10000' }, 'leave empty or 0 if you are only investing lump sums');
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
     const Y = field('Years', { value: 10, min: 1, max: 50, step: 1 });
     const step = stepUpControl('SIP');
@@ -416,6 +445,7 @@ const VIEWS = {
     const render = () => {
       const a = v(A), r = v(R), y = v(Y), sp = step.pct(), sa = step.amount(), ls = lumpsOf();
       const lumpTotal = ls.reduce((s, l) => s + l.amount, 0);
+      if (!(a > 0) && !(lumpTotal > 0)) { setChildren(out, [beginPrompt('Enter a monthly SIP, or add a lump sum, to begin.')]); fundKey = ''; return; }
       const at = (k, withStep) => sipFV(a, r, k, withStep ? sp : 0, withStep ? sa : 0, ls);
       const flat = at(y, false);
       const stepped = sp > 0 || sa > 0 ? at(y, true) : null;
@@ -457,7 +487,7 @@ const VIEWS = {
     remember('sip', [A.input, R.input, Y.input, ...step.inputs]);
     try { for (const l of JSON.parse(localStorage.getItem(LUMP_KEY) || '[]')) addLump(l.amount, l.atYear); } catch {}
     // Pre-fill from the shared profile: the monthly surplus and the nearest goal's horizon.
-    { const p = getProfile(); if (p.cashflow.monthlySurplus > 0) A.input.value = Math.round(p.cashflow.monthlySurplus); if (p.horizon.goals[0]?.years > 0) Y.input.value = p.horizon.goals[0].years; }
+    if (!isBlankAfterReset('sip')) { const p = getProfile(); if (p.cashflow.monthlySurplus > 0) A.input.value = Math.round(p.cashflow.monthlySurplus); if (p.horizon.goals[0]?.years > 0) Y.input.value = p.horizon.goals[0].years; }
     const handoff = takeHandoff('sip') || takeHandoff('lumpsum');
     if (handoff) {
       if (handoff.values.monthly != null) fill(A.input, handoff.values.monthly);
@@ -480,7 +510,7 @@ const VIEWS = {
   },
 
   goal() {
-    const T = field(`Amount you want to have (${RUPEE})`, { value: 5000000, min: 0, step: 100000 }, 'the actual sum you need in hand when the goal arrives');
+    const T = field(`Amount you want to have (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'e.g. 5000000' }, 'the actual sum you need in hand when the goal arrives');
     const Y = field('In how many years', { value: 15, min: 1, max: 50, step: 1 });
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
     const I = field('Inflation (% p.a.)', { value: 6, min: 0, step: 0.5 }, 'only used to show what that amount is worth in today\'s money');
@@ -489,6 +519,7 @@ const VIEWS = {
     let fundKey = '';
     const render = () => {
       const target = v(T), y = v(Y), r = v(R), inf = v(I);
+      if (!(target > 0)) { setChildren(out, [beginPrompt('Enter the amount you want to have to begin.')]); fundKey = ''; return; }
       const sip = requiredSip(target, r, y);
       const lump = target / Math.pow(1 + r / 100, y);
       const todayValue = target / Math.pow(1 + inf / 100, y);
@@ -517,7 +548,7 @@ const VIEWS = {
     };
     remember('goal2', [T.input, Y.input, R.input, I.input]);
     // Pre-fill from the first goal in the shared profile; edits to the amount or years write back to it.
-    { const g = getProfile().horizon.goals[0]; if (g) { if (g.target > 0) T.input.value = Math.round(g.target); if (g.years > 0) Y.input.value = g.years; } }
+    { const g = isBlankAfterReset('goal2') ? null : getProfile().horizon.goals[0]; if (g) { if (g.target > 0) T.input.value = Math.round(g.target); if (g.years > 0) Y.input.value = g.years; } }
     const writeGoal = debounce(() => updateProfile((p) => { const g = p.horizon.goals[0] || (p.horizon.goals[0] = { name: 'Goal', years: 0, target: 0 }); g.target = v(T); g.years = v(Y); return p; }, 'calc:goal'), 300);
     [T, Y].forEach((f) => f.input.addEventListener('input', writeGoal));
     [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
