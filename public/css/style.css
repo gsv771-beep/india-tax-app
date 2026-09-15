@@ -189,6 +189,23 @@ html.non-production .site-header { top: var(--staging-h); }
   .profile-panel.open .profile-summary { display: none; }
 }
 
+/* Home-buying tool and SIP lump sums */
+.lump-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; padding: 8px 0; border-top: 1px dashed var(--line); }
+.lump-row label { min-width: 0; }
+.rows > .lump-row:first-child { border-top: 0; }
+.kind-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.conf-flag { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; background: var(--warn-soft); color: var(--warn); cursor: help; }
+.levers { margin: 6px 0 0; padding-left: 18px; }
+.levers li { margin: 6px 0; }
+.levers strong { color: var(--accent-2); font-variant-numeric: tabular-nums; }
+details.assumptions summary { cursor: pointer; font-weight: 700; font-size: .92rem; }
+details.assumptions[open] summary { margin-bottom: 8px; }
+table.small-table td, table.small-table th { padding: 6px 8px; font-size: .82rem; }
+details.sources { margin: 14px 0; font-size: .84rem; color: var(--muted); }
+details.sources summary { cursor: pointer; }
+details.sources ul { padding-left: 18px; }
+@media (max-width: 480px) { .lump-row { grid-template-columns: 1fr 1fr; } .lump-row .small-btn { grid-column: 1 / -1; justify-self: start; } }
+
 /* ============================================================
    Panels and section heads
    ============================================================ */

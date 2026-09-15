@@ -12,17 +12,19 @@ import { initProfilePanel } from './profile-panel.js';
 const SITE = 'TaxCompass India';
 const PAGES = {
   tax: { title: 'Old vs new tax regime calculator', desc: 'Compare the old and new income tax regimes line by line for FY 2025-26 and FY 2026-27, see how far you are from the other regime winning, and what unused deductions would save.' },
-  calculators: { title: 'Calculators', desc: 'EMI with step-up and prepayment, SIP, lumpsum, goal, capital gains, advance tax and a monthly expenses and savings planner, with historical mutual fund returns for context.' },
+  calculators: { title: 'Calculators', desc: 'In-hand salary, expenses and savings, EMI with step-up and prepayment, SIP with lump sums, home loan eligibility with the true cost of buying, capital gains and a goal planner, with historical mutual fund returns for context.' },
   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
   glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
   about: { title: 'About, sources and methodology', desc: 'How TaxCompass India computes its numbers, where the data comes from, how fresh it is, and what stays private.' },
 };
 const CALC_TITLES = {
   budget: 'Expenses and savings calculator', emi: 'EMI calculator with step-up and prepayment', sip: 'SIP calculator with step-up',
-  lumpsum: 'Lumpsum calculator', goal: 'Goal planner', 'capital-gains': 'Capital gains tax calculator', 'advance-tax': 'Advance tax schedule and interest calculator',
+  goal: 'Goal planner', 'capital-gains': 'Capital gains tax calculator', home: 'Home loan eligibility and the true cost of buying',
   salary: 'In-hand salary calculator from CTC',
 };
 const ALIASES = { schemes: 'nps' };
+// Removed pages: send old links to the nearest live page (public/_redirects does the same at the edge).
+const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/tax' };
 
 function parsePath(pathname) {
   const parts = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
@@ -66,6 +68,8 @@ function route() {
   // Old links used hashes (#schemes?f=80c); turn them into paths once.
   const m = location.hash.match(/^#(tax|calculators|schemes|nps|glossary|about)(\?.*)?$/);
   if (m) history.replaceState({}, '', `/${ALIASES[m[1]] || m[1]}${m[2] || ''}`);
+  const gone = REMOVED[location.pathname.replace(/\/+$/, '')];
+  if (gone) history.replaceState({}, '', gone + location.search);
   const { tab, sub } = parsePath(location.pathname);
   if (location.pathname === '/' || location.pathname === '/index.html') history.replaceState({}, '', '/tax' + location.search);
   else if (location.pathname.startsWith('/schemes')) history.replaceState({}, '', '/nps');
@@ -96,7 +100,7 @@ document.addEventListener('wheel', (e) => {
 async function boot() {
   const loading = document.getElementById('loading');
   try {
-    const [rates, deductions, onboarding, formulas, glossary, schemes, capgains] = await Promise.all([
+    const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy] = await Promise.all([
       loadJSON('/data/tax_rates.json'),
       loadJSON('/data/deductions.json'),
       loadJSON('/data/onboarding_and_comparison.json'),
@@ -104,8 +108,10 @@ async function boot() {
       loadJSON('/data/glossary.json'),
       loadJSON('/data/schemes.json'),
       loadJSON('/data/capital_gains.json'),
+      loadJSON('/data/property_charges.json'),
+      loadJSON('/data/loan_policy.json'),
     ]);
-    const data = { rates, deductions, onboarding, formulas, glossary, schemes, capgains };
+    const data = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy };
 
     initGlossaryTooltips(glossary);
     initProfilePanel();

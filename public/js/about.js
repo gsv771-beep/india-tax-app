@@ -11,7 +11,7 @@ export function initAbout({ rates, schemes, capgains }) {
 
   setChildren(body, [
     section('What this is', [
-      el('p', {}, 'TaxCompass India is a free, independent tool for salaried and self-employed people in India. It compares the old and new income tax regimes line by line, helps plan loans, investments, capital gains and advance tax, and explains the National Pension System in plain language. It is built and maintained by an individual, not a company, bank or fund house, and it earns nothing from anything you do here.'),
+      el('p', {}, 'TaxCompass India is a free, independent tool for salaried and self-employed people in India. It compares the old and new income tax regimes line by line, helps plan loans, investments, home buying and capital gains, and explains the National Pension System in plain language. It is built and maintained by an individual, not a company, bank or fund house, and it earns nothing from anything you do here.'),
       el('p', {}, 'It is not tax, legal or investment advice, and it is not a substitute for a chartered accountant. Its job is to make the conversation with your CA or adviser shorter and better informed.'),
     ]),
     section('How the numbers are computed', [

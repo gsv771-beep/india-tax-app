@@ -85,6 +85,12 @@ export function initProfilePanel() {
       comp('esop', 'ESOP / RSU vesting (₹)', 'perquisite value taxed as salary'),
     ]);
 
+    const person = group('About you', [
+      numField('Age', (d) => d.person.age, (d, v) => { d.person.age = Math.round(v); }, { step: 1, max: 100 }, 'sets how long a lender lets a loan run'),
+      numField('Credit score', (d) => d.person.creditScore, (d, v) => { d.person.creditScore = Math.round(v); }, { step: 1, max: 900, placeholder: 'e.g. 760' }, 'CIBIL / Experian, 300 to 900; leave 0 if unknown'),
+      selectField('Employment', [['salaried', 'Salaried'], ['self_employed', 'Self-employed / business']], (d) => d.person.employment, (d, v) => { d.person.employment = v; }),
+    ], 'Only used by the home-buying tool; stays on this device like everything else.');
+
     const tax = group('Tax', [
       selectField('Regime you are on', [['new', 'New regime'], ['old', 'Old regime']], (d) => d.tax.regime, (d, v) => { d.tax.regime = v; }),
       selectField('Financial year', [['FY2026-27', 'FY 2026-27'], ['FY2025-26', 'FY 2025-26']], (d) => d.tax.fy, (d, v) => { d.tax.fy = v; }),
@@ -167,7 +173,7 @@ export function initProfilePanel() {
         el('a', { href: '/about' }, 'How the site handles data'),
       ]),
       isEmptyProfile(p) ? el('p', { class: 'small muted' }, 'Tip: fill in the tax comparison or the in-hand salary calculator and this fills itself in.') : null,
-      el('div', { class: 'profile-grid' }, [income, tax, location, loans, investments, cashflow, household]),
+      el('div', { class: 'profile-grid' }, [income, tax, person, location, loans, investments, cashflow, household]),
       actions, status,
     ]);
   }

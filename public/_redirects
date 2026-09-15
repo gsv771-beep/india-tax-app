@@ -1,2 +1,6 @@
+# Removed pages: permanent redirects to the nearest live page.
+/calculators/lumpsum /calculators/sip 301
+/calculators/advance-tax /tax 301
+
 # Single-page app: every path that is not a real file serves index.html, and the app routes from the URL.
 /* /index.html 200

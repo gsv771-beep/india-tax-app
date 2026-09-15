@@ -3,8 +3,8 @@ import { lineChart, columnChart, shortINR } from './charts.js';
 import { renderFundPanel } from './funds.js';
 import { renderBudget } from './budget.js';
 import { renderCapitalGains } from './capgains.js';
-import { renderAdvanceTax } from './advance-tax.js';
 import { renderSalary } from './salary.js';
+import { renderHomeBuying } from './home-buy.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
@@ -111,15 +111,22 @@ export function lumpsumFV(P, annualRatePct, years) {
   return { fv, gain: fv - P, absReturn: P > 0 ? (fv - P) / P : 0 };
 }
 
-/** SIP future value. Step up the instalment once a year by a percentage OR a fixed amount. */
-export function sipFV(monthly, annualRatePct, years, stepUpPct = 0, stepUpAmount = 0) {
+/**
+ * SIP future value. Step up the instalment once a year by a percentage OR a fixed amount.
+ * `lumpsums`: [{ amount, atYear }] one-off amounts added at the END of year atYear (0 = today,
+ * before the first instalment). A lump sum with monthly = 0 is the plain lumpsum calculator.
+ */
+export function sipFV(monthly, annualRatePct, years, stepUpPct = 0, stepUpAmount = 0, lumpsums = []) {
   const i = annualRatePct / 12 / 100;
   let bal = 0, amt = monthly, invested = 0;
+  const lumpAt = (y) => lumpsums.reduce((s, l) => s + (Math.round(+l.atYear || 0) === y && +l.amount > 0 ? +l.amount : 0), 0);
+  const l0 = lumpAt(0); bal += l0; invested += l0;
   for (let y = 0; y < years; y++) {
     for (let m = 0; m < 12; m++) {
       bal = (bal + amt) * (1 + i);
       invested += amt;
     }
+    const l = lumpAt(y + 1); bal += l; invested += l;
     if (stepUpPct > 0) amt *= 1 + stepUpPct / 100;
     else if (stepUpAmount > 0) amt += stepUpAmount;
   }
@@ -214,8 +221,8 @@ function stepUpControl(labelNoun) {
 const VIEWS = {
   budget() { return renderBudget(appData); },
   'capital-gains'() { return renderCapitalGains(appData.capgains); },
-  'advance-tax'() { return renderAdvanceTax(appData); },
   salary() { return renderSalary(appData); },
+  home() { return renderHomeBuying(appData); },
 
   emi() {
     const P = field(`Loan amount (${RUPEE})`, { value: 5000000, min: 0, step: 50000 });
@@ -312,7 +319,7 @@ const VIEWS = {
           el('p', { class: 'muted small' }, scen ? `Prepaying saves ${inr(saved)} in interest, guaranteed. See what the same money might do in the market, with no guarantee, before you decide.` : 'Set a prepayment on the left to compare it with investing the same money, or plan what to do with the EMI once the loan is over.'),
           el('div', { class: 'btn-row' }, [
             hasAnnual ? el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(v(A) / 12), years: Math.round(base.months / 12), note: `the ${inr(v(A))} a year you would have prepaid, as a monthly SIP` }, 'emi') }, `Invest ${inr(v(A) / 12)} a month instead`) : null,
-            hasLump ? el('a', { class: 'btn secondary', href: '/calculators/lumpsum', onclick: () => setHandoff('lumpsum', { amount: Math.round(v(L)), years: Math.round(base.months / 12), note: `the ${inr(v(L))} lump sum you would have prepaid` }, 'emi') }, `Invest the ${inr(v(L))} lump sum instead`) : null,
+            hasLump ? el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { amount: Math.round(v(L)), years: Math.round(base.months / 12), note: `the ${inr(v(L))} lump sum you would have prepaid` }, 'emi') }, `Invest the ${inr(v(L))} lump sum instead`) : null,
             el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(base.emi), years: 10, note: `your EMI of ${inr(base.emi)}, continued as a SIP after the loan closes` }, 'emi') }, `After the loan: SIP the ${inr(base.emi)} EMI`),
           ]),
         ]),
@@ -331,6 +338,8 @@ const VIEWS = {
       }
     };
     remember('emi', [P.input, R.input, Y.input, ...step.inputs, L.input, LM.input, A.input, AS.input, M.input]);
+    const emiHandoff = takeHandoff('emi');
+    if (emiHandoff) { fill(P.input, emiHandoff.values.principal); fill(R.input, +(+emiHandoff.values.ratePct).toFixed(2)); fill(Y.input, emiHandoff.values.years); }
     // Pre-fill from the first loan in the shared profile; edits to amount, rate or tenure write back to it.
     const loan = getProfile().loans[0];
     if (loan && loan.outstanding > 0) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
@@ -341,6 +350,7 @@ const VIEWS = {
     M.input.addEventListener('change', render);
     render();
     return calcShell([
+      emiHandoff ? handoffNote(emiHandoff.from, emiHandoff.values.note ? `Prefilled with ${emiHandoff.values.note}, from ` : undefined) : null,
       P.node, R.node, Y.node,
       step.node,
       el('div', { class: 'opts' }, [
@@ -354,36 +364,55 @@ const VIEWS = {
   },
 
   sip() {
-    const A = field(`Monthly SIP (${RUPEE})`, { value: 10000, min: 0, step: 500 });
+    const A = field(`Monthly SIP (${RUPEE})`, { value: 10000, min: 0, step: 500 }, '0 if you are only investing lump sums');
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
     const Y = field('Years', { value: 10, min: 1, max: 50, step: 1 });
     const step = stepUpControl('SIP');
+    // One-off amounts on top of the SIP: today, or at the end of a given year (a bonus, a maturing FD, a sale).
+    const lumps = [];
+    const lumpList = el('div', { class: 'rows' });
+    const lumpsOf = () => lumps.map((l) => ({ amount: v(l.amt), atYear: v(l.yr) })).filter((l) => l.amount > 0);
+    const LUMP_KEY = 'taxcompass.sip-lumps.v1';
+    const persistLumps = () => { try { localStorage.setItem(LUMP_KEY, JSON.stringify(lumpsOf())); } catch {} };
+    const addLump = (amount = 100000, atYear = 0) => {
+      const amt = field(`Amount (${RUPEE})`, { value: amount, min: 0, step: 10000 });
+      const yr = field('At end of year', { value: atYear, min: 0, max: 50, step: 1 }, '0 = invest it today');
+      const entry = { amt, yr, row: null };
+      entry.row = el('div', { class: 'lump-row' }, [amt.node, yr.node, el('button', { type: 'button', class: 'btn secondary small-btn', 'aria-label': 'Remove this lump sum', onclick: () => { lumps.splice(lumps.indexOf(entry), 1); entry.row.remove(); persistLumps(); render(); } }, 'Remove')]);
+      lumps.push(entry);
+      [amt, yr].forEach((f) => f.input.addEventListener('input', () => { persistLumps(); debouncedRender(); }));
+      lumpList.append(entry.row);
+    };
     const out = el('div');
     const fundBox = el('div');
     let fundKey = '';
     const render = () => {
-      const a = v(A), r = v(R), y = v(Y), sp = step.pct(), sa = step.amount();
-      const flat = sipFV(a, r, y, 0);
-      const stepped = sp > 0 || sa > 0 ? sipFV(a, r, y, sp, sa) : null;
+      const a = v(A), r = v(R), y = v(Y), sp = step.pct(), sa = step.amount(), ls = lumpsOf();
+      const lumpTotal = ls.reduce((s, l) => s + l.amount, 0);
+      const at = (k, withStep) => sipFV(a, r, k, withStep ? sp : 0, withStep ? sa : 0, ls);
+      const flat = at(y, false);
+      const stepped = sp > 0 || sa > 0 ? at(y, true) : null;
       const main = stepped || flat;
+      const sipOnly = sipFV(a, r, y, sp, sa);
       const yrs = Array.from({ length: y + 1 }, (_, k) => k);
       const series = [
-        { name: 'Amount invested', color: GREY, dash: true, points: yrs.map((k) => [k, (stepped ? sipFV(a, r, k, sp, sa) : sipFV(a, r, k)).invested]) },
-        { name: stepped ? 'Value with step-up' : 'Value', color: GREEN, area: true, points: yrs.map((k) => [k, (stepped ? sipFV(a, r, k, sp, sa) : sipFV(a, r, k)).fv]) },
+        { name: 'Amount invested', color: GREY, dash: true, points: yrs.map((k) => [k, at(k, !!stepped).invested]) },
+        { name: stepped ? 'Value with step-up' : 'Value', color: GREEN, area: true, points: yrs.map((k) => [k, at(k, !!stepped).fv]) },
       ];
-      if (stepped) series.splice(1, 0, { name: 'Value, flat SIP', color: GOLD, points: yrs.map((k) => [k, sipFV(a, r, k).fv]) });
+      if (stepped) series.splice(1, 0, { name: 'Value, flat SIP', color: GOLD, points: yrs.map((k) => [k, at(k, false).fv]) });
+      const what = a > 0 && lumpTotal > 0 ? `a ${inr(a)} SIP plus ${inr(lumpTotal)} in lump sums` : a > 0 ? `a ${inr(a)} SIP` : `${inr(lumpTotal)} invested as lump sums`;
       setChildren(out, [
         el('div', { class: 'stats' }, [
           stat('Projected value', inr(main.fv), true),
           stat('Amount invested', inr(main.invested)),
           stat('Wealth gained', inr(main.gain)),
-          stepped ? stat('SIP in the final year', inr(sp > 0 ? main.finalMonthly / (1 + sp / 100) : main.finalMonthly - sa)) : null,
+          stepped ? stat('SIP in the final year', inr(sp > 0 ? main.finalMonthly / (1 + sp / 100) : main.finalMonthly - sa)) : lumpTotal > 0 && a > 0 ? stat('Lump sums add', inr(main.fv - sipOnly.fv)) : null,
         ]),
         splitBar('Invested', main.invested, 'Gains', main.gain),
         el('div', { class: 'viz-title' }, 'How it grows'),
         lineChart({ series, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'SIP growth by year' }),
-        stepped ? el('p', { class: 'explain' }, `A flat ${inr(a)} SIP would reach ${inr(flat.fv)}. Stepping it up ${sp > 0 ? `${sp}%` : inr(sa)} every year reaches ${inr(stepped.fv)}, ${inr(stepped.fv - flat.fv)} more, for ${inr(stepped.invested - flat.invested)} more invested.`) : null,
-        el('p', { class: 'muted' }, 'Instalments are assumed at the start of each month (annuity-due), the convention most Indian SIP calculators use. Returns are illustrative and not guaranteed.'),
+        el('p', { class: 'explain' }, `Over ${y} years at ${r}% a year, ${what} grows to about ${inr(main.fv)}, of which ${inr(main.gain)} is growth.${stepped ? ` A flat SIP would reach ${inr(flat.fv)}; stepping it up ${sp > 0 ? `${sp}%` : inr(sa)} every year adds ${inr(stepped.fv - flat.fv)} for ${inr(stepped.invested - flat.invested)} more invested.` : ''}${lumpTotal > 0 && a > 0 ? ` The lump sums alone account for ${inr(main.fv - sipOnly.fv)} of the final value.` : ''}`),
+        el('p', { class: 'muted' }, 'Instalments are assumed at the start of each month (annuity-due), the convention most Indian SIP calculators use; lump sums earn from the end of the year you add them, and everything compounds monthly at the annual rate divided by 12. Returns are illustrative and not guaranteed.'),
         fundBox,
         disclaimer('invest'),
       ]);
@@ -393,65 +422,34 @@ const VIEWS = {
         renderFundPanel(fundBox, {
           mode: 'near', target: r, horizon: y,
           title: `What has historically delivered about ${r}% a year?`,
-          intro: `Fund categories whose typical ${y >= 5 ? '5' : '3'}-year rolling return sits close to the ${r}% you assumed, with the worst and best stretches investors in them have actually lived through.`,
+          intro: `Fund categories whose typical ${y >= 5 ? '5' : '3'}-year rolling return sits close to the ${r}% you assumed, with the worst and best stretches investors in them have actually lived through.${lumpTotal > 0 ? ' A lump sum is exposed to the timing of a single entry, so look hard at the worst window.' : ''}`,
         });
       }
     };
+    const debouncedRender = debounce(render, 80);
     remember('sip', [A.input, R.input, Y.input, ...step.inputs]);
+    try { for (const l of JSON.parse(localStorage.getItem(LUMP_KEY) || '[]')) addLump(l.amount, l.atYear); } catch {}
     // Pre-fill from the shared profile: the monthly surplus and the nearest goal's horizon.
     { const p = getProfile(); if (p.cashflow.monthlySurplus > 0) A.input.value = Math.round(p.cashflow.monthlySurplus); if (p.horizon.goals[0]?.years > 0) Y.input.value = p.horizon.goals[0].years; }
-    const handoff = takeHandoff('sip');
-    if (handoff) { fill(A.input, handoff.values.monthly); if (handoff.values.years) fill(Y.input, handoff.values.years); }
-    [A, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
-    step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
+    const handoff = takeHandoff('sip') || takeHandoff('lumpsum');
+    if (handoff) {
+      if (handoff.values.monthly != null) fill(A.input, handoff.values.monthly);
+      if (handoff.values.amount > 0) { fill(A.input, 0); lumpList.replaceChildren(); lumps.length = 0; addLump(handoff.values.amount, 0); persistLumps(); }
+      if (handoff.values.years) fill(Y.input, handoff.values.years);
+    }
+    [A, R, Y].forEach((f) => f.input.addEventListener('input', debouncedRender));
+    step.inputs.forEach((i) => { i.addEventListener('input', debouncedRender); i.addEventListener('change', render); });
     render();
-    return calcShell([handoff ? handoffNote(handoff.from, handoff.values.note ? `Prefilled with ${handoff.values.note}, from ` : undefined) : null, A.node, R.node, Y.node, step.node], out);
-  },
-
-  lumpsum() {
-    const P = field(`Amount invested (${RUPEE})`, { value: 1000000, min: 0, step: 10000 });
-    const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
-    const Y = field('Years', { value: 10, min: 1, max: 50, step: 1 });
-    const out = el('div');
-    const fundBox = el('div');
-    let fundKey = '';
-    const render = () => {
-      const p = v(P), r = v(R), y = v(Y);
-      const res = lumpsumFV(p, r, y);
-      const rows = [];
-      for (let k = 1; k <= y; k++) rows.push(el('tr', {}, [el('td', {}, k), el('td', {}, inr(lumpsumFV(p, r, k).fv))]));
-      setChildren(out, [
-        el('div', { class: 'stats' }, [
-          stat('Projected value', inr(res.fv), true),
-          stat('Gain', inr(res.gain)),
-          stat('Absolute return', pct(res.absReturn, 1)),
-          stat('Doubles in about', r > 0 ? `${(72 / r).toFixed(1)} yrs` : '—'),
-        ]),
-        splitBar('Invested', p, 'Gains', res.gain),
-        el('div', { class: 'viz-title' }, 'Growth by year'),
-        lineChart({ series: [{ name: 'Invested', color: GREY, dash: true, points: [[0, p], [y, p]] }, { name: 'Value', color: GREEN, area: true, points: Array.from({ length: y + 1 }, (_, k) => [k, lumpsumFV(p, r, k).fv]) }], xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'Lumpsum growth by year' }),
-        el('details', { class: 'section' }, [el('summary', {}, 'Year-by-year values'), el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, 'Year'), el('th', {}, 'Value')])), el('tbody', {}, rows),
-        ]))]),
-        fundBox,
-        disclaimer('invest'),
-      ]);
-      const key = `${r}|${y}`;
-      if (key !== fundKey) {
-        fundKey = key;
-        renderFundPanel(fundBox, {
-          mode: 'near', target: r, horizon: y,
-          title: `What has historically delivered about ${r}% a year?`,
-          intro: `Fund categories whose typical ${y >= 5 ? '5' : '3'}-year rolling return sits close to the ${r}% you assumed. A lumpsum is exposed to the timing of a single entry, so look hard at the worst window.`,
-        });
-      }
-    };
-    remember('lumpsum', [P.input, R.input, Y.input]);
-    const handoff = takeHandoff('lumpsum');
-    if (handoff) { fill(P.input, handoff.values.amount); if (handoff.values.years) fill(Y.input, handoff.values.years); }
-    [P, R, Y].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
-    render();
-    return calcShell([handoff ? handoffNote(handoff.from, handoff.values.note ? `Prefilled with ${handoff.values.note}, from ` : undefined) : null, P.node, R.node, Y.node], out);
+    return calcShell([
+      handoff ? handoffNote(handoff.from, handoff.values.note ? `Prefilled with ${handoff.values.note}, from ` : undefined) : null,
+      A.node, R.node, Y.node, step.node,
+      el('div', { class: 'opts' }, [
+        el('div', { class: 'opt-title' }, 'Lump sums on top'),
+        el('p', { class: 'opt-help' }, 'A bonus, a maturing deposit or money you already have: add it today or at the end of any year, and it compounds alongside the SIP.'),
+        lumpList,
+        el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => { addLump(100000, 0); persistLumps(); render(); } }, '+ Add a lump sum'),
+      ]),
+    ], out);
   },
 
   goal() {

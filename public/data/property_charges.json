@@ -1,0 +1,130 @@
+{
+  "_meta": {
+    "file": "property_charges.json",
+    "purpose": "Statutory and customary charges on buying a home, by city, for the home-buying tool. Every rate is a percentage of the higher of agreement value and the state's guideline (circle / ready-reckoner) value; the tool uses the price the user types.",
+    "compiled_on": "2026-09-15",
+    "confidence_key": {
+      "verified": "Confirmed from the state registration department or two or more lender pages agreeing on the number and the date.",
+      "corroborated": "Several secondary sources agree; no primary text retrieved. Check before relying on it for a purchase.",
+      "unverified": "Sources conflict. The tool shows a warning next to this figure."
+    },
+    "review_note": "Stamp duty changes by state budget and notification, usually in April or at any time by government order. Re-check all seven cities every quarter."
+  },
+
+  "cities": {
+    "Mumbai": {
+      "state": "Maharashtra",
+      "stamp_duty": {
+        "by_buyer": { "man": 0.06, "woman": 0.05, "joint": 0.06 },
+        "composition": "5% stamp duty + 1% metro cess. Women buying residential property in their sole name pay 1 point less; the earlier 15-year resale restriction on that concession was removed.",
+        "confidence": "verified",
+        "as_of": "2026-09",
+        "sources": ["https://www.99acres.com/articles/stamp-duty-and-registration-charges-in-mumbai.html", "https://homefirstindia.com/blog/article/stamp-duty-registration-charges-maharashtra"]
+      },
+      "registration": { "rate": 0.01, "cap": 30000, "note": "1% of value, capped at ₹30,000 (properties above ₹30 lakh pay the cap).", "confidence": "verified" },
+      "mortgage_deed_stamp": { "rate": 0.003, "cap": 500000, "note": "Stamp duty on the loan agreement / mortgage deed (0.3% of loan, max ₹5 lakh). Some lenders charge 0.2% for a deposit of title deeds.", "confidence": "corroborated" }
+    },
+    "Pune": {
+      "state": "Maharashtra",
+      "stamp_duty": {
+        "by_buyer": { "man": 0.07, "woman": 0.06, "joint": 0.07 },
+        "composition": "5% stamp duty + 1% metro cess + 1% local body tax (LBT). Women buying residential property in their sole name pay 1 point less.",
+        "confidence": "verified",
+        "as_of": "2026-09",
+        "sources": ["https://homefirstindia.com/blog/article/stamp-duty-registration-charges-maharashtra", "https://www.squareyards.com/blog/stamp-duty-and-registration-charges-in-maharashtra"]
+      },
+      "registration": { "rate": 0.01, "cap": 30000, "note": "1% of value, capped at ₹30,000.", "confidence": "verified" },
+      "mortgage_deed_stamp": { "rate": 0.003, "cap": 500000, "note": "Stamp duty on the mortgage deed (0.3% of loan, max ₹5 lakh).", "confidence": "corroborated" }
+    },
+    "Delhi": {
+      "state": "Delhi",
+      "stamp_duty": {
+        "by_buyer": { "man": 0.06, "woman": 0.04, "joint": 0.05 },
+        "composition": "6% for a man, 4% for a woman, 5% when a man and a woman buy jointly. Applies on the higher of agreement value and circle rate.",
+        "confidence": "verified",
+        "as_of": "2026-09",
+        "sources": ["https://www.squareyards.com/blog/stamp-duty-and-registration-charges-guide", "https://www.99acres.com/articles/what-is-stamp-duty-for-property-registration.html"]
+      },
+      "registration": { "rate": 0.01, "cap": null, "fixed_extra": 100, "note": "1% of value plus ₹100 pasting fee. No cap.", "confidence": "verified" },
+      "mortgage_deed_stamp": { "rate": 0.002, "cap": null, "note": "Stamp duty on the mortgage / loan agreement; lenders quote about 0.2% of the loan. Varies with the instrument used.", "confidence": "unverified" }
+    },
+    "Bengaluru": {
+      "state": "Karnataka",
+      "stamp_duty": {
+        "slabs": [
+          { "upto": 2000000, "rate": 0.02 },
+          { "upto": 4500000, "rate": 0.03 },
+          { "upto": null, "rate": 0.05 }
+        ],
+        "surcharge_on_duty": 0.12,
+        "composition": "2% up to ₹20 lakh, 3% from ₹20 to ₹45 lakh, 5% above ₹45 lakh; plus 10% cess and 2% surcharge levied on the duty itself inside BBMP limits (5% becomes 5.6%). No gender concession.",
+        "confidence": "corroborated",
+        "as_of": "2026-09",
+        "sources": ["https://homefirstindia.com/blog/article/stamp-duty-registration-charges-karnataka", "https://www.brigadegroup.com/blog/residential/stamp-duty-and-registration-charges-in-bangalore", "https://www.bankbazaar.com/home-loan/stamp-duty-and-registration-charges-in-bangalore.html"],
+        "conflict": "One lender page describes the add-on as a flat 0.5% cess on the duty; most describe 10% cess + 2% surcharge on the duty (0.6 points on a 5% duty). The larger figure is used."
+      },
+      "registration": { "rate": 0.02, "cap": null, "note": "Registration fee doubled from 1% to 2% of value from 31 August 2025.", "confidence": "corroborated" },
+      "mortgage_deed_stamp": { "rate": 0.001, "cap": 10000, "note": "Stamp duty on deposit of title deeds, 0.1% of loan, max ₹10,000.", "confidence": "corroborated" }
+    },
+    "Hyderabad": {
+      "state": "Telangana",
+      "stamp_duty": {
+        "by_buyer": { "man": 0.04, "woman": 0.04, "joint": 0.04 },
+        "transfer_duty": 0.015,
+        "composition": "4% stamp duty + 1.5% transfer duty. No gender concession. With the 0.5% registration fee the statutory total is 6%.",
+        "confidence": "verified",
+        "as_of": "2026-09",
+        "sources": ["https://www.brigadegroup.com/blog/residential/stamp-duty-and-registration-charges-in-hyderabad-telangana", "https://realtypromoo.com/guides/stamp-duty-and-registration-charges-in-telangana-and-hyderabad-complete-buyers-guide-2026"]
+      },
+      "registration": { "rate": 0.005, "cap": null, "note": "0.5% of value.", "confidence": "verified" },
+      "mortgage_deed_stamp": { "rate": 0.005, "cap": null, "note": "Stamp duty on the mortgage deed in Telangana, about 0.5% of the loan. Check with the lender.", "confidence": "unverified" }
+    },
+    "Chennai": {
+      "state": "Tamil Nadu",
+      "stamp_duty": {
+        "by_buyer": { "man": 0.07, "woman": 0.07, "joint": 0.07 },
+        "composition": "7% of the higher of market and guideline value. No gender concession on stamp duty.",
+        "confidence": "verified",
+        "as_of": "2026-09",
+        "sources": ["https://cleartax.in/s/stamp-duty-and-registration-charges-in-tamil-nadu", "https://homefirstindia.com/blog/article/stamp-duty-registration-charges-tamil-nadu"]
+      },
+      "registration": { "rate": 0.04, "cap": null, "note": "4% of value, the highest of the seven cities: statutory total 11%. Women buying property up to ₹10 lakh pay 3% (not modelled; below the price range this tool is for).", "confidence": "verified" },
+      "mortgage_deed_stamp": { "rate": 0.001, "cap": 25000, "note": "Stamp duty on deposit of title deeds, 0.1% of loan, capped.", "confidence": "corroborated" }
+    },
+    "Kolkata": {
+      "state": "West Bengal",
+      "stamp_duty": {
+        "slabs": [
+          { "upto": 10000000, "rate": 0.06 },
+          { "upto": null, "rate": 0.07 }
+        ],
+        "composition": "6% within Kolkata Municipal Corporation for value up to ₹1 crore, 7% above ₹1 crore (the extra 1% applies to the whole value once it crosses ₹1 crore). No gender concession. The 2% pandemic rebate ended in June 2024.",
+        "confidence": "corroborated",
+        "as_of": "2026-09",
+        "sources": ["https://www.bajajfinservmarkets.in/resources/stamp-duty/stamp-duty-in-kolkata", "https://wblandrecord.com/registration-charges-west-bengal/"]
+      },
+      "registration": { "rate": 0.01, "cap": null, "note": "1% of value.", "confidence": "verified" },
+      "mortgage_deed_stamp": { "rate": 0.002, "cap": null, "note": "Stamp duty on the mortgage instrument; lenders quote 0.2% to 0.5% of the loan depending on the instrument.", "confidence": "unverified" }
+    }
+  },
+
+  "gst": {
+    "under_construction": { "standard": 0.05, "affordable": 0.01 },
+    "affordable_definition": "Carpet area up to 60 sq m in a metro (90 sq m elsewhere) and value up to ₹45 lakh.",
+    "ready_or_resale": 0,
+    "note": "GST applies only to under-construction property bought from a builder, on the agreement value; none on a completed property with an occupancy certificate or on resale. The 5% / 1% rates are without input tax credit.",
+    "confidence": "verified",
+    "sources": ["https://www.bajajfinserv.in/insights/rbi-guidelines-for-home-loan"]
+  },
+
+  "customary": {
+    "brokerage": { "default_rate": 0.01, "note": "Brokerage on resale is 1% to 2% of the price, sometimes plus GST at 18% on the fee. Nil on most builder sales (the builder pays the channel partner).", "confidence": "corroborated" },
+    "legal_and_valuation": { "default_amount": 10000, "note": "Lawyer's title search and the lender's valuation and legal fees, typically ₹5,000 to ₹15,000 combined.", "confidence": "corroborated" },
+    "loan_processing_fee": { "default_rate": 0.005, "cap": 25000, "note": "Most lenders charge 0.25% to 0.5% of the loan, often capped; some run flat-fee or zero-fee offers.", "confidence": "corroborated" },
+    "builder_charge_suggestions": [
+      "Covered car parking", "Clubhouse / amenities", "Preferential location charge (PLC)", "Floor-rise charge",
+      "Maintenance advance (12-24 months)", "Corpus / sinking fund", "Electricity, water and sewerage connection", "Legal and documentation charge", "Society formation"
+    ],
+    "tds_note": "If the price is ₹50 lakh or more you must deduct 1% TDS from what you pay the seller and deposit it (Form 26QB). It is part of the price, not an extra cost, but it is a compliance step on the day."
+  }
+}

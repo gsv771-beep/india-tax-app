@@ -27,6 +27,7 @@ const FROM_LABEL = {
   salary: ['your in-hand salary calculation', '/calculators/salary'],
   budget: ['your expenses and savings plan', '/calculators/budget'],
   emi: ['your EMI calculation', '/calculators/emi'],
+  home: ['the home-buying tool', '/calculators/home'],
 };
 
 /** A small note shown at the top of a calculator that was prefilled from another one. */

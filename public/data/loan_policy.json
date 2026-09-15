@@ -1,0 +1,81 @@
+{
+  "_meta": {
+    "file": "loan_policy.json",
+    "purpose": "How a typical Indian lender decides a home loan. Only the LTV caps are law (RBI). Everything else is convention, differs by lender, and is shown as an editable assumption in the tool.",
+    "compiled_on": "2026-09-15",
+    "sources": {
+      "ltv": ["https://www.99acres.com/articles/rbi-guidelines-on-home-loan-financing-and-ltv-ratio.html", "https://www.bajajfinserv.in/insights/rbi-guidelines-for-home-loan"],
+      "foir": ["https://bankofmaharashtra.bank.in/blogs/what-is-foir-in-home-loan-eligibility", "https://ganak.app/calculators/india/home-loan-eligibility-calculator/", "https://www.paisabazaar.com/hdfc-bank/home-loan-eligibility/", "https://www.urbanmoney.com/home-loan/icici-bank/eligibility-criteria-hloth"],
+      "age_and_score": ["https://www.nobroker.in/home-loan/sbi-home-loan-eligibility-criteria", "https://www.paisabazaar.com/sbi-bank/home-loan-interest-rate/"]
+    }
+  },
+
+  "ltv": {
+    "bands": [
+      { "loan_upto": 3000000, "max_ltv": 0.90 },
+      { "loan_upto": 7500000, "max_ltv": 0.80 },
+      { "loan_upto": null, "max_ltv": 0.75 }
+    ],
+    "note": "RBI: loan up to 90% of property value for loans up to ₹30 lakh, 80% for ₹30 to 75 lakh, 75% above ₹75 lakh. Stamp duty, registration and other charges are excluded from 'value' and cannot be financed. The band is decided by the loan amount, not the property price.",
+    "confidence": "verified"
+  },
+
+  "foir": {
+    "income_basis": "net",
+    "basis_note": "Most sanctioning teams work from net monthly take-home on the salary slip; some lender calculators quote the same percentages against gross. Switch the basis to see the difference.",
+    "bands": [
+      { "income_upto": 50000, "salaried": 0.50, "self_employed": 0.45 },
+      { "income_upto": 100000, "salaried": 0.55, "self_employed": 0.50 },
+      { "income_upto": null, "salaried": 0.60, "self_employed": 0.55 }
+    ],
+    "note": "Total EMIs including the new loan as a share of monthly income. Rises with income because living costs are a smaller share. Bank-specific figures quoted publicly: HDFC about 48-60%, ICICI 45-50%, Bank of Maharashtra 40-50%.",
+    "confidence": "corroborated"
+  },
+
+  "income_haircuts": {
+    "variable_pay": 0.5,
+    "rental_income": 0.75,
+    "co_applicant": 1.0,
+    "note": "Bonus and variable pay are usually counted at half of a two-year average or ignored; rental income at 70-75%; a co-applicant's income in full.",
+    "confidence": "corroborated"
+  },
+
+  "obligations": {
+    "credit_card_pct_of_outstanding": 0.05,
+    "note": "Every existing EMI counts in full; revolving credit-card balances are usually taken at 5% of the outstanding.",
+    "confidence": "corroborated"
+  },
+
+  "credit_score": {
+    "reject_below": 650,
+    "best_rate_from": 750,
+    "premium_bps": [
+      { "score_from": 750, "bps": 0 },
+      { "score_from": 700, "bps": 15 },
+      { "score_from": 650, "bps": 50 }
+    ],
+    "note": "No bank publishes a hard floor; 700+ is the practical minimum and 750+ gets the best rate. SBI prices explicitly by score. Below about 650 expect a refusal regardless of income.",
+    "confidence": "corroborated"
+  },
+
+  "age": {
+    "min": 21,
+    "loan_must_end_by": { "salaried": 60, "self_employed": 65 },
+    "lender_variants": "SBI allows the loan to run to age 70 for both; HDFC 65 for salaried and 70 for self-employed; many PSU banks use retirement age (60) for salaried.",
+    "max_tenure_years": 30,
+    "confidence": "corroborated"
+  },
+
+  "rate": {
+    "default_pct": 8.0,
+    "range_note": "Home loan rates in September 2026 run from about 7.25% (top score, large PSU bank) to 8.45% for salaried borrowers; the tool adds the score premium to whatever base you type.",
+    "confidence": "corroborated"
+  },
+
+  "minimum_profile": {
+    "min_net_monthly_income": 25000,
+    "salaried_years_employed": 2,
+    "self_employed_years_in_business": 3,
+    "confidence": "corroborated"
+  }
+}

@@ -30,6 +30,13 @@ const fixture = (f) => migrateProfile(JSON.parse(readFileSync(path.join(here, '.
   ok('missing schemaVersion is treated as v1', migrateProfile({ tax: { regime: 'old' } }).tax.regime === 'old');
   ok('bad regime falls back to new', normaliseProfile({ tax: { regime: 'both' } }).tax.regime === 'new');
   ok('migration is idempotent', JSON.stringify(migrateProfile(junk)) === JSON.stringify(junk));
+  // v1 -> v2: a profile saved before `person` existed comes up with defaults and keeps everything else
+  const v1 = migrateProfile({ schemaVersion: 1, income: { ctc: 1500000, basic: 600000 }, tax: { regime: 'old' } });
+  ok('v1 profile migrates to the current version', v1.schemaVersion === SCHEMA_VERSION);
+  ok('v1 profile gains person defaults', v1.person.age === 0 && v1.person.creditScore === 0 && v1.person.employment === 'salaried');
+  ok('v1 profile keeps its data', v1.income.ctc === 1500000 && v1.tax.regime === 'old');
+  const bad = normaliseProfile({ person: { age: 250, creditScore: 12, employment: 'freelance' } });
+  ok('person fields are clamped', bad.person.age === 100 && bad.person.creditScore === 300 && bad.person.employment === 'salaried');
 }
 
 // ---- import guard ----

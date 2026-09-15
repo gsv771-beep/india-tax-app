@@ -5,7 +5,8 @@
  * public/js (Phase 1). Every tool reads from and writes to one profile object persisted under
  * PROFILE_KEY; the test fixtures in public/fixtures/profiles/ are plain profiles in this shape.
  *
- * Schema v1 (all amounts annual rupees unless stated):
+ * Schema v2 (all amounts annual rupees unless stated):
+ *   person:      age (years, 0 = unknown), creditScore (0 = unknown), employment ('salaried' | 'self_employed')
  *   income:      ctc, basic, hra, otherAllowances, employerNps, employerPf, gratuity (provision inside CTC),
  *                esop (annual perquisite value). ctc = the sum of the rest.
  *   tax:         fy, regime ('old' | 'new'), s80cUsed, s80dUsed, nps1bUsed, otherDeductions, ageBand
@@ -18,7 +19,7 @@
  */
 
 export const PROFILE_KEY = 'taxcompass.profile.v1';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const LOAN_TYPES = ['home', 'car', 'personal', 'education', 'other'];
 export const PROPERTY_USE = ['self_occupied', 'let_out', 'none'];
@@ -27,6 +28,7 @@ export const INVESTMENT_BUCKETS = ['equity', 'debt', 'epf', 'ppf', 'nps', 'fd', 
 export function emptyProfile() {
   return {
     schemaVersion: SCHEMA_VERSION,
+    person: { age: 0, creditScore: 0, employment: 'salaried' },
     income: { ctc: 0, basic: 0, hra: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
     tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60' },
     location: { city: 'Other', metro: false, rentPaid: 0, housing: 'rent' },
@@ -44,7 +46,8 @@ export function emptyProfile() {
  * Add a step per version bump: MIGRATIONS[n] takes a v(n) profile and returns v(n+1).
  */
 const MIGRATIONS = {
-  // 1: (p) => ({ ...p, schemaVersion: 2, newSection: {...} }),
+  // v1 -> v2: the home-buying tool needs age, credit score and employment type. Older profiles get the defaults.
+  1: (p) => ({ ...p, schemaVersion: 2, person: { age: 0, creditScore: 0, employment: 'salaried', ...(p.person || {}) } }),
 };
 
 export function migrateProfile(raw) {
@@ -67,6 +70,7 @@ export function normaliseProfile(p) {
   };
   const out = {
     schemaVersion: SCHEMA_VERSION,
+    person: pick(base.person, p.person),
     income: pick(base.income, p.income),
     tax: pick(base.tax, p.tax),
     location: pick(base.location, p.location),
@@ -77,6 +81,9 @@ export function normaliseProfile(p) {
     horizon: { goals: Array.isArray(p.horizon?.goals) ? p.horizon.goals.map((g) => ({ name: String(g?.name || 'Goal'), years: num(g?.years), target: num(g?.target) })) : [] },
   };
   if (out.tax.regime !== 'old' && out.tax.regime !== 'new') out.tax.regime = 'new';
+  if (out.person.employment !== 'self_employed') out.person.employment = 'salaried';
+  out.person.age = Math.max(0, Math.min(100, Math.round(out.person.age)));
+  out.person.creditScore = out.person.creditScore ? Math.max(300, Math.min(900, Math.round(out.person.creditScore))) : 0;
   if (out.location.housing !== 'own' && out.location.housing !== 'rent') out.location.housing = 'rent';
   return out;
 }
@@ -152,7 +159,7 @@ export function parseProfileJSON(text) {
   let raw;
   try { raw = JSON.parse(text); } catch { throw new Error('That file is not valid JSON.'); }
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('That file does not contain a profile.');
-  const known = ['income', 'tax', 'location', 'loans', 'investments', 'cashflow', 'household', 'horizon'];
+  const known = ['person', 'income', 'tax', 'location', 'loans', 'investments', 'cashflow', 'household', 'horizon'];
   if (!known.some((k) => k in raw)) throw new Error('That file does not look like a TaxCompass profile (no income, tax, loans or other section).');
   const v = Number(raw.schemaVersion) || 1;
   if (v > SCHEMA_VERSION) throw new Error(`This profile was saved by a newer version of TaxCompass (schema ${v}); this app understands up to ${SCHEMA_VERSION}.`);
