@@ -12,6 +12,11 @@ const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
+    // localhost is never production: mirror functions/robots.txt.js and block indexing
+    if (url.pathname === '/robots.txt') {
+      res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' });
+      return res.end('User-agent: *\nDisallow: /\n');
+    }
     if (url.pathname.startsWith('/api/')) {
       res.writeHead(503, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ error: 'Chat is not configured in the static preview. Run `npm run dev` to serve the function.' }));
@@ -23,7 +28,7 @@ createServer(async (req, res) => {
     // single-page app: paths without a file extension fall back to index.html (mirrors public/_redirects)
     else if (!st && !path.extname(p)) p = path.join(root, 'index.html');
     const body = await readFile(p);
-    res.writeHead(200, { 'content-type': types[path.extname(p)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    res.writeHead(200, { 'content-type': types[path.extname(p)] || 'application/octet-stream', 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' });
     res.end(body);
   } catch {
     res.writeHead(404); res.end('Not found');

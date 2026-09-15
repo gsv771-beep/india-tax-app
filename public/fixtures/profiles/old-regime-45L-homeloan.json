@@ -1,0 +1,12 @@
+{
+  "_fixture": "₹45L CTC, old regime, own flat in Mumbai with a ₹60L home loan at 8.5% and 15 years to run (EMI ₹59,084). Two children.",
+  "schemaVersion": 1,
+  "income": { "ctc": 4500000, "basic": 1800000, "hra": 900000, "otherAllowances": 1584000, "employerNps": 0, "employerPf": 216000, "esop": 0 },
+  "tax": { "fy": "FY2026-27", "regime": "old", "s80cUsed": 50000, "s80dUsed": 25000, "nps1bUsed": 50000, "otherDeductions": 0, "ageBand": "below_60" },
+  "location": { "city": "Mumbai", "metro": true, "rentPaid": 0, "housing": "own" },
+  "loans": [ { "type": "home", "outstanding": 6000000, "rate": 8.5, "remainingMonths": 180, "emi": 59084, "propertyUse": "self_occupied" } ],
+  "investments": { "equity": 3000000, "debt": 500000, "epf": 2500000, "ppf": 800000, "nps": 300000, "fd": 500000, "gold": 400000 },
+  "cashflow": { "monthlySurplus": 60000, "emergencyFund": 600000 },
+  "household": { "dependents": 2, "childrenAges": [6, 9] },
+  "horizon": { "goals": [ { "name": "Elder child's college", "years": 9 }, { "name": "Retirement", "years": 20 } ] }
+}

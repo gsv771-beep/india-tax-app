@@ -1,6 +1,6 @@
-# Rebuilds public/data/mf_returns.json from AMFI NAV history once a month and commits it.
-# Cloudflare Pages (or any Git-connected host) redeploys automatically on the commit.
-# Run it by hand from the Actions tab with "Run workflow".
+# Rebuilds public/data/mf_returns.json from AMFI NAV history once a month and commits it to `dev`.
+# Nothing commits straight to `main`: the refreshed data reaches production with the next
+# dev -> main promotion (docs/ENVIRONMENTS.md). Run it by hand from the Actions tab with "Run workflow".
 name: Update mutual fund returns
 
 on:
@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: dev
       - uses: actions/setup-node@v4
         with:
           node-version: 20

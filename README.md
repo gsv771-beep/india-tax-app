@@ -45,12 +45,27 @@ functions/api/send-workbook.js  optional Cloudflare Pages Function that emails t
   js/schemes.js         NPS and government schemes
   js/glossary.js
   js/data/*.json        rates, deductions, comparison rows, formulas, glossary, schemes, mf_returns
-  _headers              security headers (Cloudflare Pages / Netlify honour this file)
+  _headers              security headers; noindex + no-store on non-production hosts
+  engine/profile.js     shared financial profile: schema, defaults, migrations, adapters (pure)
+  fixtures/profiles/    test profiles for previews and staging
+  js/env.js             production / staging / preview detection
+  js/devtools.js        dev-only fixture loader (non-production hosts only)
+functions/robots.txt.js  serves Disallow: / on every non-production host
 tools/build-mf-returns.mjs  builds public/data/mf_returns.json from AMFI NAV history
 tools/static-server.mjs     dependency-free local preview server
 tests/                  regression tests for the tax engine, calculators, loan simulator, fund matching
+tests/known-answers.test.mjs  owner-supplied expected values; TODO placeholders are pending, not failures
 docs/                   the research pack: verification list, engine spec, corpus plan, scheme research
 ```
+
+## Branches, staging and previews
+
+`main` is production (taxcompass.org), `dev` is staging (staging.taxcompass.org), every other
+branch gets a Cloudflare preview URL. Nothing is committed to `main` directly; CI (`npm test`)
+must be green before a merge. Every non-production host shows a red STAGING banner, is served
+`Disallow: /` from robots.txt and carries `noindex` headers, and has a DEV button that loads a test
+profile from `public/fixtures/profiles/`. Details and the one-time dashboard steps:
+`docs/ENVIRONMENTS.md`.
 
 ## Run locally
 

@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /fixtures/
 
 Sitemap: https://taxcompass.org/sitemap.xml

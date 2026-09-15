@@ -12,3 +12,19 @@
 
 /manifest.webmanifest
   Content-Type: application/manifest+json
+
+# ---- Non-production hosts: never indexed, never cached ----
+# Layer 1 of 3 (the others: functions/robots.txt.js serves "Disallow: /" off-production, and
+# index.html injects <meta name="robots" content="noindex"> off-production).
+# Cloudflare Pages placeholders (:project, :hash) match one host label each.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+https://:hash.:project.pages.dev/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store
+
+https://staging.taxcompass.org/*
+  X-Robots-Tag: noindex, nofollow
+  Cache-Control: no-store

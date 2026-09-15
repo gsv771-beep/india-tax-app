@@ -1,0 +1,12 @@
+{
+  "_fixture": "₹15L CTC, new regime, renting in Bengaluru, no loan. Basic 40% of CTC, HRA 50% of basic, employer PF 12% of basic.",
+  "schemaVersion": 1,
+  "income": { "ctc": 1500000, "basic": 600000, "hra": 300000, "otherAllowances": 528000, "employerNps": 0, "employerPf": 72000, "esop": 0 },
+  "tax": { "fy": "FY2026-27", "regime": "new", "s80cUsed": 0, "s80dUsed": 0, "nps1bUsed": 0, "otherDeductions": 0, "ageBand": "below_60" },
+  "location": { "city": "Bengaluru", "metro": false, "rentPaid": 300000, "housing": "rent" },
+  "loans": [],
+  "investments": { "equity": 400000, "debt": 0, "epf": 350000, "ppf": 0, "nps": 0, "fd": 200000, "gold": 0 },
+  "cashflow": { "monthlySurplus": 30000, "emergencyFund": 200000 },
+  "household": { "dependents": 0, "childrenAges": [] },
+  "horizon": { "goals": [ { "name": "House down payment", "years": 5 }, { "name": "Retirement", "years": 30 } ] }
+}

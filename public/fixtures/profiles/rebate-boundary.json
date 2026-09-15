@@ -1,0 +1,12 @@
+{
+  "_fixture": "Sits exactly on the s.87A / s.156 cliff under the new regime: gross salary ₹12,75,000 less the ₹75,000 standard deduction = total income ₹12,00,000, so the ₹60,000 rebate wipes the tax out. Add ₹1 of income and marginal relief takes over.",
+  "schemaVersion": 1,
+  "income": { "ctc": 1347000, "basic": 600000, "hra": 300000, "otherAllowances": 375000, "employerNps": 0, "employerPf": 72000, "esop": 0 },
+  "tax": { "fy": "FY2026-27", "regime": "new", "s80cUsed": 0, "s80dUsed": 0, "nps1bUsed": 0, "otherDeductions": 0, "ageBand": "below_60" },
+  "location": { "city": "Other", "metro": false, "rentPaid": 0, "housing": "own" },
+  "loans": [],
+  "investments": { "equity": 0, "debt": 0, "epf": 0, "ppf": 0, "nps": 0, "fd": 0, "gold": 0 },
+  "cashflow": { "monthlySurplus": 15000, "emergencyFund": 0 },
+  "household": { "dependents": 0, "childrenAges": [] },
+  "horizon": { "goals": [ { "name": "Retirement", "years": 25 } ] }
+}

@@ -91,6 +91,34 @@ small { color: var(--muted); font-weight: 400; }
 :focus-visible { outline: 3px solid rgba(29, 107, 61, .45); outline-offset: 2px; border-radius: 6px; }
 
 /* ============================================================
+   Staging banner (every non-production host; see the inline script in index.html)
+   ============================================================ */
+:root { --staging-h: 38px; }
+.staging-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  min-height: var(--staging-h);
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0 8px;
+  padding: 6px 12px;
+  background: repeating-linear-gradient(135deg, #b91c1c 0 14px, #991b1b 14px 28px);
+  color: #fff; font-size: .84rem; font-weight: 600; letter-spacing: .01em; text-align: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .3);
+}
+.staging-banner strong { font-weight: 800; letter-spacing: .12em; }
+.staging-banner .host { font-weight: 400; opacity: .8; font-size: .74rem; }
+html.non-production body { padding-top: var(--staging-h); }
+html.non-production .site-header { top: var(--staging-h); }
+@media (max-width: 480px) { .staging-banner { font-size: .78rem; } .staging-banner .host { display: none; } }
+
+/* Dev-only fixture loader (js/devtools.js), non-production hosts only */
+.devtools { position: fixed; left: 14px; bottom: 14px; z-index: 90; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.devtools-toggle { border: 0; border-radius: 999px; padding: 8px 12px; font: 700 .72rem/1 var(--font); letter-spacing: .12em; background: #b91c1c; color: #fff; cursor: pointer; box-shadow: var(--shadow-lg); }
+.devtools-panel { width: min(320px, calc(100vw - 28px)); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow-lg); }
+.devtools-title { font-weight: 700; margin-bottom: 4px; }
+.devtools-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.devtools-list .btn { text-align: left; }
+.devtools-status { font-size: .8rem; color: var(--muted); min-height: 1.2em; margin-bottom: 8px; }
+
+/* ============================================================
    Header
    ============================================================ */
 .site-header {

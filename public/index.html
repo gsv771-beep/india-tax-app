@@ -22,6 +22,23 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/css/style.css">
+  <script>
+    // Environment guard. Runs before anything else and needs no module to load:
+    // off taxcompass.org the page is marked non-production, told not to be indexed, and gets an
+    // unmissable banner. Keep the host list in sync with js/env.js and functions/_env.js.
+    (function () {
+      var h = location.hostname;
+      if (h === 'taxcompass.org' || h === 'www.taxcompass.org') return;
+      document.documentElement.classList.add('non-production');
+      var m = document.createElement('meta'); m.name = 'robots'; m.content = 'noindex, nofollow'; document.head.appendChild(m);
+      document.addEventListener('DOMContentLoaded', function () {
+        var b = document.createElement('div');
+        b.className = 'staging-banner'; b.setAttribute('role', 'alert'); b.id = 'staging-banner';
+        b.innerHTML = '<strong>STAGING</strong> — figures may be incorrect. Not for use. <span class="host">' + h + '</span>';
+        document.body.insertBefore(b, document.body.firstChild);
+      });
+    })();
+  </script>
 </head>
 <body>
   <header class="site-header">

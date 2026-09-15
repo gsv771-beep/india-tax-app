@@ -1,0 +1,12 @@
+{
+  "_fixture": "₹1cr CTC of which ₹25L is ESOP vesting each year (taxed as a perquisite on exercise). Employer NPS at 10% of basic. New regime, renting.",
+  "schemaVersion": 1,
+  "income": { "ctc": 10000000, "basic": 3000000, "hra": 1500000, "otherAllowances": 2340000, "employerNps": 300000, "employerPf": 360000, "esop": 2500000 },
+  "tax": { "fy": "FY2026-27", "regime": "new", "s80cUsed": 150000, "s80dUsed": 50000, "nps1bUsed": 50000, "otherDeductions": 0, "ageBand": "below_60" },
+  "location": { "city": "Other", "metro": false, "rentPaid": 600000, "housing": "rent" },
+  "loans": [ { "type": "car", "outstanding": 1200000, "rate": 9.25, "remainingMonths": 48, "emi": 30011, "propertyUse": "none" } ],
+  "investments": { "equity": 12000000, "debt": 2000000, "epf": 4000000, "ppf": 1500000, "nps": 1200000, "fd": 1000000, "gold": 500000 },
+  "cashflow": { "monthlySurplus": 250000, "emergencyFund": 1500000 },
+  "household": { "dependents": 1, "childrenAges": [3] },
+  "horizon": { "goals": [ { "name": "House purchase", "years": 3 }, { "name": "Child's college", "years": 15 }, { "name": "Retirement", "years": 22 } ] }
+}

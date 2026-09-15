@@ -6,6 +6,7 @@ import { initNps } from './nps.js';
 import { initAbout } from './about.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
+import { isProduction } from './env.js';
 
 const SITE = 'TaxCompass India';
 const PAGES = {
@@ -116,6 +117,8 @@ async function boot() {
 
     loading.hidden = true;
     route();
+    // Fixture loader and other dev-only controls: never on taxcompass.org.
+    if (!isProduction()) import('./devtools.js').then((m) => m.initDevtools()).catch(() => {});
   } catch (err) {
     loading.className = 'notice error';
     loading.textContent = 'Could not load the app data. ' + err.message;
