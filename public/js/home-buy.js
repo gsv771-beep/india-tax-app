@@ -48,7 +48,7 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
   fromProfile.employment = p.person.employment;
 
   const st = {
-    city: 'Mumbai', price: 8000000, status: 'under_construction', buyer: 'man', affordable: false, brokerageRate: 1, brokerageOnNew: false, interiors: 0, legalAndValuation: charges.customary.legal_and_valuation.default_amount,
+    city: 'Mumbai', price: '', status: 'under_construction', buyer: 'man', affordable: false, brokerageRate: 1, brokerageOnNew: false, interiors: 0, legalAndValuation: charges.customary.legal_and_valuation.default_amount,
     builderCharges: [],
     netMonthly: 0, grossMonthly: 0, variablePayMonthly: 0, rentalMonthly: 0, coApplicantMonthly: 0, existingEmi: 0, creditCardOutstanding: 0, creditScore: 0, age: 0, employment: 'salaried',
     ratePct: policy.rate.default_pct, tenureYears: 20, loanWanted: 0,
@@ -93,7 +93,7 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
 
   const F = {
     city: field('city', 'City', { options: PROPERTY_CITIES.map((c) => [c, c]) }),
-    price: field('price', 'Agreed price (₹)', { step: 100000 }, 'the figure on the agreement; the state may charge duty on its own guideline value if higher'),
+    price: field('price', 'Agreed price (₹)', { step: 100000, placeholder: 'e.g. 8000000' }, 'the figure on the agreement; the state may charge duty on its own guideline value if higher'),
     status: field('status', 'What you are buying', { options: STATUSES.map((s) => [s, STATUS_LABELS[s]]) }),
     buyer: field('buyer', 'Registered in the name of', { options: BUYERS.map((b) => [b, BUYER_LABELS[b]]) }, 'some states charge women less'),
     affordable: field('affordable', 'Qualifies as affordable housing (GST 1%): value up to ₹45 lakh and carpet area within limits', { type: 'checkbox' }),
@@ -192,6 +192,10 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
   }
 
   function paint() {
+    if (!(+st.price > 0)) {
+      setChildren(out, [el('div', { class: 'notice' }, [el('strong', {}, 'Enter the agreed price to begin. '), 'The cost of buying and how much a lender would sanction both depend on it; nothing is worked out until it is in.'])]);
+      return;
+    }
     const { eligibility: e, cost: c, cashNeeded } = compute();
     const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'home:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };
     const liquid = p.investments.fd + p.investments.debt;

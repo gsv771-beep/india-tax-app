@@ -157,7 +157,34 @@ export function showCalc(name) {
   if (key === currentCalc) return;
   currentCalc = key;
   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
-  document.getElementById('calc-body').replaceChildren(VIEWS[key]());
+  document.getElementById('calc-body').replaceChildren(withReset(key, VIEWS[key]()));
+}
+
+// What each calculator remembers in the browser. Reset clears only that; the shared profile is untouched,
+// so anything a calculator pre-fills from the profile comes back after the reset.
+const CALC_KEYS = {
+  emi: { calc: ['emi'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'] },
+  salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
+  'capital-gains': { keys: ['taxcompass.capgains.v1'] }, home: { keys: ['taxcompass.home.v1'] },
+};
+function resetCalc(key) {
+  const spec = CALC_KEYS[key] || {};
+  try {
+    for (const k of spec.keys || []) localStorage.removeItem(k);
+    if (spec.calc) {
+      const all = JSON.parse(localStorage.getItem(CALC_STORE) || '{}');
+      for (const c of spec.calc) delete all[c];
+      localStorage.setItem(CALC_STORE, JSON.stringify(all));
+    }
+  } catch {}
+  currentCalc = null;
+  showCalc(key);
+}
+/** Append a Reset button to the calculator's inputs card (or the view itself if it has none). */
+function withReset(key, view) {
+  const target = view.querySelector('.card.inputs') || view;
+  target.append(el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => resetCalc(key) }, 'Reset')));
+  return view;
 }
 
 function field(label, attrs, hint) {
