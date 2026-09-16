@@ -9,7 +9,7 @@ import { salaryBreakdown } from '../public/js/salary.js';
 import { simulateLoan, sipFV, requiredSip } from '../public/js/calculators.js';
 import { computeCapitalGains } from '../public/js/capgains.js';
 import { propertyCost } from '../public/engine/property.js';
-import { loanEligibility } from '../public/engine/loan-eligibility.js';
+import { emiFor } from '../public/engine/loan-eligibility.js';
 import { paymentPlan, PLAN_PRESETS } from '../public/engine/payment-plan.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -64,13 +64,14 @@ async function roundTrip(source, last, expectSheets) {
   ok('capgains fixture computes', !r.error, r.error);
   await roundTrip('capgains', { st, r }, r.options ? ['Computation', 'Two options'] : ['Computation']);
 }
-// home
+// home: cost first, then the funding plan
 {
-  const st = { city: 'Mumbai', price: 10000000, status: 'under_construction', buyer: 'man', affordable: false, brokerageRate: 1, brokerageOnNew: false, interiors: 0, legalAndValuation: 10000, builderCharges: [{ label: 'Parking', amount: 500000 }], netMonthly: 250000, grossMonthly: 0, variablePayMonthly: 0, rentalMonthly: 0, coApplicantMonthly: 0, existingEmi: 0, creditCardOutstanding: 0, creditScore: 780, age: 35, employment: 'salaried', ratePct: 8, tenureYears: 20, downPayment: 2500000, incomeBasis: 'net', foirOverride: '', loanEndAge: '', maxTenureYears: 30, processingFeeRate: 0.5, processingFeeCap: 25000 };
-  const e = loanEligibility({ netMonthly: 250000, creditScore: 780, age: 35, tenureYears: 20, ratePct: 8, propertyPrice: 10000000, loanWanted: 7500000 }, policy);
-  const c = propertyCost({ city: 'Mumbai', price: 10000000, status: 'under_construction', buyer: 'man', builderCharges: st.builderCharges, loanAmount: e.loan }, charges);
-  const plan = paymentPlan({ price: 10000000, tranches: PLAN_PRESETS.construction_linked.tranches, downPayment: 2500000, loan: e.loan, ratePct: e.rate.effective, tenureMonths: 240, gstRate: 0.05, upfrontCharges: c.hiddenTotal - 500000 });
-  await roundTrip('home', { st, c, e, plan, downPayment: 2500000, cashNeeded: c.total - e.loan }, ['Cost', 'Loan', 'Payment plan']);
+  const st = { city: 'Mumbai', price: 10000000, status: 'under_construction', buyer: 'man', affordable: false, brokerageRate: 1, brokerageOnNew: false, interiors: 0, legalAndValuation: 10000, builderCharges: [{ label: 'Parking', amount: 500000 }], funding: true, loan: 7500000, downPayment: 2500000, ratePct: 8, tenureYears: 20, processingFeeRate: 0.5, processingFeeCap: 25000 };
+  const c = propertyCost({ city: 'Mumbai', price: 10000000, status: 'under_construction', buyer: 'man', builderCharges: st.builderCharges, loanAmount: 7500000 }, charges);
+  const plan = paymentPlan({ price: 10000000, tranches: PLAN_PRESETS.construction_linked.tranches, downPayment: 2500000, loan: 7500000, ratePct: 8, tenureMonths: 240, gstRate: 0.05, upfrontCharges: c.hiddenTotal - 500000 });
+  await roundTrip('home', { st, c, loan: 7500000, downPayment: 2500000, plan, emi: emiFor(7500000, 8, 240), tenureMonths: 240, cashNeeded: c.total - 7500000 }, ['Cost', 'Funding', 'Payment plan']);
+  const costOnly = propertyCost({ city: 'Chennai', price: 8000000, status: 'resale', buyer: 'woman', loanAmount: 0 }, charges);
+  await roundTrip('home', { st: { ...st, funding: false, city: 'Chennai', price: 8000000, status: 'resale' }, c: costOnly, loan: 0, downPayment: 0, plan: null, emi: 0, tenureMonths: 0, cashNeeded: costOnly.total }, ['Cost']);
 }
 
 console.log(failures === 0 ? '\nAll export tests passed.' : `\n${failures} export test(s) FAILED.`);

@@ -20,7 +20,7 @@ export const CALCS = {
   budget: { title: 'Expenses and savings calculator', desc: 'Monthly take-home, expenses by category, SIPs and deposits, and what is left, with an emailed Excel workbook.' },
   emi: { title: 'EMI calculator with step-up and prepayment', desc: 'EMI, total interest and a year-by-year schedule, with step-up EMIs, lump-sum and yearly prepayments, and the loan worked out from price and down payment.' },
   sip: { title: 'SIP calculator with step-up and lump sums', desc: 'What a monthly SIP grows into, with yearly step-ups and lump sums added today or at the end of any year, against what fund categories have historically delivered.' },
-  home: { title: 'Home loan eligibility and the true cost of buying', desc: 'Stamp duty, registration, GST and builder charges in Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Kolkata and Pune; how much a lender would sanction and why; the stage-by-stage payment plan with pre-EMI interest.' },
+  home: { title: 'True cost of buying a home, and how to fund it', desc: 'Stamp duty, registration, GST and builder charges in Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Kolkata and Pune, then the loan, down payment, EMI and the stage-by-stage payment plan with pre-EMI interest.' },
   'capital-gains': { title: 'Capital gains tax calculator', desc: 'Tax on selling listed equity, equity and debt funds, property and other assets, with the ₹1.25 lakh exemption, grandfathering and the 12.5% or 20%-with-indexation choice for property.' },
   goal: { title: 'Goal planner', desc: 'The monthly SIP or one-time investment that reaches a target in N years, and what that target is worth in today’s money.' },
 };

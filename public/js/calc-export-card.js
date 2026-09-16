@@ -13,7 +13,7 @@ const CARD_TEXT = {
   sip: { title: 'Email me this projection', intro: 'An Excel workbook with the projection, the year-by-year growth, your lump sums, every figure you entered, and the assumptions.' },
   goal: { title: 'Email me this goal plan', intro: 'An Excel workbook with the SIP and one-time amounts that reach the goal, every figure you entered, and the assumptions.' },
   capgains: { title: 'Email me this working', intro: 'An Excel workbook with the gain computation, both options where they apply, every figure you entered, and the notes, so you can go through it with your CA.' },
-  home: { title: 'Email me this home-buying plan', intro: 'An Excel workbook with the full cost of the property, the loan the lender would sanction and why, the stage-by-stage payment plan with pre-EMI interest, every figure you entered, and the sources.' },
+  home: { title: 'Email me this home-buying plan', intro: 'An Excel workbook with the full cost of the property, the funding plan with EMI and the stage-by-stage payments and pre-EMI interest, every figure you entered, and the sources.' },
 };
 
 /**

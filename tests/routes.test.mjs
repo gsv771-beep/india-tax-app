@@ -6,7 +6,7 @@ const ok = (name, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}
 
 ok('root resolves to the tax page', metaFor('/').tab === 'tax' && /regime/.test(metaFor('/').title));
 ok('index.html resolves to the tax page', metaFor('/index.html').url === 'https://taxcompass.org/tax');
-ok('home-buying tool gets its own title', /Home loan eligibility/.test(metaFor('/calculators/home').title));
+ok('home-buying tool gets its own title', /True cost of buying/.test(metaFor('/calculators/home').title));
 ok('home-buying description mentions the cities', /Mumbai/.test(metaFor('/calculators/home').desc));
 ok('unknown calculator falls back to EMI', metaFor('/calculators/nonsense').url === 'https://taxcompass.org/calculators/emi');
 ok('removed lumpsum route resolves to SIP', metaFor('/calculators/lumpsum').url === 'https://taxcompass.org/calculators/sip');
