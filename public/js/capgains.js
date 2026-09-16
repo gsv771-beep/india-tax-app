@@ -304,22 +304,28 @@ export function renderCapitalGains(app) {
     }, data);
 
     if (r.error) { setChildren(out, [el('div', { class: 'notice' }, r.error)]); return; }
-    last = { st: { ...st }, r };
+    // Reinvestment reliefs entered on the left flow through the headline, the table and the workbook.
+    const relief = appliedReliefs(r);
+    last = { st: { ...st }, r, relief };
     const stat = (k, v, cls = '') => el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
     const rows = r.lines.map((l) => el('tr', { class: l.subtotal ? 'subtotal' : '' }, [el('td', {}, l.label), el('td', { class: l.amount < 0 ? 'neg' : '' }, inr(l.amount))]));
     if (r.gain > 0) {
       if (r.exemptionUsed) rows.push(el('tr', {}, [el('td', {}, 'Taxable gain'), el('td', {}, inr(r.taxableGain))]));
-      rows.push(el('tr', {}, [el('td', {}, `Tax at ${r.rateLabel}`), el('td', {}, inr(r.tax))]));
-      rows.push(el('tr', {}, [el('td', {}, 'Health and education cess (4%)'), el('td', {}, inr(r.cess))]));
-      rows.push(el('tr', { class: 'total' }, [el('td', {}, 'Tax on this sale'), el('td', {}, inr(r.total))]));
+      for (const x of relief.items) rows.push(el('tr', {}, [el('td', {}, `Less: exempt under Section ${x.section} (${x.short})`), el('td', { class: 'neg' }, inr(-x.exempt))]));
+      if (relief.items.length) rows.push(el('tr', { class: 'subtotal' }, [el('td', {}, 'Taxable gain after reliefs'), el('td', {}, inr(relief.taxable))]));
+      rows.push(el('tr', {}, [el('td', {}, `Tax at ${r.rateLabel}`), el('td', {}, inr(relief.tax))]));
+      rows.push(el('tr', {}, [el('td', {}, 'Health and education cess (4%)'), el('td', {}, inr(relief.cess))]));
+      rows.push(el('tr', { class: 'total' }, [el('td', {}, relief.items.length ? 'Tax on this sale after reliefs' : 'Tax on this sale'), el('td', {}, inr(relief.total))]));
+      if (relief.items.length) rows.push(el('tr', {}, [el('td', { class: 'muted' }, 'Tax without the reliefs'), el('td', { class: 'muted' }, inr(r.total))]));
     }
     setChildren(out, [
       el('div', { class: 'stats' }, [
         stat('Holding period', `${Math.floor(r.months / 12)} yr ${r.months % 12} mo`),
         stat('Treatment', r.classification),
         stat(r.gain >= 0 ? 'Gain' : 'Loss', inr(Math.abs(r.gain)), r.gain < 0 ? 'bad' : ''),
-        stat('Tax payable', inr(r.total), 'hi'),
+        relief.items.length ? stat('Tax after reliefs', inr(relief.total), 'hi') : stat('Tax payable', inr(r.total), 'hi'),
       ]),
+      relief.items.length ? el('p', { class: 'explain' }, `With ${relief.items.map((x) => `${inr(x.exempt)} exempt under Section ${x.section}`).join(' and ')}, the taxable gain falls from ${inr(r.taxableGain)} to ${inr(relief.taxable)} and the tax from ${inr(r.total)} to ${inr(relief.total)}: ${inr(r.total - relief.total)} saved, provided the conditions and deadlines below are met.`) : null,
       el('p', { class: 'explain' }, r.gain <= 0
         ? `This is a ${r.longTerm ? 'long-term' : 'short-term'} capital loss of ${inr(-r.gain)}; no tax is due on it.`
         : `Held ${r.months} months against a ${r.holdingRule} threshold, so this is a ${r.classification.toLowerCase()} gain taxed at ${r.rateLabel}. Effective tax ${pct(r.effective, 1)} of the gain. Section ${r.section1961} of the 1961 Act, ${r.section2025} of the 2025 Act.`),
@@ -342,6 +348,24 @@ export function renderCapitalGains(app) {
       disclaimer('tax'),
     ]);
   }
+  /** The reliefs actually claimed with the amounts entered; they stack, but never beyond the gain. */
+  function appliedReliefs(r) {
+    const none = { items: [], taxable: r.taxableGain || 0, tax: r.tax || 0, cess: r.cess || 0, total: r.total || 0 };
+    if (r.error || !(r.gain > 0)) return none;
+    const options = reliefOptions(r, { houseSold: !!st.houseSold, reinvestHouse: +st.reinvestHouse || 0, bonds54ec: +st.bonds54ec || 0, otherHousesOwned: +st.otherHousesOwned || 0 }, data);
+    let room = r.taxableGain;
+    const items = [];
+    for (const o of options) {
+      if (!o.applies || !(o.exempt > 0)) continue;
+      const exempt = Math.min(o.exempt, room); room -= exempt;
+      items.push({ section: o.section, exempt, short: o.id === 's54ec' ? `${inr(+st.bonds54ec || 0)} in bonds` : `${inr(+st.reinvestHouse || 0)} into a house` });
+    }
+    if (!items.length) return none;
+    const taxable = Math.max(0, room);
+    const tax = taxable * r.rate, cess = tax * data.cess;
+    return { items, taxable, tax, cess, total: Math.round(tax + cess) };
+  }
+
   function reliefCard(r) {
     const options = reliefOptions(r, { houseSold: !!st.houseSold, reinvestHouse: +st.reinvestHouse || 0, bonds54ec: +st.bonds54ec || 0, otherHousesOwned: +st.otherHousesOwned || 0 }, data);
     if (!options.length) return null;

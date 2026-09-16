@@ -134,10 +134,16 @@ export const SPECS = {
   },
 
   capgains(x) {
-    const { st, r } = x;
+    const { st, r, relief } = x;
+    const rel = relief && relief.items && relief.items.length ? relief : null;
     const rows = r.lines.map((l) => (l.subtotal ? bold([l.label, l.amount]) : [l.label, l.amount]));
-    if (r.gain > 0) { if (r.exemptionUsed) rows.push(['Taxable gain', r.taxableGain]); rows.push([`Tax at ${r.rateLabel}`, r.tax], ['Health and education cess (4%)', r.cess], bold(['Tax on this sale', r.total])); }
-    const sheets = [{ name: 'Computation', headline: r.gain <= 0 ? `${r.longTerm ? 'Long-term' : 'Short-term'} capital loss of ₹${fmtINR(-r.gain)}: no tax due` : `${r.classification} gain of ₹${fmtINR(r.gain)}, tax ₹${fmtINR(r.total)} at ${r.rateLabel}`, columns: [{ header: 'Line', width: 60 }, { header: 'Amount', width: 20, fmt: X.inr }], rows }];
+    if (r.gain > 0) {
+      if (r.exemptionUsed) rows.push(['Taxable gain', r.taxableGain]);
+      if (rel) { for (const it of rel.items) rows.push([`Less: exempt under Section ${it.section} (${it.short})`, -it.exempt]); rows.push(bold(['Taxable gain after reliefs', rel.taxable])); }
+      rows.push([`Tax at ${r.rateLabel}`, rel ? rel.tax : r.tax], ['Health and education cess (4%)', rel ? rel.cess : r.cess], bold([rel ? 'Tax on this sale after reliefs' : 'Tax on this sale', rel ? rel.total : r.total]));
+      if (rel) rows.push(['Tax without the reliefs', r.total]);
+    }
+    const sheets = [{ name: 'Computation', headline: r.gain <= 0 ? `${r.longTerm ? 'Long-term' : 'Short-term'} capital loss of ₹${fmtINR(-r.gain)}: no tax due` : rel ? `${r.classification} gain of ₹${fmtINR(r.gain)}, tax ₹${fmtINR(rel.total)} after reliefs (₹${fmtINR(r.total)} without)` : `${r.classification} gain of ₹${fmtINR(r.gain)}, tax ₹${fmtINR(r.total)} at ${r.rateLabel}`, columns: [{ header: 'Line', width: 60 }, { header: 'Amount', width: 20, fmt: X.inr }], rows }];
     if (r.options) sheets.push({ name: 'Two options', columns: [{ header: 'Item', width: 30 }, { header: r.options.plain.label, width: 26, fmt: X.inr }, { header: r.options.indexed.label, width: 26, fmt: X.inr }], rows: [['Gain', r.options.plain.gain, r.options.indexed.gain], bold(['Tax before cess', r.options.plain.tax, r.options.indexed.tax]), [`Applied: ${r.options[r.options.chosen].label}`, '', '']], note: `Indexation: cost x CII of FY ${r.options.indexed.ciiSell.fy} (${r.options.indexed.ciiSell.value}) / CII of FY ${r.options.indexed.ciiBuy.fy} (${r.options.indexed.ciiBuy.value}).` });
     return {
       title: 'TaxCompass India: capital gains',
