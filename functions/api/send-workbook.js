@@ -71,6 +71,7 @@ ${source !== 'tax' && source !== 'budget' ? `<p style="margin:0 0 12px;line-heig
 </ul>`}
 <p style="margin:0 0 16px;line-height:1.5">You can come back to <a href="${site}" style="color:#1d6b3d">${site.replace(/^https?:\/\//, '')}</a> any time; your entries are saved in your browser.</p>
 <p style="margin:0 0 16px;line-height:1.5;color:#5c6763;font-size:13px">We may write to you once to ask what you thought of the app. Reply to this email if you would rather we did not.</p>
+<p style="margin:0 0 16px;line-height:1.5">Gaurav, who builds TaxCompass &middot; <a href="https://www.linkedin.com/in/gauravsv/" style="color:#1d6b3d">LinkedIn</a></p>
 <p style="margin:0;padding-top:12px;border-top:1px solid #e3e8e0;color:#5c6763;font-size:12px;line-height:1.5">Projections are illustrative and not guaranteed. Mutual fund investments are subject to market risk. This is not tax, legal or investment advice; please consult your chartered accountant or a SEBI-registered investment adviser before acting.</p>
 </td></tr></table></td></tr></table></body></html>`;
 

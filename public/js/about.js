@@ -1,6 +1,7 @@
 import { el, setChildren, loadJSON } from './util.js';
 
 const FEEDBACK_EMAIL = 'gsv771@gmail.com';
+export const CREATOR = { name: 'Gaurav', linkedin: 'https://www.linkedin.com/in/gauravsv/' };
 
 export function initAbout({ rates, schemes, capgains }) {
   const body = document.getElementById('about-body');
@@ -50,6 +51,10 @@ export function initAbout({ rates, schemes, capgains }) {
     ]),
     section('Feedback and corrections', [
       el('p', {}, ['Found a mistake, a rule that changed, or something confusing? Use the Feedback button at the bottom right of any page, or write to ', el('a', { href: `mailto:${FEEDBACK_EMAIL}?subject=TaxCompass%20feedback` }, FEEDBACK_EMAIL), '. Corrections to rates or limits are especially welcome, with a link to the notification or circular if you have one.']),
+    ]),
+    section('Who built this', [
+      el('p', {}, [`TaxCompass is built and maintained by ${CREATOR.name}, one person, in the open. If you would like to talk about the project, a partnership, or licensing the calculation engine for a payroll or planning product, `, el('a', { href: CREATOR.linkedin, target: '_blank', rel: 'noopener' }, 'connect on LinkedIn'), '. For corrections and bugs the Feedback button is faster; it reaches the same person, with the page and the figures attached.']),
+      el('div', { class: 'btn-row' }, [el('a', { class: 'btn secondary', href: CREATOR.linkedin, target: '_blank', rel: 'noopener' }, 'Message on LinkedIn')]),
     ]),
   ]);
 }
