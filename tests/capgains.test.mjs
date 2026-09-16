@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { computeCapitalGains, monthsBetween, fyOf } from '../public/js/capgains.js';
+import { computeCapitalGains, reliefOptions, monthsBetween, fyOf } from '../public/js/capgains.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const data = JSON.parse(readFileSync(path.join(here, '../public/data/capital_gains.json'), 'utf8'));
@@ -98,6 +98,36 @@ ok('gold ST at slab', Math.abs(cg({ asset: 'other', buyDate: '2025-01-01', sellD
   ok('loss gives zero tax and a set-off note', r.total === 0 && r.loss === 400000 && r.notes.some((n) => /set off/.test(n)));
 }
 ok('sale before purchase is an error', !!cg({ asset: 'equity', buyDate: '2026-06-01', sellDate: '2026-01-01', cost: 1, sale: 2 }).error);
+
+// ---- reliefs: 54, 54F, 54EC, equity exemption, set-off ----
+{
+  // a house bought for 50L in 2015, sold for 1.2cr in 2026: long-term property gain
+  const house = cg({ asset: 'property', buyDate: '2015-06-01', sellDate: '2026-06-01', cost: 5000000, sale: 12000000, expenses: 100000, resident: true });
+  ok('house sale computes a long-term gain', !house.error && house.longTerm && house.gain > 0);
+  const ids = (opts) => reliefOptions(house, opts, data).map((o) => o.id);
+  ok('house sold: 54 and 54EC offered, not 54F', JSON.stringify(ids({ houseSold: true })) === JSON.stringify(['s54', 's54ec', 'setoff']));
+  ok('land sold: 54F and 54EC offered, not 54', JSON.stringify(ids({ houseSold: false })) === JSON.stringify(['s54f', 's54ec', 'setoff']));
+  const s54 = reliefOptions(house, { houseSold: true, reinvestHouse: 4000000 }, data).find((o) => o.id === 's54');
+  ok('54: exemption equals the amount reinvested when it is below the gain', Math.abs(s54.exempt - 4000000) < 1);
+  ok('54: tax after is on the remaining gain', s54.taxAfter < house.total && s54.taxAfter > 0);
+  const s54full = reliefOptions(house, { houseSold: true, reinvestHouse: 20000000 }, data).find((o) => o.id === 's54');
+  ok('54: reinvesting more than the gain exempts the whole gain', Math.abs(s54full.exempt - house.gain) < 1 && s54full.taxAfter === 0);
+  const netSale = 12000000 - 100000;
+  const s54f = reliefOptions(house, { houseSold: false, reinvestHouse: netSale / 2 }, data).find((o) => o.id === 's54f');
+  ok('54F: half the net proceeds reinvested exempts half the gain', Math.abs(s54f.exempt - house.gain / 2) < 1);
+  ok('54F: not available with two other houses', reliefOptions(house, { houseSold: false, otherHousesOwned: 2 }, data).find((o) => o.id === 's54f').applies === false);
+  const ec = reliefOptions(house, { houseSold: true, bonds54ec: 8000000 }, data).find((o) => o.id === 's54ec');
+  ok('54EC: capped at 50 lakh', Math.abs(ec.exempt - 5000000) < 1);
+}
+{
+  const eq = cg({ asset: 'equity', buyDate: '2024-01-01', sellDate: '2026-06-01', cost: 1000000, sale: 1600000 });
+  const ids = reliefOptions(eq, {}, data).map((o) => o.id);
+  ok('long-term equity: 54F, yearly exemption and set-off', JSON.stringify(ids) === JSON.stringify(['s54f', 'harvest', 'setoff']));
+  const st = cg({ asset: 'equity', buyDate: '2026-01-01', sellDate: '2026-06-01', cost: 1000000, sale: 1600000 });
+  const hold = reliefOptions(st, {}, data).find((o) => o.id === 'hold');
+  ok('short-term equity: holding past 12 months is suggested with a lower tax', hold && hold.taxAfter < st.total);
+  ok('a loss gets no relief list', reliefOptions(cg({ asset: 'equity', buyDate: '2024-01-01', sellDate: '2026-06-01', cost: 1600000, sale: 1000000 }), {}, data).length === 0);
+}
 
 console.log(failures === 0 ? '\nAll capital gains tests passed.' : `\n${failures} test(s) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

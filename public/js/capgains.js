@@ -147,6 +147,83 @@ export function computeCapitalGains(inputs, data) {
   return result;
 }
 
+// ---------- ways to reduce the tax ----------
+// Section numbers are the 1961 Act's; the 2025 Act carries the same reliefs under new numbers.
+// Caps: Finance Act 2023 limited the new-house cost counted under 54 and 54F to ₹10 crore.
+const RELIEF = {
+  s54_cap: 100000000, s54_two_houses_gain_limit: 20000000, s54ec_cap: 5000000, s54ec_months: 6,
+};
+
+/**
+ * Reliefs that could apply to this sale, with the exemption each would give for the amounts entered.
+ * r: result of computeCapitalGains; opts: { houseSold (bool), reinvestHouse, bonds54ec, otherHousesOwned }
+ * Pure; returns [{ id, section, title, applies, exempt, taxAfter, conditions[], note }]
+ */
+export function reliefOptions(r, opts = {}, data) {
+  const out = [];
+  if (!r || r.error || !(r.gain > 0)) return out;
+  const gain = r.gain;
+  const netSale = r.lines.find((l) => l.label === 'Sale consideration').amount + r.lines.find((l) => /expenses on transfer/.test(l.label)).amount;
+  const rate = r.rate, cessRate = data.cess;
+  const taxOn = (taxable) => Math.round(Math.max(0, taxable) * rate * (1 + cessRate));
+  const reinvest = Math.max(0, +opts.reinvestHouse || 0);
+  const bonds = Math.max(0, +opts.bonds54ec || 0);
+  const isProperty = r.asset === 'property';
+  const houseSold = isProperty && opts.houseSold !== false;
+
+  if (r.longTerm && houseSold) {
+    const counted = Math.min(reinvest, RELIEF.s54_cap);
+    const exempt = Math.min(gain, counted);
+    out.push({
+      id: 's54', section: '54', title: 'Buy or build another home (Section 54)',
+      applies: true, exempt, taxAfter: taxOn(r.taxableGain - exempt),
+      what: `The gain is exempt to the extent you put it into one residential house in India: bought within a year before or two years after the sale, or built within three years. ${gain <= RELIEF.s54_two_houses_gain_limit ? 'Because the gain is within ₹2 crore you may split it across two houses, once in a lifetime.' : ''}`,
+      conditions: ['Only the cost of the new house up to ₹10 crore counts.', 'Money not spent by the return-filing due date must be parked in a Capital Gains Account Scheme deposit, or the exemption is lost.', 'Sell the new house within three years and the exemption is taken back.'],
+    });
+  }
+  if (r.longTerm && !houseSold) {
+    const denom = Math.min(netSale, RELIEF.s54_cap);
+    const exempt = denom > 0 ? gain * Math.min(reinvest, denom) / denom : 0;
+    out.push({
+      id: 's54f', section: '54F', title: 'Put the sale proceeds into a home (Section 54F)',
+      applies: !(opts.otherHousesOwned > 1), exempt: Math.min(gain, exempt), taxAfter: taxOn(r.taxableGain - Math.min(gain, exempt)),
+      what: `For a long-term gain on anything other than a house (${r.assetLabel.toLowerCase()} included), the gain is exempt in the proportion of the net sale proceeds you put into one residential house: invest all of the ${'₹' + Math.round(netSale).toLocaleString('en-IN')} and the whole gain is exempt; invest half and half the gain is.`,
+      conditions: ['You may not own more than one other residential house on the day of sale.', 'Same timelines as Section 54: buy within a year before or two years after, or build within three years; unspent money into a Capital Gains Account Scheme deposit by the return due date.', 'Net sale consideration above ₹10 crore is ignored for the proportion.', 'Do not buy another house within two years or build one within three, other than the new one.'],
+    });
+  }
+  if (r.longTerm && isProperty) {
+    const invested = Math.min(bonds, RELIEF.s54ec_cap);
+    const exempt = Math.min(gain, invested);
+    out.push({
+      id: 's54ec', section: '54EC', title: 'Capital gains bonds (Section 54EC)',
+      applies: true, exempt, taxAfter: taxOn(r.taxableGain - exempt),
+      what: `Long-term gain on land or a building can be put into NHAI, REC, PFC or IRFC capital-gains bonds within six months of the sale, up to ₹50 lakh in a financial year. The amount invested is exempt; the bonds pay about 5.25% taxable interest and are locked for five years.`,
+      conditions: ['Cap ₹50 lakh per financial year (a sale in February can use two years’ caps: one before 31 March, one after).', 'Six months from the date of transfer, not from the financial year end.', 'Redeem or pledge the bonds within five years and the exemption is taken back.'],
+    });
+  }
+  if (r.asset === 'equity') {
+    if (r.longTerm) out.push({
+      id: 'harvest', section: '112A', title: 'Use the ₹1,25,000 exemption every year',
+      applies: true, exempt: 0, taxAfter: null,
+      what: 'The first ₹1,25,000 of long-term equity gains in a financial year is tax-free and does not carry over. Booking gains up to that line each March and buying back resets the cost; unrealised gains that pile up for years get taxed in one go.',
+      conditions: ['Exemption is per financial year, shared across all listed equity and equity fund sales.', 'Buying back the same units is allowed; there is no wash-sale rule in India.'],
+    });
+    else out.push({
+      id: 'hold', section: '111A', title: 'Hold past twelve months',
+      applies: true, exempt: 0, taxAfter: Math.round(Math.max(0, gain - (data.assets.equity.ltcg_exemption || 125000)) * data.assets.equity.ltcg_rate * (1 + cessRate)),
+      what: `Sold after twelve months this would be a long-term gain: 12.5% instead of 20%, and the first ₹1,25,000 exempt. On this gain that is roughly ${'₹' + Math.round(Math.max(0, gain - (data.assets.equity.ltcg_exemption || 125000)) * data.assets.equity.ltcg_rate * (1 + cessRate)).toLocaleString('en-IN')} instead of ${'₹' + r.total.toLocaleString('en-IN')}, if the price holds.`,
+      conditions: ['Only worth it if you would hold anyway; the market can move more than the tax saved.'],
+    });
+  }
+  out.push({
+    id: 'setoff', section: '70 / 74', title: 'Set off losses first',
+    applies: true, exempt: 0, taxAfter: null,
+    what: r.longTerm ? 'Long-term and short-term capital losses booked in the same year reduce this gain before tax; a loss carried forward from an earlier year (up to eight years) does too, if that year’s return was filed on time.' : 'Any capital loss booked in the same year, short- or long-term, reduces this gain before tax; losses carried forward from earlier years (up to eight) do too, if those returns were filed on time.',
+    conditions: ['Long-term losses set off only against long-term gains; short-term losses against either.', 'Losses are carried forward only if the return for the loss year was filed by the due date.'],
+  });
+  return out;
+}
+
 // ---------- UI ----------
 const STORE = 'taxcompass.capgains.v1';
 
@@ -154,7 +231,7 @@ export function renderCapitalGains(data) {
   const saved = (() => { try { return JSON.parse(localStorage.getItem(STORE) || 'null') || {}; } catch { return {}; } })();
   const st = {
     asset: 'equity', buyDate: '2020-04-01', sellDate: new Date().toISOString().slice(0, 10), cost: '', sale: '', expenses: '', fmv2018: '', fmv2001: '',
-    impAmount: '', impFy: '', resident: true, slabRate: 0.30, otherEquityLtcgThisYear: '', ...saved,
+    impAmount: '', impFy: '', resident: true, slabRate: 0.30, otherEquityLtcgThisYear: '', houseSold: true, reinvestHouse: '', bonds54ec: '', otherHousesOwned: 0, ...saved,
   };
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
 
@@ -188,6 +265,12 @@ export function renderCapitalGains(data) {
   const resident = mk('resident', { type: 'checkbox' }, 'I am a resident individual or HUF');
   const slab = mk('slabRate', { tag: 'select', options: [[0, 'Not sure / nil'], [0.05, '5%'], [0.10, '10%'], [0.15, '15%'], [0.20, '20%'], [0.25, '25%'], [0.30, '30%']] }, 'Your income tax slab', 'used only where the gain is taxed at slab rate');
   const otherLtcg = mk('otherEquityLtcgThisYear', { step: 1000 }, 'Other listed-equity LTCG already booked this year (₹)', 'the ₹1,25,000 exemption is shared across the year');
+  // reinvestment reliefs (Sections 54, 54F, 54EC)
+  const houseSold = mk('houseSold', { type: 'checkbox' }, 'What I sold is a residential house (not land, a shop or a plot)');
+  const reinvestHouse = mk('reinvestHouse', { step: 100000, placeholder: 'e.g. 8000000' }, 'Amount you would put into a new residential house (₹)', 'bought within 1 year before or 2 years after the sale, or built within 3 years');
+  const bonds54ec = mk('bonds54ec', { step: 100000, placeholder: 'up to 5000000' }, 'Amount you would put into 54EC capital-gains bonds (₹)', 'NHAI / REC / PFC / IRFC, within 6 months, ₹50 lakh a year, 5-year lock-in');
+  const otherHouses = mk('otherHousesOwned', { tag: 'select', options: [[0, 'None'], [1, 'One'], [2, 'Two or more']] }, 'Other residential houses you own on the sale date', '54F needs no more than one');
+  const reliefFold = el('details', { class: 'opts fold' }, [el('summary', {}, 'Reinvesting the proceeds?'), houseSold.node, reinvestHouse.node, bonds54ec.node, otherHouses.node]);
 
   let last = null;
   const exportCard = calcExportCard('capgains', () => last);
@@ -196,7 +279,7 @@ export function renderCapitalGains(data) {
   const impRow = el('div', { class: 'two' }, [impAmount.node, impFy.node]);
   const inputsCard = el('div', { class: 'card inputs' }, [
     asset.node, el('div', { class: 'two' }, [buyDate.node, sellDate.node]),
-    cost.node, fmv2001.node, impRow, sale.node, expenses.node, fmv2018.node, otherLtcg.node, resident.node, slab.node,
+    cost.node, fmv2001.node, impRow, sale.node, expenses.node, fmv2018.node, otherLtcg.node, resident.node, slab.node, reliefFold,
   ]);
 
   function render() {
@@ -210,6 +293,8 @@ export function renderCapitalGains(data) {
     otherLtcg.node.hidden = a !== 'equity';
     resident.node.hidden = a !== 'property';
     slab.node.hidden = a === 'equity';
+    houseSold.node.hidden = a !== 'property';
+    bonds54ec.node.hidden = a !== 'property';
 
     const r = computeCapitalGains({
       asset: a, buyDate: st.buyDate, sellDate: st.sellDate, cost: st.cost, fmv2001: st.fmv2001, sale: st.sale, expenses: st.expenses,
@@ -251,8 +336,24 @@ export function renderCapitalGains(data) {
         el('p', { class: 'muted small' }, `Indexation: cost × CII of FY ${r.options.indexed.ciiSell.fy} (${r.options.indexed.ciiSell.value}) ÷ CII of FY ${r.options.indexed.ciiBuy.fy} (${r.options.indexed.ciiBuy.value}).`),
       ]) : null,
       r.notes.length ? el('ul', { class: 'notes' }, r.notes.map((n) => el('li', {}, n))) : null,
+      reliefCard(r),
       r.gain > 0 ? el('div', { class: 'btn-row' }, [el('button', { type: 'button', class: 'btn secondary', onclick: () => addToTaxComparison(r) }, 'Add this gain to my tax comparison')]) : null,
       disclaimer('tax'),
+    ]);
+  }
+  function reliefCard(r) {
+    const options = reliefOptions(r, { houseSold: !!st.houseSold, reinvestHouse: +st.reinvestHouse || 0, bonds54ec: +st.bonds54ec || 0, otherHousesOwned: +st.otherHousesOwned || 0 }, data);
+    if (!options.length) return null;
+    const hasAmounts = options.some((o) => o.exempt > 0);
+    return el('div', { class: 'card next-steps' }, [
+      el('h3', { style: 'margin-top:0' }, 'Ways to reduce this tax'),
+      el('p', { class: 'muted small' }, hasAmounts ? 'With the amounts you entered under "Reinvesting the proceeds?" on the left:' : `Tax on this sale is ${inr(r.total)}. Each of these is a real relief in the Act; open "Reinvesting the proceeds?" on the left to see what an amount would do.`),
+      el('div', { class: 'relief-list' }, options.map((o) => el('details', { class: 'relief', open: o.exempt > 0 }, [
+        el('summary', {}, [el('span', { class: 'rf-title' }, o.title), o.exempt > 0 ? el('span', { class: 'rf-sum' }, `${inr(o.exempt)} exempt · tax ${inr(o.taxAfter)} instead of ${inr(r.total)}`) : o.taxAfter != null && o.id === 'hold' ? el('span', { class: 'rf-sum' }, `about ${inr(o.taxAfter)} instead of ${inr(r.total)}`) : null, !o.applies ? el('span', { class: 'conf-flag' }, 'not available') : null]),
+        el('p', {}, o.what),
+        el('ul', { class: 'small muted' }, o.conditions.map((c) => el('li', {}, c))),
+      ]))),
+      el('p', { class: 'muted small' }, 'Section numbers follow the 1961 Act; the 2025 Act keeps the same reliefs under new numbers. Deadlines are strict and the Capital Gains Account Scheme step is the one people miss; confirm the plan with your CA before the return due date.'),
     ]);
   }
   render();

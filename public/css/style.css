@@ -206,6 +206,18 @@ details.result-fold > summary .rf-sum { color: var(--muted); font-size: .88rem; 
 details.result-fold > :not(summary) { margin-left: 16px; margin-right: 16px; }
 details.result-fold > :last-child { margin-bottom: 16px; }
 
+/* Capital gains reliefs */
+.relief-list { display: grid; gap: 8px; margin: 8px 0; }
+details.relief { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 12px; background: var(--surface); }
+details.relief > summary { list-style: none; cursor: pointer; padding: 10px 0; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+details.relief > summary::-webkit-details-marker { display: none; }
+details.relief > summary .rf-title { font-weight: 700; }
+details.relief > summary .rf-title::before { content: "B8"; display: inline-block; margin-right: 6px; color: var(--accent-2); }
+details.relief[open] > summary .rf-title::before { transform: rotate(90deg); }
+details.relief > summary .rf-sum { color: var(--accent-2); font-weight: 600; font-size: .88rem; }
+details.relief > p { margin: 0 0 6px; }
+details.relief > ul { margin: 0 0 10px; padding-left: 18px; }
+
 /* Home-buying tool and SIP lump sums */
 .lump-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; padding: 8px 0; border-top: 1px dashed var(--line); }
 .lump-row label { min-width: 0; }
