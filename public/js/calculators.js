@@ -172,7 +172,7 @@ function mount(key) {
 const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
-  'capital-gains': { keys: ['taxcompass.capgains.v1'] }, home: { keys: ['taxcompass.home.v1'] },
+  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
 function resetCalc(key) {
   const spec = CALC_KEYS[key] || {};
@@ -257,7 +257,7 @@ function stepUpControl(labelNoun) {
 const VIEWS = {
   // Loaded on first use: each of these pulls in its own module (and the Excel helpers) only when opened.
   budget: () => import('./budget.js').then((m) => m.renderBudget(appData)),
-  'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData.capgains)),
+  'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData)),
   salary: () => import('./salary.js').then((m) => m.renderSalary(appData)),
   home: () => import('./home-buy.js').then((m) => m.renderHomeBuying(appData)),
 

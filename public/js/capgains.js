@@ -227,7 +227,8 @@ export function reliefOptions(r, opts = {}, data) {
 // ---------- UI ----------
 const STORE = 'taxcompass.capgains.v1';
 
-export function renderCapitalGains(data) {
+export function renderCapitalGains(app) {
+  const data = app.capgains;
   const saved = (() => { try { return JSON.parse(localStorage.getItem(STORE) || 'null') || {}; } catch { return {}; } })();
   const st = {
     asset: 'equity', buyDate: '2020-04-01', sellDate: new Date().toISOString().slice(0, 10), cost: '', sale: '', expenses: '', fmv2018: '', fmv2001: '',
@@ -357,7 +358,24 @@ export function renderCapitalGains(data) {
     ]);
   }
   render();
-  return el('div', { class: 'calc' }, [inputsCard, el('div', {}, [out, exportCard])]);
+  // Two modes: one sale worked out by hand, or a whole year read from a broker statement.
+  const MODE_KEY = 'taxcompass.capgains-mode.v1';
+  let mode = 'single'; try { mode = localStorage.getItem(MODE_KEY) || 'single'; } catch {}
+  const single = el('div', { class: 'calc' }, [inputsCard, el('div', {}, [out, exportCard])]);
+  const broker = el('div');
+  const tabs = el('div', { class: 'mode-switch', role: 'tablist' });
+  const showMode = (m) => {
+    mode = m; try { localStorage.setItem(MODE_KEY, m); } catch {}
+    single.hidden = m !== 'single'; broker.hidden = m !== 'broker';
+    tabs.querySelectorAll('button').forEach((b) => { b.classList.toggle('active', b.dataset.mode === m); b.setAttribute('aria-selected', String(b.dataset.mode === m)); });
+    if (m === 'broker' && !broker.childElementCount) { broker.append(el('div', { class: 'skeleton calc-skeleton' })); import('./broker-import.js').then((mod) => broker.replaceChildren(mod.renderBrokerImport(app))).catch((e) => broker.replaceChildren(el('div', { class: 'notice error' }, 'Could not load the statement reader. ' + e.message))); }
+  };
+  tabs.append(
+    el('button', { type: 'button', role: 'tab', dataset: { mode: 'single' }, onclick: () => showMode('single') }, 'One sale'),
+    el('button', { type: 'button', role: 'tab', dataset: { mode: 'broker' }, onclick: () => showMode('broker') }, 'A whole year, from my broker statement'),
+  );
+  showMode(mode);
+  return el('div', {}, [tabs, single, broker]);
 }
 
 /** Push the gain into the saved tax-comparison inputs and open that page. */

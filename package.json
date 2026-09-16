@@ -5,10 +5,10 @@
   "description": "Old vs new regime tax comparison, calculators, glossary, schemes and a reference chatbot for Indian taxpayers.",
   "type": "module",
   "scripts": {
-    "test": "node tests/tax-engine.test.mjs && node tests/tax-insights.test.mjs && node tests/calculators.test.mjs && node tests/capgains.test.mjs && node tests/planning.test.mjs && node tests/salary.test.mjs && node tests/functions.test.mjs && node tests/handoff.test.mjs && node tests/budget.test.mjs && node tests/known-answers.test.mjs && node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs",
+    "test": "node tests/tax-engine.test.mjs && node tests/tax-insights.test.mjs && node tests/calculators.test.mjs && node tests/capgains.test.mjs && node tests/planning.test.mjs && node tests/salary.test.mjs && node tests/functions.test.mjs && node tests/handoff.test.mjs && node tests/budget.test.mjs && node tests/known-answers.test.mjs && node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs && node tests/broker.test.mjs",
     "dev": "node tools/static-server.mjs",
-    "test:fixtures": "node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs",
-    "test:strict": "KNOWN_ANSWERS_STRICT=1 node tests/known-answers.test.mjs && node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs",
+    "test:fixtures": "node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs && node tests/broker.test.mjs",
+    "test:strict": "KNOWN_ANSWERS_STRICT=1 node tests/known-answers.test.mjs && node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs && node tests/broker.test.mjs",
     "build:funds": "node tools/build-mf-returns.mjs",
     "deploy": "wrangler pages deploy public"
   },
