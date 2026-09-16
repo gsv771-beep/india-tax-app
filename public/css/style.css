@@ -189,6 +189,23 @@ html.non-production .site-header { top: var(--staging-h); }
   .profile-panel.open .profile-summary { display: none; }
 }
 
+/* Folded input groups and result sections (home-buying tool) */
+details.fold > summary { list-style: none; cursor: pointer; font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-2); font-weight: 700; padding: 2px 0; display: flex; align-items: center; gap: 8px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: ""; width: 7px; height: 7px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(-45deg); transition: transform .15s; margin-left: 2px; }
+details.fold[open] > summary::before { transform: rotate(45deg); }
+details.fold[open] > summary { margin-bottom: 10px; }
+details.fold > :not(summary) { margin-top: 8px; }
+details.result-fold { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin: 12px 0; box-shadow: var(--shadow); }
+details.result-fold > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+details.result-fold > summary::-webkit-details-marker { display: none; }
+details.result-fold > summary .rf-title { font-weight: 700; font-size: 1.02rem; }
+details.result-fold > summary .rf-title::before { content: "\25B8"; display: inline-block; margin-right: 8px; color: var(--accent-2); transition: transform .15s; }
+details.result-fold[open] > summary .rf-title::before { transform: rotate(90deg); }
+details.result-fold > summary .rf-sum { color: var(--muted); font-size: .88rem; }
+details.result-fold > :not(summary) { margin-left: 16px; margin-right: 16px; }
+details.result-fold > :last-child { margin-bottom: 16px; }
+
 /* Home-buying tool and SIP lump sums */
 .lump-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: end; padding: 8px 0; border-top: 1px dashed var(--line); }
 .lump-row label { min-width: 0; }

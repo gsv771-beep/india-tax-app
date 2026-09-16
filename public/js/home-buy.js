@@ -65,6 +65,12 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
   };
 
   // --- inputs ---
+  const fold = (title, children) => el('details', { class: 'opts fold' }, [el('summary', {}, title), ...children]);
+  // Result sections are collapsed; which ones the user opened survives the re-render on every keystroke.
+  const openFolds = new Set();
+  const resultFold = (id, title, summary, children) => el('details', { class: 'result-fold', open: openFolds.has(id), ontoggle: (ev) => { if (ev.target.open) openFolds.add(id); else openFolds.delete(id); } }, [
+    el('summary', {}, [el('span', { class: 'rf-title' }, title), el('span', { class: 'rf-sum' }, summary)]), ...children,
+  ]);
   const out = el('div');
   let last = null;
   const exportCard = calcExportCard('home', () => last);
@@ -160,8 +166,7 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
     }));
   };
   buildPlanRows();
-  const planBlock = el('div', { class: 'opts' }, [
-    el('div', { class: 'opt-title' }, 'How the price is paid'),
+  const planBlock = fold('How the price is paid', [
     el('label', {}, ['Payment plan', presetSelect]), planNote, planList,
     el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => { const tr = currentTranches(); tr.push({ label: 'Stage', pct: 0, month: (tr.at(-1)?.month || 0) + 3 }); st.plan.tranches = tr; save(); buildPlanRows(); render(); } }, '+ Add a stage'),
   ]);
@@ -179,11 +184,18 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
     el('tbody', {}, policy.foir.bands.map((b, k) => el('tr', {}, [el('td', {}, b.income_upto == null ? `above ${inr(policy.foir.bands[k - 1].income_upto)}` : `up to ${inr(b.income_upto)}`), el('td', {}, pct(b.salaried, 0)), el('td', {}, pct(b.self_employed, 0))]))),
   ]);
 
+  // Five fields answer the question; everything else is folded away with sensible defaults
+  // (8% for 20 years, score 750+, a payment plan matching the purchase type, age and EMIs from the profile).
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
-      el('div', { class: 'opt-title' }, 'The property'),
+      el('div', { class: 'opt-title' }, 'The essentials'),
       el('div', { class: 'two' }, [F.city.node, F.price.node]),
-      F.status.node, F.buyer.node, F.affordable.node, F.brokerageOnNew.node, F.brokerageRate.node,
+      F.status.node,
+      F.netMonthly.node,
+      F.downPayment.node,
+    ]),
+    fold('More about the property', [
+      F.buyer.node, F.affordable.node, F.brokerageOnNew.node, F.brokerageRate.node,
       el('div', { class: 'sub' }, [
         el('div', { class: 'sub-title' }, 'Builder or society charges'),
         el('p', { class: 'opt-help' }, 'Everything on the cost sheet that is not the price: parking, clubhouse, floor rise, maintenance advance. Type what you were quoted.'),
@@ -192,23 +204,17 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
       ]),
       el('div', { class: 'two' }, [F.legalAndValuation.node, F.interiors.node]),
     ]),
-    el('div', { class: 'opts' }, [
-      el('div', { class: 'opt-title' }, 'You'),
-      F.netMonthly.node, F.grossMonthly.node,
+    fold('More about you', [
+      F.grossMonthly.node,
       el('div', { class: 'two' }, [F.variablePayMonthly.node, F.rentalMonthly.node]),
       F.coApplicantMonthly.node,
       el('div', { class: 'two' }, [F.existingEmi.node, F.creditCardOutstanding.node]),
       el('div', { class: 'two' }, [F.creditScore.node, F.age.node]),
       F.employment.node,
     ]),
-    el('div', { class: 'opts' }, [
-      el('div', { class: 'opt-title' }, 'The loan'),
-      el('div', { class: 'two' }, [F.ratePct.node, F.tenureYears.node]),
-      F.downPayment.node,
-    ]),
+    fold('Loan terms', [el('div', { class: 'two' }, [F.ratePct.node, F.tenureYears.node])]),
     planBlock,
-    el('details', { class: 'opts assumptions', open: true }, [
-      el('summary', {}, 'Lender assumptions (edit any of them)'),
+    fold('Lender assumptions', [
       el('p', { class: 'opt-help' }, 'Only the RBI loan-to-value cap is law. The rest is how a typical lender behaves; each bank has its own policy.'),
       F.incomeBasis.node, F.foirOverride.node,
       el('div', { class: 'table-wrap' }, foirTable),
@@ -278,7 +284,7 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
       ]),
       el('p', { class: 'explain' }, `A ${inr(c.price)} ${STATUS_LABELS[st.status].split(',')[0].toLowerCase()} home in ${c.city} costs ${inr(c.total)} to actually own, ${inr(c.hiddenTotal)} more than the price. ${e.rejected ? 'The loan is the problem, not the price.' : `A lender would finance up to ${inr(e.maxLoan)}. With a ${inr(downPayment)} down payment${needMore > 0 ? ` the loan needed is ${inr(needMore)} above that ceiling, so the down payment has to rise to ${inr(downPayment + needMore)}` : ` the loan is ${inr(e.loan)}`}, and you bring ${inr(cashNeeded)} in all: the down payment plus every charge, none of which a bank finances.`}${liquid > 0 ? ` Your profile shows ${inr(liquid)} in fixed deposits and debt funds${cashNeeded > liquid ? `, ${inr(cashNeeded - liquid)} short of that` : ', which covers it'}.` : ''}`),
 
-      el('h3', {}, 'Where the money goes'),
+      resultFold('cost', 'Where the money goes', `${inr(c.hiddenTotal)} beyond the price`, [
       hiddenBar,
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'Item'), el('th', {}, 'Amount'), el('th', {}, '% of price')])),
@@ -287,8 +293,9 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
       el('p', { class: 'muted small' }, `${cityData.stamp_duty.composition} ${cityData.registration.note}${st.status === 'under_construction' ? ' ' + charges.gst.note : ''}`),
       c.warnings.length ? el('div', { class: 'notice warn' }, c.warnings.map((w) => el('div', {}, w))) : null,
       c.notes.length ? el('p', { class: 'muted small' }, c.notes.join(' ')) : null,
+      ]),
 
-      el('h3', {}, 'When the money goes out'),
+      resultFold('plan', 'When the money goes out', plan.constructionMonths > 0 ? `${inr(plan.cashAtBooking)} at booking · pre-EMI ${inr(plan.preEmiTotal)} · EMI from month ${plan.emiStartMonth}` : `${inr(plan.cashAtBooking)} at registration · EMI from month 1`, [
       el('div', { class: 'stats' }, [
         stat('Cash at booking', inr(plan.cashAtBooking)),
         stat(plan.constructionMonths > 0 ? `Pre-EMI interest, ${plan.constructionMonths} months` : 'Pre-EMI interest', inr(plan.preEmiTotal)),
@@ -307,8 +314,9 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
         ]))),
       ])),
       el('p', { class: 'muted small' }, 'Your own money is used before any loan is released, which is how lenders disburse. Pre-EMI interest is charged monthly on the released amount at the loan rate. Interest paid before possession is deductible in five equal yearly instalments starting the year you get possession, within the ₹2,00,000 self-occupied cap and only in the old regime. Some lenders let you start a full EMI on the released amount instead of pre-EMI; that pays down principal sooner.'),
+      ]),
 
-      el('h3', {}, 'What a lender would sanction'),
+      resultFold('loan', 'Why this loan ceiling', e.rejected ? 'refused on credit score' : `set by ${e.binding === 'ltv' ? 'the RBI loan-to-value cap' : e.binding === 'tenure' ? 'your age' : 'your repayment capacity'} · EMI ${inr(e.emi)}`, [
       el('div', { class: 'stats' }, [
         stat('Monthly EMI', inr(e.emi)),
         stat('Rate after score', `${e.rate.effective.toFixed(2)}%`),
@@ -326,6 +334,7 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
         ]),
       ])),
       e.warnings.length ? el('div', { class: 'notice warn' }, e.warnings.map((w) => el('div', {}, w))) : null,
+      ]),
 
       e.levers.length ? el('div', { class: 'card next-steps' }, [
         el('h3', { style: 'margin-top:0' }, 'What would raise the ceiling'),
