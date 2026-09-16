@@ -6,7 +6,7 @@ import { inr, pct, el, setChildren, disclaimer, animateNumber, isBlankAfterReset
 import { compareRegimes } from './tax-engine.js';
 import { waterfallChart } from './charts.js';
 import { setHandoff } from './handoff.js';
-import { calcExportCard } from './calc-export.js';
+import { calcExportCard } from './calc-export-card.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, fromSalaryStore, isEmptyProfile } from '../engine/profile.js';
 

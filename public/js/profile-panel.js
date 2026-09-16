@@ -4,7 +4,7 @@
  * Also carries the privacy indicator, export / import, one-click reset and one-click wipe.
  */
 import { el, setChildren, inr } from './util.js';
-import { getProfile, updateProfile, resetProfile, wipeEverything, exportProfileJSON, importProfileJSON, onProfileChange } from './profile-store.js';
+import { getProfile, updateProfile, resetProfile, wipeEverything, exportProfileJSON, exportSnapshotJSON, importProfileJSON, onProfileChange } from './profile-store.js';
 import { profileSummary, isEmptyProfile, ctcOf, emiFor, CITIES, METRO_CITIES, LOAN_TYPES, PROPERTY_USE, INVESTMENT_BUCKETS } from '../engine/profile.js';
 
 const UI_KEY = 'taxcompass.ui.v1';
@@ -154,12 +154,13 @@ export function initProfilePanel() {
     fileInput.addEventListener('change', async () => {
       const f = fileInput.files && fileInput.files[0];
       if (!f) return;
-      try { importProfileJSON(await f.text()); status.textContent = `Imported ${f.name}. Every tool now uses it.`; }
+      try { const r = importProfileJSON(await f.text()); if (r && r.snapshot) { status.textContent = `Restored ${f.name}. Reloading…`; setTimeout(() => location.reload(), 300); } else status.textContent = `Imported ${f.name}. Every tool now uses it.`; }
       catch (e) { status.textContent = e.message; }
       fileInput.value = '';
     });
     const actions = el('div', { class: 'profile-actions' }, [
-      el('button', { type: 'button', class: 'btn secondary', onclick: exportFile }, 'Export as JSON'),
+      el('button', { type: 'button', class: 'btn secondary', onclick: () => exportFile('profile', exportProfileJSON()), title: 'Just the profile: portable and readable' }, 'Export profile'),
+      el('button', { type: 'button', class: 'btn secondary', onclick: () => exportFile('everything', exportSnapshotJSON()), title: 'The profile plus every calculator’s inputs, to resume exactly here on another device' }, 'Export everything'),
       el('button', { type: 'button', class: 'btn secondary', onclick: () => fileInput.click() }, 'Import JSON'),
       fileInput,
       el('button', { type: 'button', class: 'btn secondary', onclick: () => { resetProfile(SOURCE); status.textContent = 'Profile reset. Other calculators keep their own inputs until you change them.'; renderBody(); } }, 'Reset profile'),
@@ -169,7 +170,7 @@ export function initProfilePanel() {
     setChildren(body, [
       el('p', { class: 'privacy-note' }, [
         el('strong', {}, 'Private by design. '),
-        'Everything below is stored only in this browser’s local storage and read by every tool on this site. It is never uploaded, there is no account, and TaxCompass keeps no copy. Clear it any time with the wipe button. ',
+        'Everything below is stored only in this browser’s local storage and read by every tool on this site. It is never uploaded, there is no account, and TaxCompass keeps no copy. Export it to keep a copy or move to another device; clear it any time with the wipe button. ',
         el('a', { href: '/about' }, 'How the site handles data'),
       ]),
       isEmptyProfile(p) ? el('p', { class: 'small muted' }, 'Tip: fill in the tax comparison or the in-hand salary calculator and this fills itself in.') : null,
@@ -178,10 +179,10 @@ export function initProfilePanel() {
     ]);
   }
 
-  function exportFile() {
-    const blob = new Blob([exportProfileJSON()], { type: 'application/json' });
+  function exportFile(kind, text) {
+    const blob = new Blob([text], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = el('a', { href: url, download: `taxcompass-profile-${new Date().toISOString().slice(0, 10)}.json` });
+    const a = el('a', { href: url, download: `taxcompass-${kind}-${new Date().toISOString().slice(0, 10)}.json` });
     document.body.append(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }

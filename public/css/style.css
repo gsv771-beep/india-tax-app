@@ -210,6 +210,17 @@ details.sources summary { cursor: pointer; }
 details.sources ul { padding-left: 18px; }
 @media (max-width: 480px) { .lump-row { grid-template-columns: 1fr 1fr; } .lump-row .small-btn { grid-column: 1 / -1; justify-self: start; } }
 
+/* Skeletons: shown while the data files load or a calculator module is fetched */
+@keyframes shimmer { from { background-position: -400px 0; } to { background-position: 400px 0; } }
+.skeleton, body:not(.ready) .tax-results::before, body:not(.ready) #calc-body:empty::before {
+  display: block; content: ""; border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 40%, var(--surface) 80%); background-size: 800px 100%;
+  animation: shimmer 1.2s linear infinite; border: 1px solid var(--line);
+}
+body:not(.ready) .tax-results::before { height: 220px; }
+body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
+@media (prefers-reduced-motion: reduce) { .skeleton, body:not(.ready) .tax-results::before, body:not(.ready) #calc-body:empty::before { animation: none; } }
+
 /* ============================================================
    Panels and section heads
    ============================================================ */

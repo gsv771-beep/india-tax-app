@@ -1,7 +1,6 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
 import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps } from './tax-insights.js';
-import { buildTaxWorkbookBase64, taxFileName } from './tax-export.js';
 import { emailWorkbookCard } from './email-card.js';
 import { lineChart, waterfallChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
@@ -27,8 +26,8 @@ export function initTax({ rates, onboarding }) {
     title: 'Email me this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
     source: 'tax',
-    fileName: taxFileName,
-    buildBase64: async (who) => buildTaxWorkbookBase64(lastInputs, compareRegimes(lastInputs, rates, flags), rates, flags, who),
+    fileName: (who) => `taxcompass-tax-comparison-${String(who || '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'workbook'}-${new Date().toISOString().slice(0, 10)}.xlsx`,
+    buildBase64: async (who) => (await import('./tax-export.js')).buildTaxWorkbookBase64(lastInputs, compareRegimes(lastInputs, rates, flags), rates, flags, who),
   }));
   // Every edit re-renders and writes the fields the shared profile owns back to it.
   const run = debounce(() => { const inputs = readForm(form); render(inputs, rates, flags); updateProfile((p) => fromTaxInputs(p, inputs), 'tax'); }, 120);

@@ -3,7 +3,7 @@
  * Rules and the Cost Inflation Index come from data/capital_gains.json.
  */
 import { inr, pct, el, setChildren, disclaimer } from './util.js';
-import { calcExportCard } from './calc-export.js';
+import { calcExportCard } from './calc-export-card.js';
 
 // ---------- dates ----------
 const parse = (s) => { const [y, m, d] = String(s).split('-').map(Number); return y && m && d ? Date.UTC(y, m - 1, d) : null; };

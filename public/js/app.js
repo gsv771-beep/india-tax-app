@@ -1,37 +1,20 @@
 import { loadJSON } from './util.js';
+import { PAGES, REMOVED, parsePath, metaFor } from './routes.js';
 import { initTax } from './tax-ui.js';
 import { initCalculators, showCalc } from './calculators.js';
-import { initGlossary } from './glossary.js';
-import { initNps } from './nps.js';
-import { initAbout } from './about.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
 
-const SITE = 'TaxCompass India';
-const PAGES = {
-  tax: { title: 'Old vs new tax regime calculator', desc: 'Compare the old and new income tax regimes line by line for FY 2025-26 and FY 2026-27, see how far you are from the other regime winning, and what unused deductions would save.' },
-  calculators: { title: 'Calculators', desc: 'In-hand salary, expenses and savings, EMI with step-up and prepayment, SIP with lump sums, home loan eligibility with the true cost of buying, capital gains and a goal planner, with historical mutual fund returns for context.' },
-  nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
-  glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
-  about: { title: 'About, sources and methodology', desc: 'How TaxCompass India computes its numbers, where the data comes from, how fresh it is, and what stays private.' },
+// Pages that load only when first visited (their code is not needed to show the tax page or the calculators).
+const LAZY = {
+  nps: (data) => import('./nps.js').then((m) => m.initNps(data)),
+  glossary: (data) => import('./glossary.js').then((m) => m.initGlossary(data)),
+  about: (data) => import('./about.js').then((m) => m.initAbout(data)),
 };
-const CALC_TITLES = {
-  budget: 'Expenses and savings calculator', emi: 'EMI calculator with step-up and prepayment', sip: 'SIP calculator with step-up',
-  goal: 'Goal planner', 'capital-gains': 'Capital gains tax calculator', home: 'Home loan eligibility and the true cost of buying',
-  salary: 'In-hand salary calculator from CTC',
-};
-const ALIASES = { schemes: 'nps' };
-// Removed pages: send old links to the nearest live page (public/_redirects does the same at the edge).
-const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/tax' };
-
-function parsePath(pathname) {
-  const parts = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
-  const first = ALIASES[parts[0]] || parts[0];
-  const tab = PAGES[first] ? first : 'tax';
-  return { tab, sub: parts[1] || null };
-}
+const started = new Set();
+let appData = null;
 
 let currentTab = null;
 function showTab(tab) {
@@ -44,18 +27,16 @@ function showTab(tab) {
   }
 }
 
-function setMeta(tab, sub) {
-  const page = PAGES[tab];
-  const title = tab === 'calculators' && CALC_TITLES[sub] ? CALC_TITLES[sub] : page.title;
-  document.title = `${title} · ${SITE}`;
+function setMeta(pathname) {
+  const m = metaFor(pathname);
+  document.title = m.title;
   const set = (sel, attr, val) => { const n = document.querySelector(sel); if (n) n.setAttribute(attr, val); };
-  set('meta[name="description"]', 'content', page.desc);
-  set('meta[property="og:title"]', 'content', `${title} · ${SITE}`);
-  set('meta[property="og:description"]', 'content', page.desc);
+  set('meta[name="description"]', 'content', m.desc);
+  set('meta[property="og:title"]', 'content', m.title);
+  set('meta[property="og:description"]', 'content', m.desc);
   // canonical always points at the primary domain, even when viewed via the pages.dev address
-  const url = 'https://taxcompass.org' + location.pathname;
-  set('link[rel="canonical"]', 'href', url);
-  set('meta[property="og:url"]', 'content', url);
+  set('link[rel="canonical"]', 'href', m.url);
+  set('meta[property="og:url"]', 'content', m.url);
 }
 
 export function navigate(path, replace = false) {
@@ -67,14 +48,17 @@ export function navigate(path, replace = false) {
 function route() {
   // Old links used hashes (#schemes?f=80c); turn them into paths once.
   const m = location.hash.match(/^#(tax|calculators|schemes|nps|glossary|about)(\?.*)?$/);
-  if (m) history.replaceState({}, '', `/${ALIASES[m[1]] || m[1]}${m[2] || ''}`);
+  if (m) history.replaceState({}, '', `/${m[1] === 'schemes' ? 'nps' : m[1]}${m[2] || ''}`);
   const gone = REMOVED[location.pathname.replace(/\/+$/, '')];
   if (gone) history.replaceState({}, '', gone + location.search);
-  const { tab, sub } = parsePath(location.pathname);
   if (location.pathname === '/' || location.pathname === '/index.html') history.replaceState({}, '', '/tax' + location.search);
   else if (location.pathname.startsWith('/schemes')) history.replaceState({}, '', '/nps');
+  const { tab, sub } = parsePath(location.pathname);
   showTab(tab);
-  setMeta(tab, sub);
+  setMeta(location.pathname);
+  // The rest needs the data files; until they arrive the section heading and static form are already on screen.
+  if (!appData) return;
+  if (LAZY[tab] && !started.has(tab)) { started.add(tab); LAZY[tab](appData).catch((e) => console.error(e)); }
   if (tab === 'calculators') showCalc(sub || 'emi');
   window.dispatchEvent(new CustomEvent('routechange', { detail: { tab, sub } }));
 }
@@ -98,7 +82,8 @@ document.addEventListener('wheel', (e) => {
 }, { passive: true });
 
 async function boot() {
-  const loading = document.getElementById('loading');
+  // Show the right section at once; results fill in when the data arrives (a few tens of milliseconds on a warm cache).
+  route();
   try {
     const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy] = await Promise.all([
       loadJSON('/data/tax_rates.json'),
@@ -111,25 +96,23 @@ async function boot() {
       loadJSON('/data/property_charges.json'),
       loadJSON('/data/loan_policy.json'),
     ]);
-    const data = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy };
+    appData = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy };
 
     initGlossaryTooltips(glossary);
     initProfilePanel();
-    initTax(data);
-    initCalculators(data);
-    initGlossary(data);
-    initNps(data);
-    initAbout(data);
+    initTax(appData);
+    initCalculators(appData);
     initFeedback();
     initCounter();
-
-    loading.hidden = true;
+    document.body.classList.add('ready');
     route();
     // Fixture loader and other dev-only controls: never on taxcompass.org.
     if (!isProduction()) import('./devtools.js').then((m) => m.initDevtools()).catch(() => {});
   } catch (err) {
-    loading.className = 'notice error';
-    loading.textContent = 'Could not load the app data. ' + err.message;
+    const notice = document.getElementById('loading');
+    notice.hidden = false;
+    notice.className = 'notice error';
+    notice.textContent = 'Could not load the app data. ' + err.message;
     console.error(err);
   }
 }

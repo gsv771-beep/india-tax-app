@@ -61,8 +61,33 @@ export function exportProfileJSON() {
   return JSON.stringify({ ...profile, schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), app: 'TaxCompass India' }, null, 2);
 }
 
-/** Throws with a plain-English message on anything that is not a profile. */
+/**
+ * Everything the site remembers in this browser: the profile plus every calculator's own inputs
+ * (a scenario in the home-buying tool, SIP lump sums, the budget). Restoring it resumes exactly
+ * where you left off; the profile-only export is the portable, human-readable one.
+ */
+export function exportSnapshotJSON() {
+  const keys = {};
+  try { for (const k of Object.keys(storage || {})) if (k.startsWith('taxcompass.') && !/session|person|ui\.v1|calc-blank/.test(k)) keys[k] = storage.getItem(k); } catch {}
+  return JSON.stringify({ app: 'TaxCompass India', kind: 'snapshot', schemaVersion: SCHEMA_VERSION, exportedAt: new Date().toISOString(), keys }, null, 2);
+}
+
+/**
+ * Throws with a plain-English message on anything that is not a profile or a snapshot.
+ * A snapshot restores every key and returns { snapshot: true }; the caller should reload.
+ */
 export function importProfileJSON(text, source = 'import') {
+  let raw = null;
+  try { raw = JSON.parse(text); } catch { /* parseProfileJSON gives the message */ }
+  if (raw && raw.kind === 'snapshot' && raw.keys && typeof raw.keys === 'object') {
+    if (Number(raw.schemaVersion) > SCHEMA_VERSION) throw new Error(`This snapshot was saved by a newer version of TaxCompass (schema ${raw.schemaVersion}).`);
+    const profileText = raw.keys[PROFILE_KEY];
+    const p = profileText ? parseProfileJSON(profileText) : emptyProfile();
+    try { for (const k of Object.keys(storage || {})) if (k.startsWith('taxcompass.')) storage.removeItem(k); } catch {}
+    try { for (const [k, v] of Object.entries(raw.keys)) if (k.startsWith('taxcompass.') && typeof v === 'string') storage?.setItem(k, v); } catch {}
+    profile = p; persist(); emit(source);
+    return { snapshot: true, profile: p };
+  }
   const p = parseProfileJSON(text);
   return updateProfile(p, source);
 }

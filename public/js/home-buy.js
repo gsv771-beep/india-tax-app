@@ -13,7 +13,7 @@ import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, grossSalaryOf, isEmptyProfile } from '../engine/profile.js';
 import { salaryBreakdown } from './salary.js';
 import { setHandoff } from './handoff.js';
-import { calcExportCard } from './calc-export.js';
+import { calcExportCard } from './calc-export-card.js';
 
 const STORE = 'taxcompass.home.v1';
 const SOURCE = 'calc:home';

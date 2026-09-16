@@ -1,11 +1,7 @@
 import { inr, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { lineChart, columnChart, shortINR } from './charts.js';
 import { renderFundPanel } from './funds.js';
-import { renderBudget } from './budget.js';
-import { renderCapitalGains } from './capgains.js';
-import { renderSalary } from './salary.js';
-import { renderHomeBuying } from './home-buy.js';
-import { calcExportCard } from './calc-export.js';
+import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
@@ -149,7 +145,7 @@ export function initCalculators(data) {
   appData = data;
   // A change to the shared profile made anywhere else rebuilds the calculator on screen so it pre-fills afresh.
   onProfileChange(debounce((p, source) => {
-    if (currentCalc && source !== 'calc:' + currentCalc) document.getElementById('calc-body').replaceChildren(VIEWS[currentCalc]());
+    if (currentCalc && source !== 'calc:' + currentCalc) mount(currentCalc);
   }, 200));
 }
 
@@ -159,7 +155,16 @@ export function showCalc(name) {
   if (key === currentCalc) return;
   currentCalc = key;
   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
-  document.getElementById('calc-body').replaceChildren(withReset(key, VIEWS[key]()));
+  mount(key);
+}
+/** Render a view into the calculator body; the heavier views load their module on first use. */
+function mount(key) {
+  const body = document.getElementById('calc-body');
+  const view = VIEWS[key]();
+  if (typeof view.then === 'function') {
+    body.replaceChildren(el('div', { class: 'skeleton calc-skeleton', 'aria-busy': 'true' }));
+    view.then((node) => { if (currentCalc === key) body.replaceChildren(withReset(key, node)); }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
+  } else body.replaceChildren(withReset(key, view));
 }
 
 // What each calculator remembers in the browser. Reset clears only that; the shared profile is untouched,
@@ -250,10 +255,11 @@ function stepUpControl(labelNoun) {
 }
 
 const VIEWS = {
-  budget() { return renderBudget(appData); },
-  'capital-gains'() { return renderCapitalGains(appData.capgains); },
-  salary() { return renderSalary(appData); },
-  home() { return renderHomeBuying(appData); },
+  // Loaded on first use: each of these pulls in its own module (and the Excel helpers) only when opened.
+  budget: () => import('./budget.js').then((m) => m.renderBudget(appData)),
+  'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData.capgains)),
+  salary: () => import('./salary.js').then((m) => m.renderSalary(appData)),
+  home: () => import('./home-buy.js').then((m) => m.renderHomeBuying(appData)),
 
   emi() {
     let lastEmi = null;

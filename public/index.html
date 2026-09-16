@@ -22,6 +22,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="modulepreload" href="/js/tax-engine.js">
+  <link rel="modulepreload" href="/js/util.js">
+  <link rel="modulepreload" href="/js/routes.js">
+  <link rel="modulepreload" href="/js/tax-insights.js">
+  <link rel="modulepreload" href="/js/email-card.js">
+  <link rel="modulepreload" href="/js/charts.js">
+  <link rel="modulepreload" href="/js/share-card.js">
+  <link rel="modulepreload" href="/js/tooltips.js">
+  <link rel="modulepreload" href="/js/feedback.js">
+  <link rel="modulepreload" href="/engine/profile.js">
+  <link rel="modulepreload" href="/js/profile-store.js">
+  <link rel="modulepreload" href="/js/tax-ui.js">
+  <link rel="modulepreload" href="/js/funds.js">
+  <link rel="modulepreload" href="/js/xlsx-style.js">
+  <link rel="modulepreload" href="/js/calc-export-card.js">
+  <link rel="modulepreload" href="/js/handoff.js">
+  <link rel="modulepreload" href="/js/calculators.js">
+  <link rel="modulepreload" href="/js/env.js">
+  <link rel="modulepreload" href="/js/profile-panel.js">
   <script>
     // Environment guard. Runs before anything else and needs no module to load:
     // off taxcompass.org the page is marked non-production, told not to be indexed, and gets an
@@ -56,7 +75,7 @@
 
   <main class="wrap">
     <section id="profile-panel" class="profile-panel" aria-label="Your profile"></section>
-    <div id="loading" class="notice">Loading data…</div>
+    <div id="loading" class="notice" hidden></div>
 
     <!-- ============ TAX COMPARISON ============ -->
     <section id="tax" class="panel" hidden>
