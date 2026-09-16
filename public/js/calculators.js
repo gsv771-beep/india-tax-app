@@ -5,6 +5,7 @@ import { renderBudget } from './budget.js';
 import { renderCapitalGains } from './capgains.js';
 import { renderSalary } from './salary.js';
 import { renderHomeBuying } from './home-buy.js';
+import { calcExportCard } from './calc-export.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
@@ -255,6 +256,7 @@ const VIEWS = {
   home() { return renderHomeBuying(appData); },
 
   emi() {
+    let lastEmi = null;
     const P = field(`Loan amount (${RUPEE})`, { value: '', min: 0, step: 50000, placeholder: 'e.g. 5000000' });
     const R = field('Interest rate (% p.a.)', { value: 8.5, min: 0, step: 0.05 });
     const Y = field('Tenure (years)', { value: 20, min: 1, max: 40, step: 1 });
@@ -296,6 +298,7 @@ const VIEWS = {
         lumpsum: { amount: v(L), atMonth: Math.round(v(LM)) }, annualPrepay: v(A), annualPrepayStartYear: Math.round(v(AS)) || 1, mode,
       }) : null;
       const show = scen || base;
+      lastEmi = { p, r, y, base, scen, mode, stepPct, stepAmt, lump: v(L), lumpMonth: Math.round(v(LM)), annual: v(A), annualStart: Math.round(v(AS)) || 1, preEmi, cm, price: v(PR), down: v(DP) };
       const saved = scen ? base.totalInterest - scen.totalInterest : 0;
       const monthsSaved = scen ? base.months - scen.months : 0;
 
@@ -416,10 +419,11 @@ const VIEWS = {
         el('div', { class: 'sub' }, [el('div', { class: 'sub-title' }, 'Extra payment every year'), el('div', { class: 'two' }, [A.node, AS.node])]),
         M.node,
       ]),
-    ], out);
+    ], [out, calcExportCard('emi', () => lastEmi)]);
   },
 
   sip() {
+    let lastSip = null;
     const A = field(`Monthly SIP (${RUPEE})`, { value: '', min: 0, step: 500, placeholder: 'e.g. 10000' }, 'leave empty or 0 if you are only investing lump sums');
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
     const Y = field('Years', { value: 10, min: 1, max: 50, step: 1 });
@@ -452,6 +456,7 @@ const VIEWS = {
       const main = stepped || flat;
       const sipOnly = sipFV(a, r, y, sp, sa);
       const yrs = Array.from({ length: y + 1 }, (_, k) => k);
+      lastSip = { a, r, y, sp, sa, lumps: ls, main, flat, sipOnly, series: yrs.map((k) => { const s = at(k, !!stepped); return { year: k, invested: s.invested, fv: s.fv }; }) };
       const series = [
         { name: 'Amount invested', color: GREY, dash: true, points: yrs.map((k) => [k, at(k, !!stepped).invested]) },
         { name: stepped ? 'Value with step-up' : 'Value', color: GREEN, area: true, points: yrs.map((k) => [k, at(k, !!stepped).fv]) },
@@ -506,10 +511,11 @@ const VIEWS = {
         lumpList,
         el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => { addLump(100000, 0); persistLumps(); render(); } }, '+ Add a lump sum'),
       ]),
-    ], out);
+    ], [out, calcExportCard('sip', () => lastSip)]);
   },
 
   goal() {
+    let lastGoal = null;
     const T = field(`Amount you want to have (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'e.g. 5000000' }, 'the actual sum you need in hand when the goal arrives');
     const Y = field('In how many years', { value: 15, min: 1, max: 50, step: 1 });
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
@@ -524,6 +530,7 @@ const VIEWS = {
       const lump = target / Math.pow(1 + r / 100, y);
       const todayValue = target / Math.pow(1 + inf / 100, y);
       const invested = sip * 12 * y;
+      lastGoal = { target, y, r, inf, sip, lump, invested, todayValue };
       setChildren(out, [
         el('div', { class: 'stats' }, [
           stat('Monthly SIP needed', inr(sip), true),
@@ -553,6 +560,6 @@ const VIEWS = {
     [T, Y].forEach((f) => f.input.addEventListener('input', writeGoal));
     [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     render();
-    return calcShell([T.node, Y.node, R.node, I.node], out);
+    return calcShell([T.node, Y.node, R.node, I.node], [out, calcExportCard('goal', () => lastGoal)]);
   },
 };

@@ -13,6 +13,7 @@ A static web app for Indian individual taxpayers. No backend, no build step, no 
   - Capital gains: listed equity and equity funds (12 and 20 per cent, ₹1.25 lakh exemption, 31 January 2018 grandfathering), debt funds (slab after April 2023), property (lower of 12.5% and 20% with indexation for pre-23 July 2024 purchases, Cost Inflation Index table in `data/capital_gains.json`) and other assets, with a one-click push of the gain into the tax comparison.
   - Goal planner: the amount you want in hand after N years, the monthly SIP or one-time investment that gets there, and what that amount is worth in today's money.
   - All calculators remember their inputs in the browser.
+- **Excel by email from every calculator**: in-hand salary, EMI, SIP, home buying, capital gains and the goal planner each have an "Email me the workbook" card (the tax comparison and budget already did). One builder, `public/js/calc-export.js`, turns a small spec into a styled workbook with the calculator's sheets plus Inputs and Notes; `functions/api/send-workbook.js` accepts each source and describes the attached sheets in the email.
 - **About page** with methodology, engine assumptions, data sources and dates, privacy and a feedback address.
 - **Charts**, all inline SVG with hover tooltips (`public/js/charts.js`): the break-even curve on the tax page (old-regime tax against deductions claimed, with your position and the crossing point), an income-to-tax waterfall for each regime, loan balance and per-year principal/interest on the EMI page, growth curves on SIP, lumpsum and NPS. Text and grid colours come from CSS variables so they follow dark mode.
 - **Shareable result card**: a 1080×1080 image of the regime verdict drawn on a canvas, with native share on phones and download elsewhere; the user chooses whether amounts appear.
@@ -38,6 +39,7 @@ public/                 the static site (deploy this folder)
   js/tax-export.js      the tax comparison workbook
   js/email-card.js      the shared "email me this workbook" form
   js/xlsx-style.js      shared ExcelJS loading and cell styling
+  js/calc-export.js     one workbook builder + a spec per calculator, and the email card factory
   js/calculators.js     EMI (with loan simulator), SIP with lump sums, goal
   js/home-buy.js        home buying: true cost + loan eligibility, reads the profile
   engine/property.js    stamp duty, registration, GST, the full bill (pure)

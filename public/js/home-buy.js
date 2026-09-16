@@ -13,6 +13,7 @@ import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, grossSalaryOf, isEmptyProfile } from '../engine/profile.js';
 import { salaryBreakdown } from './salary.js';
 import { setHandoff } from './handoff.js';
+import { calcExportCard } from './calc-export.js';
 
 const STORE = 'taxcompass.home.v1';
 const SOURCE = 'calc:home';
@@ -65,6 +66,8 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
 
   // --- inputs ---
   const out = el('div');
+  let last = null;
+  const exportCard = calcExportCard('home', () => last);
   const render = () => paint();
   const rerender = debounce(render, 80);
   const field = (key, label, attrs = {}, hint) => {
@@ -244,6 +247,7 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
       return;
     }
     const { eligibility: e, cost: c, plan, downPayment, cashNeeded } = compute();
+    last = { st: { ...st }, c, e, plan, downPayment, cashNeeded };
     const needMore = Math.max(0, +st.price - downPayment - e.maxLoan);
     const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'home:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };
     const liquid = p.investments.fd + p.investments.debt;
@@ -346,5 +350,5 @@ export function renderHomeBuying({ rates, propertyCharges: charges, loanPolicy: 
   }
 
   paint();
-  return el('div', { class: 'calc' }, [inputs, out]);
+  return el('div', { class: 'calc' }, [inputs, el('div', {}, [out, exportCard])]);
 }

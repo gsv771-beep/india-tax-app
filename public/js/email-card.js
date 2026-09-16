@@ -1,6 +1,6 @@
 /**
  * The "email me this as an Excel workbook" card, shared by the budget and tax pages.
- * opts: { title, intro, source: 'budget' | 'tax', buildBase64: async () => string, fileName: (name) => string }
+ * opts: { title, intro, source, buildBase64: async (name) => string, fileName: (name) => string, sheetNames?: () => string[] }
  */
 import { el } from './util.js';
 
@@ -32,7 +32,7 @@ export function emailWorkbookCard(opts) {
       const base64 = await opts.buildBase64(who);
       const res = await fetch('/api/send-workbook', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: who, email: to, filename: opts.fileName(who), xlsxBase64: base64, source: opts.source }),
+        body: JSON.stringify({ name: who, email: to, filename: opts.fileName(who), xlsxBase64: base64, source: opts.source, sheets: opts.sheetNames ? opts.sheetNames() : undefined }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Could not send (${res.status})`);

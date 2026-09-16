@@ -18,6 +18,17 @@
 const MAX_ATTACHMENT_BYTES = 1_500_000; // base64 length cap (~1.1 MB decoded)
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 
+const SOURCES = {
+  tax: { subject: 'Your TaxCompass tax regime comparison', what: 'tax regime comparison' },
+  budget: { subject: 'Your TaxCompass budget workbook', what: 'monthly budget workbook' },
+  salary: { subject: 'Your TaxCompass in-hand salary workbook', what: 'in-hand salary breakdown' },
+  emi: { subject: 'Your TaxCompass loan plan', what: 'EMI and prepayment plan' },
+  sip: { subject: 'Your TaxCompass SIP projection', what: 'SIP projection' },
+  goal: { subject: 'Your TaxCompass goal plan', what: 'goal plan' },
+  capgains: { subject: 'Your TaxCompass capital gains working', what: 'capital gains working' },
+  home: { subject: 'Your TaxCompass home-buying plan', what: 'home-buying cost and loan plan' },
+};
+
 export async function onRequestPost({ request, env }) {
   if (!env.BREVO_API_KEY || !env.MAIL_FROM_EMAIL) {
     return json({ error: 'Email is not configured on this deployment (BREVO_API_KEY / MAIL_FROM_EMAIL missing).' }, 503);
@@ -29,7 +40,8 @@ export async function onRequestPost({ request, env }) {
   const email = String(body.email || '').trim().slice(0, 120);
   const filename = String(body.filename || 'budget.xlsx').replace(/[^a-z0-9._-]/gi, '-').slice(0, 100) || 'budget.xlsx';
   const xlsxBase64 = String(body.xlsxBase64 || '');
-  const source = body.source === 'tax' ? 'tax' : 'budget';
+  const source = SOURCES[body.source] ? body.source : 'budget';
+  const sheetNames = Array.isArray(body.sheets) ? body.sheets.slice(0, 8).map((x) => String(x).slice(0, 40)).filter(Boolean) : [];
   if (!name) return json({ error: 'Name is required.' }, 400);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: 'A valid email address is required.' }, 400);
   if (!xlsxBase64 || !/^[A-Za-z0-9+/=]+$/.test(xlsxBase64)) return json({ error: 'Workbook data is missing.' }, 400);
@@ -44,7 +56,7 @@ export async function onRequestPost({ request, env }) {
 <tr><td style="background:#14532d;padding:18px 24px;color:#ffffff;font-size:18px;font-weight:700">&#8377; TaxCompass <span style="opacity:.8;font-weight:500">India</span></td></tr>
 <tr><td style="padding:24px">
 <p style="margin:0 0 12px;font-size:16px">Hi ${safeName},</p>
-${source === 'tax' ? `<p style="margin:0 0 12px;line-height:1.5">Your tax regime comparison is attached. It has four sheets:</p>
+${source !== 'tax' && source !== 'budget' ? `<p style="margin:0 0 12px;line-height:1.5">Your ${SOURCES[source].what} is attached${sheetNames.length ? ` with these sheets: ${sheetNames.map(escapeHtml).join(', ')}` : ''}. The Inputs sheet lists every figure you entered and the Notes sheet the assumptions behind the numbers.</p>` : source === 'tax' ? `<p style="margin:0 0 12px;line-height:1.5">Your tax regime comparison is attached. It has four sheets:</p>
 <ul style="margin:0 0 16px 18px;padding:0;line-height:1.6">
 <li><strong>Comparison</strong>: old regime and new regime, line by line, with the total tax under each</li>
 <li><strong>Break-even</strong>: how far the result is from flipping, and the unused deductions that could change it</li>
@@ -63,7 +75,7 @@ ${source === 'tax' ? `<p style="margin:0 0 12px;line-height:1.5">Your tax regime
 </td></tr></table></td></tr></table></body></html>`;
 
   try {
-    await sendViaBrevo(env, { toName: name, toEmail: email, subject: source === 'tax' ? 'Your TaxCompass tax regime comparison' : 'Your TaxCompass budget workbook', html, filename, base64: xlsxBase64 });
+    await sendViaBrevo(env, { toName: name, toEmail: email, subject: SOURCES[source].subject, html, filename, base64: xlsxBase64 });
   } catch (err) {
     return json({ error: err.message || 'The email provider rejected the message.' }, 502);
   }

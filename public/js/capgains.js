@@ -3,6 +3,7 @@
  * Rules and the Cost Inflation Index come from data/capital_gains.json.
  */
 import { inr, pct, el, setChildren, disclaimer } from './util.js';
+import { calcExportCard } from './calc-export.js';
 
 // ---------- dates ----------
 const parse = (s) => { const [y, m, d] = String(s).split('-').map(Number); return y && m && d ? Date.UTC(y, m - 1, d) : null; };
@@ -188,6 +189,8 @@ export function renderCapitalGains(data) {
   const slab = mk('slabRate', { tag: 'select', options: [[0, 'Not sure / nil'], [0.05, '5%'], [0.10, '10%'], [0.15, '15%'], [0.20, '20%'], [0.25, '25%'], [0.30, '30%']] }, 'Your income tax slab', 'used only where the gain is taxed at slab rate');
   const otherLtcg = mk('otherEquityLtcgThisYear', { step: 1000 }, 'Other listed-equity LTCG already booked this year (₹)', 'the ₹1,25,000 exemption is shared across the year');
 
+  let last = null;
+  const exportCard = calcExportCard('capgains', () => last);
   const out = el('div');
   // Build the input panel once; render() only shows or hides the conditional fields, so typing never loses focus.
   const impRow = el('div', { class: 'two' }, [impAmount.node, impFy.node]);
@@ -215,6 +218,7 @@ export function renderCapitalGains(data) {
     }, data);
 
     if (r.error) { setChildren(out, [el('div', { class: 'notice' }, r.error)]); return; }
+    last = { st: { ...st }, r };
     const stat = (k, v, cls = '') => el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
     const rows = r.lines.map((l) => el('tr', { class: l.subtotal ? 'subtotal' : '' }, [el('td', {}, l.label), el('td', { class: l.amount < 0 ? 'neg' : '' }, inr(l.amount))]));
     if (r.gain > 0) {
@@ -252,7 +256,7 @@ export function renderCapitalGains(data) {
     ]);
   }
   render();
-  return el('div', { class: 'calc' }, [inputsCard, out]);
+  return el('div', { class: 'calc' }, [inputsCard, el('div', {}, [out, exportCard])]);
 }
 
 /** Push the gain into the saved tax-comparison inputs and open that page. */
