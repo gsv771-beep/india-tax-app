@@ -8,7 +8,7 @@
 import { inr, pct, el, setChildren, disclaimer } from './util.js';
 import { loadExcelJS } from './xlsx-style.js';
 import { parseZerodhaTaxPnl, detectZerodha } from '../engine/brokers/zerodha.js';
-import { tradingTax } from '../engine/trading-tax.js';
+import { tradingTax, quarterlyTax } from '../engine/trading-tax.js';
 
 const STORE = 'taxcompass.broker.v1';
 const BROKERS = [
@@ -95,6 +95,24 @@ export function renderBrokerImport({ rates }) {
       business > 0 ? [`Business income at ${pct(r.rates.slab, 0)}`, Math.max(0, h.intraday) + Math.max(0, h.fno) + Math.max(0, h.debtSlab) + Math.max(0, h.currency) + Math.max(0, h.commodity), r.tax.business] : null,
       ['Health and education cess (4%)', '', r.tax.cess],
     ].filter(Boolean);
+    const qt = quarterlyTax(parsed, rates, { slabRate: +st.slabRate, deductCharges: !!st.deductCharges, otherEquityLtcgThisYear: +st.otherEquityLtcgThisYear || 0 });
+    const quarterSection = el('div', {}, [
+      el('h3', {}, 'Quarter by quarter, and the advance tax each one triggers'),
+      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'Quarter'), el('th', {}, 'Short-term'), el('th', {}, 'Long-term'), el('th', {}, 'Intraday'), el('th', {}, 'F&O'), el('th', {}, 'Tax on the year so far'), el('th', {}, 'Advance tax to pay')])),
+        el('tbody', {}, [
+          ...qt.rows.map((row) => el('tr', {}, [
+            el('td', {}, [row.label, el('div', { class: 'muted small' }, `${row.exits} exit${row.exits === 1 ? '' : 's'} · due ${new Date(row.dueDate + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`)]),
+            el('td', { class: row.quarter.stcg < 0 ? 'neg' : '' }, signed(row.quarter.stcg)), el('td', { class: row.quarter.ltcg < 0 ? 'neg' : '' }, signed(row.quarter.ltcg)),
+            el('td', { class: row.quarter.intraday < 0 ? 'neg' : '' }, signed(row.quarter.intraday)), el('td', { class: row.quarter.fno < 0 ? 'neg' : '' }, signed(row.quarter.fno)),
+            el('td', {}, inr(row.cumulative.taxSoFar)),
+            el('td', { class: row.instalment > 0 ? 'better' : '' }, row.instalment > 0 ? inr(row.instalment) : row.refundable > 0 ? `nil (${inr(row.refundable)} refundable)` : 'nil'),
+          ])),
+          el('tr', { class: 'total' }, [el('td', {}, 'Year'), el('td', {}, signed(h.stcgEquity)), el('td', {}, signed(h.ltcgEquity)), el('td', {}, signed(h.intraday)), el('td', {}, signed(h.fno)), el('td', {}, inr(r.tax.total)), el('td', {}, inr(qt.totalPaid))]),
+        ]),
+      ])),
+      el('ul', { class: 'small muted' }, qt.notes.map((n) => el('li', {}, n))),
+    ]);
     const symbolTable = (title, list) => list.length ? el('details', { class: 'result-fold' }, [
       el('summary', {}, [el('span', { class: 'rf-title' }, title), el('span', { class: 'rf-sum' }, `${list.length} scrips · worst first`)]),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
@@ -115,6 +133,7 @@ export function renderBrokerImport({ rates }) {
         el('h3', { style: 'margin-top:0' }, 'What this means, and what to do'),
         el('ul', { class: 'levers' }, r.insights.map((i) => el('li', { class: 'insight-' + i.kind }, i.text))),
       ]) : null,
+      quarterSection,
       el('h3', {}, 'Heads of income'),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'Head'), el('th', {}, 'Amount'), el('th', {}, 'Treatment')])),

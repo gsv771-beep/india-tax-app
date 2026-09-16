@@ -73,3 +73,37 @@ export function tradingTax(parsed, rates, opts = {}) {
 }
 
 function fmt(n) { return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN'); }
+
+/**
+ * Quarter by quarter: what each quarter added, the tax on the year so far, and the advance-tax
+ * instalment due after it. Capital gains are taxed as they arise: the tax on gains realised up to an
+ * instalment date is due with that instalment (s.234C charges no interest on a shortfall caused by a
+ * gain that arose after the previous instalment, provided it is paid in the next one). A later loss
+ * can make earlier tax refundable; the schedule never goes negative, it just stops asking.
+ */
+export function quarterlyTax(parsed, rates, opts = {}) {
+  const cum = { equityIntraday: 0, equityShortTerm: 0, equityLongTerm: 0, mfEquityShortTerm: 0, mfEquityLongTerm: 0, mfDebtShortTerm: 0, mfDebtLongTerm: 0, fnoOptions: 0, fnoFutures: 0, currency: 0, commodity: 0, equityBuyback: 0 };
+  const cumCharges = { equityStcgOther: 0, equityLtcgOther: 0, stt: 0, other: 0 };
+  let paid = 0;
+  const rows = [];
+  for (const q of parsed.quarters || []) {
+    for (const k of ['equityIntraday', 'equityShortTerm', 'equityLongTerm', 'mfEquityShortTerm', 'mfEquityLongTerm', 'currency', 'commodity']) cum[k] += q.totals[k] || 0;
+    cum.fnoOptions += q.totals.fno || 0;
+    cum.mfDebtShortTerm += q.totals.mfDebt || 0;
+    cumCharges.equityStcgOther += q.charges.equityStcgOther; cumCharges.equityLtcgOther += q.charges.equityLtcgOther;
+    const r = tradingTax({ ...parsed, totals: { ...cum, mfAssumedEquity: parsed.totals.mfAssumedEquity }, charges: cumCharges, grandfathered: 0 }, rates, opts);
+    const instalment = Math.max(0, r.tax.total - paid);
+    rows.push({
+      q: q.q, label: q.label, dueDate: q.dueDate, exits: q.exits,
+      quarter: { stcg: q.totals.equityShortTerm + q.totals.mfEquityShortTerm, ltcg: q.totals.equityLongTerm + q.totals.mfEquityLongTerm, intraday: q.totals.equityIntraday, fno: q.totals.fno, other: (q.totals.currency || 0) + (q.totals.commodity || 0) + (q.totals.mfDebt || 0) },
+      cumulative: { stcg: r.heads.stcgEquity, ltcg: r.heads.ltcgEquity, business: r.heads.intraday + r.heads.fno + r.heads.debtSlab + r.heads.currency + r.heads.commodity, taxSoFar: r.tax.total },
+      instalment, refundable: Math.max(0, paid - r.tax.total),
+    });
+    paid = Math.max(paid, r.tax.total);
+  }
+  return { rows, totalPaid: paid, notes: [
+    'Instalments fall due on 15 June, 15 September, 15 December and 15 March; a gain realised between 16 and 31 March is paid by 31 March. Gains realised in the last fortnight of a quarter technically belong to the next instalment.',
+    'A loss later in the year can make tax already paid refundable; that comes back with the return, with interest under s.244A.',
+    'This covers only the trading in this statement. Advance tax is on your whole income, so add salary TDS, interest, rent and other gains in the Tax comparison tab for the real instalment.',
+  ] };
+}

@@ -3,8 +3,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { parseZerodhaTaxPnl, detectZerodha, parseTradewise } from '../public/engine/brokers/zerodha.js';
-import { tradingTax } from '../public/engine/trading-tax.js';
+import { parseZerodhaTaxPnl, detectZerodha, parseTradewise, fyQuarter } from '../public/engine/brokers/zerodha.js';
+import { tradingTax, quarterlyTax } from '../public/engine/trading-tax.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const rates = JSON.parse(readFileSync(path.join(here, '../public/data/tax_rates.json'), 'utf8'));
@@ -93,6 +93,32 @@ const sheets = { 'Tradewise Exits from 2025-04-01': tradewise, 'Equity and Non E
   ok('a loss year carries both losses forward with the right rules', lossYear.stclCarried === 30000 && lossYear.ltclCarried === 50000 && lossYear.insights.some((i) => /eight years/.test(i.text)));
   const exUsed = tradingTax(p, rates, { slabRate: 0.3, otherEquityLtcgThisYear: 125000 });
   near('exemption already used elsewhere: full LTCG taxed', exUsed.ltcgTaxable, 185000);
+}
+
+// ---- quarters and advance tax ----
+{
+  ok('fyQuarter: April is Q1, June Q1, July Q2, December Q3, January Q4, March Q4', [fyQuarter('2025-04-01'), fyQuarter('2025-06-30'), fyQuarter('2025-07-01'), fyQuarter('2025-12-31'), fyQuarter('2026-01-01'), fyQuarter('2026-03-31')].join() === '1,1,2,3,4,4');
+  const p = parseZerodhaTaxPnl(sheets);
+  ok('four quarters with labels and due dates', p.quarters.length === 4 && p.quarters[0].label === 'Apr–Jun 2025' && p.quarters[3].dueDate === '2026-03-15');
+  // fixture: intraday exits in June (Q1: -100 + 200 = 100); short-term exits Aug and Sep (Q2: -20000 + 10000); long-term Oct and Nov (Q3: 150000 + 30000); fund Dec (Q3: 15000); F&O Feb (Q4: 3000)
+  near('Q1 intraday', p.quarters[0].totals.equityIntraday, 100);
+  near('Q2 short-term', p.quarters[1].totals.equityShortTerm, -10000);
+  near('Q3 long-term incl. the grandfathered exit', p.quarters[2].totals.equityLongTerm, 180000);
+  near('Q3 fund redemption, long-term', p.quarters[2].totals.mfEquityLongTerm, 15000);
+  near('Q4 F&O', p.quarters[3].totals.fno, 3000);
+  ok('quarters add up to the year', Math.abs(p.quarters.reduce((s, q) => s + q.totals.equityShortTerm, 0) - (-10000)) < 0.01);
+  const qt = quarterlyTax(p, rates, { slabRate: 0.3 });
+  ok('four schedule rows', qt.rows.length === 4);
+  near('Q1: tax so far is on 100 of intraday at slab + cess', qt.rows[0].cumulative.taxSoFar, Math.round(100 * 0.3 * 1.04));
+  near('Q2: short-term loss, nothing more to pay', qt.rows[1].instalment, 0);
+  ok('Q3: long-term gains after set-off and exemption bring the first real instalment', qt.rows[2].instalment > 7000 && qt.rows[2].cumulative.taxSoFar === Math.round((60000 * 0.125 + 30) * 1.04));
+  near('Q4: F&O adds its slab tax as the last instalment', qt.rows[3].instalment, qt.rows[3].cumulative.taxSoFar - qt.rows[2].cumulative.taxSoFar);
+  ok('instalments sum to the year’s tax', Math.abs(qt.rows.reduce((s, r) => s + r.instalment, 0) - qt.rows[3].cumulative.taxSoFar) < 1);
+  // a big loss in Q4 makes earlier tax refundable, never a negative instalment
+  const lossLate = parseZerodhaTaxPnl(sheets);
+  lossLate.quarters[3].totals.equityLongTerm = -500000;
+  const q2 = quarterlyTax(lossLate, rates, { slabRate: 0.3 });
+  ok('a later loss shows a refundable amount and no negative instalment', q2.rows[3].instalment === 0 && q2.rows[3].refundable > 0);
 }
 
 console.log(failures === 0 ? '\nAll broker tests passed.' : `\n${failures} broker test(s) FAILED.`);

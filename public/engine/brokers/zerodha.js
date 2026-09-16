@@ -77,8 +77,35 @@ export function parseSummary(rows) {
   return out;
 }
 
+/** Financial-year quarter (1 = Apr-Jun) of an ISO date, relative to the statement's year. */
+export function fyQuarter(iso) {
+  const m = +String(iso).slice(5, 7);
+  return m >= 4 ? Math.floor((m - 4) / 3) + 1 : 4;
+}
+
+/** Gains by quarter of exit, per head, plus the non-STT charges of each head (for the optional deduction). */
+export function quarterise(trades, from) {
+  const fy = +String(from || '').slice(0, 4) || new Date().getFullYear();
+  const labels = [`Apr–Jun ${fy}`, `Jul–Sep ${fy}`, `Oct–Dec ${fy}`, `Jan–Mar ${fy + 1}`];
+  const dues = [`${fy}-06-15`, `${fy}-09-15`, `${fy}-12-15`, `${fy + 1}-03-15`];
+  const q = labels.map((label, i) => ({ q: i + 1, label, dueDate: dues[i], exits: 0, totals: { equityIntraday: 0, equityShortTerm: 0, equityLongTerm: 0, mfEquityShortTerm: 0, mfEquityLongTerm: 0, mfDebt: 0, fno: 0, currency: 0, commodity: 0 }, charges: { equityStcgOther: 0, equityLtcgOther: 0 } }));
+  const add = (section, key, useProfit = false) => {
+    for (const t of trades[section] || []) {
+      const b = q[fyQuarter(t.exitDate) - 1];
+      b.exits++;
+      b.totals[key] += useProfit ? t.profit : t.taxableProfit;
+      if (key === 'equityShortTerm') b.charges.equityStcgOther += t.otherCharges;
+      if (key === 'equityLongTerm') b.charges.equityLtcgOther += t.otherCharges;
+    }
+  };
+  add('equityIntraday', 'equityIntraday'); add('equityShortTerm', 'equityShortTerm'); add('equityLongTerm', 'equityLongTerm');
+  add('fno', 'fno', true); add('currency', 'currency', true); add('commodity', 'commodity', true);
+  for (const t of trades.mutualFunds || []) { const b = q[fyQuarter(t.exitDate) - 1]; b.exits++; b.totals[t.holdingDays > 365 ? 'mfEquityLongTerm' : 'mfEquityShortTerm'] += t.taxableProfit; }
+  return q;
+}
+
 /**
- * The whole workbook -> { broker, period, trades, totals, charges, symbols }.
+ * The whole workbook -> { broker, period, quarters, totals, charges, symbols }.
  * `sheets` is { sheetName: rows[] }. Nothing identifying is returned.
  */
 export function parseZerodhaTaxPnl(sheets) {
@@ -125,6 +152,7 @@ export function parseZerodhaTaxPnl(sheets) {
   };
   return {
     broker: 'zerodha', period: { from: det.from, to: det.to },
+    quarters: quarterise(trades, det.from),
     counts: Object.fromEntries(Object.entries(trades).map(([k, v]) => [k, v.length])),
     totals, charges,
     symbols: { shortTerm: bySymbol(trades.equityShortTerm), longTerm: bySymbol(trades.equityLongTerm), intraday: bySymbol(trades.equityIntraday) },
