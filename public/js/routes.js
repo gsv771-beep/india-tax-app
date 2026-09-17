@@ -23,6 +23,7 @@ export const CALCS = {
   home: { title: 'True cost of buying a home, and how to fund it', desc: 'Stamp duty, registration, GST and builder charges in Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Kolkata and Pune, then the loan, down payment, EMI and the stage-by-stage payment plan with pre-EMI interest.' },
   'capital-gains': { title: 'Capital gains tax calculator', desc: 'Tax on selling listed equity, equity and debt funds, property and other assets, with the ₹1.25 lakh exemption, grandfathering and the 12.5% or 20%-with-indexation choice for property.' },
   compare: { title: 'Where should this money go? PPF, FD, funds and NPS compared after tax', desc: 'The same rupee in every common instrument, after tax, over your horizon and at your slab: what you keep, the after-tax return and the pre-tax equivalent. Answers whether PPF is worth it under the new regime, FD versus debt fund, and where to park money for six months.' },
+  retirement: { title: 'Retirement planner: will the money last?', desc: 'Your age, when you want to retire, what you spend, what you have saved and what you add each month: will the money last, and how much more a month closes the gap. Plain assumptions you can change.' },
   goal: { title: 'Goal planner', desc: 'The monthly SIP or one-time investment that reaches a target in N years, and what that target is worth in today’s money.' },
 };
 

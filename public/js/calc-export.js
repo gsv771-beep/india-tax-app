@@ -153,6 +153,20 @@ export const SPECS = {
     };
   },
 
+  retirement(x) {
+    const { st, r } = x;
+    const ok = r.gap <= 0;
+    return {
+      title: 'TaxCompass India: retirement',
+      sheets: [
+        { name: 'Summary', headline: ok ? `The money lasts past ${r.planUntil}` : `The money runs out around age ${r.shortfallAt}; ${'₹' + fmtINR(r.gapSip)} more a month closes the gap`, columns: [{ header: 'Item', width: 44 }, { header: 'Value', width: 20, fmt: X.inr }], rows: [[`Saved by ${r.retireAt}`, r.corpusAtRetirement], [`Needed at ${r.retireAt}`, r.corpusNeeded], ['Gap', r.gap], bold(['Extra to save a month', r.gapSip]), ['Spending in the first year of retirement', r.firstYearSpend], [`Left over at ${r.planUntil}`, r.surplusAtEnd]] },
+        { name: 'Year by year', columns: [{ header: 'Age', width: 8, fmt: '0' }, { header: 'Phase', width: 12 }, { header: 'Added', fmt: X.inr }, { header: 'Spent', fmt: X.inr }, { header: 'Savings at year end', fmt: X.inr }], rows: r.years.map((y) => [y.age, y.phase, y.added || 0, y.spent || 0, y.corpus]) },
+      ],
+      inputs: [['Age', +st.age, '0'], ['Retire at', +st.retireAt, '0'], ['Spending a month today', +st.monthlyExpenses], ['Saved so far', +st.saved || 0], ['Investing a month', +st.monthlyInvesting || 0], ['Inflation (%)', +st.inflationPct, '0.0'], ['Spending after retirement (% of today)', +st.expensesAfterPct, '0'], ['Growth before retirement (%)', +st.growBeforePct, '0.0'], ['Growth after (%)', +st.growAfterPct, '0.0'], ['Plan until age', +st.planUntil, '0'], ['Savings step-up (%)', +st.stepUpPct, '0']],
+      notes: ['One growth rate for everything saved, prices rising steadily, no one-off costs, tax at withdrawal not modelled. A fair idea, not a plan; revisit yearly.'],
+    };
+  },
+
   compare(x) {
     const { st, o, rows, sources, ratesById } = x;
     const showSaved = o.regime === 'old' && o.has80CRoom;
