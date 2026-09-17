@@ -8,13 +8,13 @@
 # browser keeps a 4-hour-old calculators.js against a fresh index.html and new tabs silently fail.
 # ETags make the revalidation a cheap 304.
 /js/*
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 /engine/*
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 /css/*
-  Cache-Control: public, max-age=0, must-revalidate
+  Cache-Control: no-cache
 
 /data/*
   Cache-Control: public, max-age=3600
