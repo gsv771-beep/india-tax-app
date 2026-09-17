@@ -63,6 +63,10 @@ There is no build step and no hashed filenames, so `public/_headers` forces brow
 4-hour `max-age` let a browser pair a fresh `index.html` with a stale `calculators.js`, and a newly
 added tab did nothing when clicked. Data files keep a 1-hour cache.
 
+**Zone setting (one-time, dashboard):** the `taxcompass.org` zone's *Browser Cache TTL* defaults to 4 hours
+and overrides any shorter header the site sends, which silently re-creates the stale-script problem on the
+custom domain only. Set **Caching → Configuration → Browser Cache TTL → Respect Existing Headers**.
+
 ## Fixtures
 
 Preview URLs are separate origins, so `localStorage` starts empty on every new branch. The
