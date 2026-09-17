@@ -76,7 +76,9 @@ export function renderRetirement({ schemes }) {
     const ok = r.gap <= 0;
     const ages = r.years.map((y) => y.age);
     const chart = lineChart({
-      series: [{ name: 'Your savings', color: ok ? '#1d6b3d' : '#b7861c', area: true, points: r.years.map((y) => [y.age, y.corpus]) }, { name: 'Needed at retirement', color: '#8a948e', dash: true, points: [[r.retireAt, r.corpusNeeded]] }],
+      series: [{ name: 'Your savings', color: ok ? '#1d6b3d' : '#b7861c', area: true, points: r.years.map((y) => [y.age, y.corpus]) }],
+      markers: [{ x: r.retireAt, y: r.corpusNeeded, label: `Needed at ${r.retireAt}: ${inr(r.corpusNeeded)}`, color: ok ? '#1d6b3d' : '#9b1c1c' }],
+      vlines: [{ x: r.retireAt, label: 'Retire' }],
       xFormat: (x) => `Age ${Math.round(x)}`, xTipFormat: (x) => `At ${Math.round(x)}`, height: 240, ariaLabel: 'Savings by age, before and after retirement',
     });
     setChildren(out, [

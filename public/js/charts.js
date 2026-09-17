@@ -29,8 +29,9 @@ function niceTicks(max, count = 5) {
   if (max <= 0) return [0];
   const rough = max / count, mag = Math.pow(10, Math.floor(Math.log10(rough)));
   const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => max / s <= count) || 10 * mag;
+  // ticks run until they cover max, so the top of the axis is never below the tallest point
   const ticks = [];
-  for (let t = 0; t <= max + 1e-9; t += step) ticks.push(+t.toFixed(6));
+  for (let t = 0; ; t += step) { ticks.push(+t.toFixed(6)); if (t >= max - 1e-9) break; }
   return ticks;
 }
 const TEXT = 'fill:var(--text)', MUTED = 'fill:var(--muted)', GRID = 'stroke:var(--line)';
