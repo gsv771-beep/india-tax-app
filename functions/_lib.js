@@ -32,9 +32,9 @@ export function displayName(name) {
 
 /** Constant-time-ish token check for the admin endpoint. */
 export function adminAuthorised(request, env) {
-  const want = String(env.FEEDBACK_ADMIN_TOKEN || '');
+  const want = String(env.FEEDBACK_ADMIN_TOKEN || '').trim();   // a pasted newline or space in the dashboard must not lock you out
   if (want.length < 16) return false;
-  const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (got.length !== want.length) return false;
   let diff = 0;
   for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ got.charCodeAt(i);
