@@ -4,6 +4,18 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
+# No build step and no hashed filenames, so scripts must be revalidated on every load: otherwise a
+# browser keeps a 4-hour-old calculators.js against a fresh index.html and new tabs silently fail.
+# ETags make the revalidation a cheap 304.
+/js/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/engine/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/css/*
+  Cache-Control: public, max-age=0, must-revalidate
+
 /data/*
   Cache-Control: public, max-age=3600
 

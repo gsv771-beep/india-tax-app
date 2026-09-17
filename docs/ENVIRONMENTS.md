@@ -56,6 +56,13 @@ Settings → Branches → **Add branch protection rule** (or *Rules → Rulesets
 
 Repeat for `dev` if you want feature branches gated as well; recommended.
 
+## Caching
+
+There is no build step and no hashed filenames, so `public/_headers` forces browsers to revalidate
+`/js/*`, `/engine/*` and `/css/*` on every load (ETag 304s). Without this, Cloudflare Pages' default
+4-hour `max-age` let a browser pair a fresh `index.html` with a stale `calculators.js`, and a newly
+added tab did nothing when clicked. Data files keep a 1-hour cache.
+
 ## Fixtures
 
 Preview URLs are separate origins, so `localStorage` starts empty on every new branch. The
