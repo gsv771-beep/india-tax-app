@@ -22,6 +22,7 @@ export const CALCS = {
   sip: { title: 'SIP calculator with step-up and lump sums', desc: 'What a monthly SIP grows into, with yearly step-ups and lump sums added today or at the end of any year, against what fund categories have historically delivered.' },
   home: { title: 'True cost of buying a home, and how to fund it', desc: 'Stamp duty, registration, GST and builder charges in Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Kolkata and Pune, then the loan, down payment, EMI and the stage-by-stage payment plan with pre-EMI interest.' },
   'capital-gains': { title: 'Capital gains tax calculator', desc: 'Tax on selling listed equity, equity and debt funds, property and other assets, with the ₹1.25 lakh exemption, grandfathering and the 12.5% or 20%-with-indexation choice for property.' },
+  compare: { title: 'PPF, FD, NPS, debt fund, arbitrage or equity: which keeps more after tax?', desc: 'The same rupee in every common instrument, after tax, over your horizon and at your slab: what you keep, the after-tax return and the pre-tax equivalent. Answers whether PPF is worth it under the new regime, FD versus debt fund, and where to park money for six months.' },
   goal: { title: 'Goal planner', desc: 'The monthly SIP or one-time investment that reaches a target in N years, and what that target is worth in today’s money.' },
 };
 

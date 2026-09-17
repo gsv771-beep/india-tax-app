@@ -172,7 +172,7 @@ function mount(key) {
 const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
-  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, home: { keys: ['taxcompass.home.v1'] },
+  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
 function resetCalc(key) {
   const spec = CALC_KEYS[key] || {};
@@ -260,6 +260,7 @@ const VIEWS = {
   'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData)),
   salary: () => import('./salary.js').then((m) => m.renderSalary(appData)),
   home: () => import('./home-buy.js').then((m) => m.renderHomeBuying(appData)),
+  compare: () => import('./compare.js').then((m) => m.renderCompare(appData)),
 
   emi() {
     let lastEmi = null;

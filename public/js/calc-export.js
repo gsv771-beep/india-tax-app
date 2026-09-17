@@ -153,6 +153,19 @@ export const SPECS = {
     };
   },
 
+  compare(x) {
+    const { st, o, rows, sources, ratesById } = x;
+    const showSaved = o.regime === 'old' && o.has80CRoom;
+    return {
+      title: 'TaxCompass India: which keeps more after tax',
+      sheets: [{ name: 'Comparison', headline: `₹${fmtINR(o.amount)} for ${o.years < 1 ? Math.round(o.years * 12) + ' months' : o.years + ' years'} at a ${(o.slabRate * 100).toFixed(0)}% slab`, columns: [{ header: 'Instrument', width: 40 }, { header: 'Return assumed (%)', width: 18, fmt: '0.00' }, { header: 'Taxed how', width: 46 }, { header: 'You keep', fmt: X.inr }, { header: 'After tax p.a.', fmt: X.pct }, { header: 'Pre-tax equivalent', fmt: X.pct }, { header: 'Tax saved now', fmt: X.inr }, { header: 'All-in p.a.', fmt: X.pct }, { header: 'Lock-in / availability', width: 40 }],
+        rows: rows.map((r) => [r.inst.label, r.ratePct, r.available ? r.how : '', r.available ? r.post : '', r.available ? r.effPost : '', r.available ? r.preTaxEquivalent : '', showSaved && r.available ? r.taxSavedNow : '', showSaved && r.available ? r.effAllIn : '', r.available ? r.inst.lock : r.reason]),
+        note: 'Rows are sorted by what you keep; instruments locked beyond your horizon come last.' }],
+      inputs: [['Amount', o.amount], ['Horizon (years)', o.years, '0.0'], ['Slab', `${(o.slabRate * 100).toFixed(0)}%`], ['Regime', o.regime], ['80C room', o.has80CRoom ? 'Yes' : 'No'], ['LTCG exemption available', o.ltcgExemptionAvailable ? 'Yes' : 'No'], ...Object.entries(ratesById).map(([id, v]) => [`Return: ${id}`, v, '0.00'])],
+      notes: [...Object.entries(sources).filter(([, s]) => s).map(([id, s]) => `${id}: ${s}`), 'Guaranteed rates are the notified ones (small savings change quarterly). Fund figures are the median of what each category returned over rolling windows near the horizon, from AMFI NAV history: history, not a forecast.', 'FD, RD and savings interest is taxed yearly at slab; debt fund gains at slab on redemption; equity and arbitrage 20% within a year and 12.5% above the 1,25,000 yearly exemption after; gold funds 12.5% after a year; NPS 60% tax-free with 40% annuitised and taxed at slab; PPF, SSY and EPF tax-free (EPF interest on own contributions above 2.5 lakh a year is taxable, not modelled).'],
+    };
+  },
+
   home(x) {
     const { st, c, loan, downPayment, plan, emi, tenureMonths, cashNeeded } = x;
     const sheets = [
