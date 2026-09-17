@@ -27,6 +27,7 @@ const SOURCES = {
   goal: { subject: 'Your TaxCompass goal plan', what: 'goal plan' },
   capgains: { subject: 'Your TaxCompass capital gains working', what: 'capital gains working' },
   home: { subject: 'Your TaxCompass home-buying plan', what: 'home-buying cost and loan plan' },
+  profile: { subject: 'Your TaxCompass profile', what: 'profile file', json: true },
 };
 
 export async function onRequestPost({ request, env }) {
@@ -46,7 +47,7 @@ export async function onRequestPost({ request, env }) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return json({ error: 'A valid email address is required.' }, 400);
   if (!xlsxBase64 || !/^[A-Za-z0-9+/=]+$/.test(xlsxBase64)) return json({ error: 'Workbook data is missing.' }, 400);
   if (xlsxBase64.length > MAX_ATTACHMENT_BYTES) return json({ error: 'Workbook is too large to email.' }, 413);
-  if (!filename.endsWith('.xlsx')) return json({ error: 'Only .xlsx attachments are sent.' }, 400);
+  if (SOURCES[source].json ? !filename.endsWith('.json') : !filename.endsWith('.xlsx')) return json({ error: SOURCES[source].json ? 'The profile is sent as a .json file.' : 'Only .xlsx attachments are sent.' }, 400);
 
   const safeName = escapeHtml(name);
   const site = new URL(request.url).origin;
@@ -56,7 +57,7 @@ export async function onRequestPost({ request, env }) {
 <tr><td style="background:#14532d;padding:18px 24px;color:#ffffff;font-size:18px;font-weight:700">&#8377; TaxCompass <span style="opacity:.8;font-weight:500">India</span></td></tr>
 <tr><td style="padding:24px">
 <p style="margin:0 0 12px;font-size:16px">Hi ${safeName},</p>
-${source !== 'tax' && source !== 'budget' ? `<p style="margin:0 0 12px;line-height:1.5">Your ${SOURCES[source].what} is attached${sheetNames.length ? ` with these sheets: ${sheetNames.map(escapeHtml).join(', ')}` : ''}. The Inputs sheet lists every figure you entered and the Notes sheet the assumptions behind the numbers.</p>` : source === 'tax' ? `<p style="margin:0 0 12px;line-height:1.5">Your tax regime comparison is attached. It has four sheets:</p>
+${source === 'profile' ? `<p style="margin:0 0 12px;line-height:1.5">Your TaxCompass profile is attached: the figures you entered and every calculator’s inputs, as one small file. To use it on another device, open <a href="${site}" style="color:#1d6b3d">${site.replace(/^https?:\/\//, '')}</a>, expand <strong>Your profile</strong> and choose <strong>Restore from file</strong>. Keep the file to yourself; it holds your financial figures.</p>` : source !== 'tax' && source !== 'budget' ? `<p style="margin:0 0 12px;line-height:1.5">Your ${SOURCES[source].what} is attached${sheetNames.length ? ` with these sheets: ${sheetNames.map(escapeHtml).join(', ')}` : ''}. The Inputs sheet lists every figure you entered and the Notes sheet the assumptions behind the numbers.</p>` : source === 'tax' ? `<p style="margin:0 0 12px;line-height:1.5">Your tax regime comparison is attached. It has four sheets:</p>
 <ul style="margin:0 0 16px 18px;padding:0;line-height:1.6">
 <li><strong>Comparison</strong>: old regime and new regime, line by line, with the total tax under each</li>
 <li><strong>Break-even</strong>: how far the result is from flipping, and the unused deductions that could change it</li>

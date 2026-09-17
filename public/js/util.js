@@ -31,7 +31,7 @@ export function el(tag, attrs = {}, children = []) {
     else if (v === true) node.setAttribute(k, '');
     else node.setAttribute(k, v);
   }
-  for (const c of [].concat(children)) {
+  for (const c of [].concat(children).flat(Infinity)) {
     if (c == null || c === false) continue;
     node.append(c.nodeType ? c : document.createTextNode(String(c)));
   }
@@ -40,7 +40,7 @@ export function el(tag, attrs = {}, children = []) {
 
 /** replaceChildren that drops null/false entries (the DOM would otherwise render them as the text "null"). */
 export function setChildren(node, children) {
-  node.replaceChildren(...[].concat(children).filter((c) => c != null && c !== false));
+  node.replaceChildren(...[].concat(children).flat(Infinity).filter((c) => c != null && c !== false));
 }
 
 export function escapeHtml(s) {

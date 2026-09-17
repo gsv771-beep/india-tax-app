@@ -1,6 +1,7 @@
 // Feedback and counter functions, exercised with a tiny in-memory stand-in for D1. No network.
 import { onRequestPost as feedbackPost, onRequestGet as feedbackGet } from '../functions/api/feedback.js';
 import { onRequestGet as counterGet, onRequestPost as counterPost } from '../functions/api/counter.js';
+import { onRequestPost as workbookPost } from '../functions/api/send-workbook.js';
 
 let failures = 0;
 const ok = (name, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? ' (' + detail + ')' : ''}`); if (!cond) failures++; };
@@ -46,6 +47,25 @@ const post = (fn, body, env = {}) => fn({ request: new Request('http://x/api', {
   r = await post(counterPost, { event: 'bogus' }, env); ok('counter: unknown event rejected', r.status === 400);
   const j = await (await counterGet({ env })).json();
   ok('counter: counts visits and comparisons', j.available && j.counts.visits === 2 && j.counts.comparisons === 1 && j.counts.workbooks === 0, JSON.stringify(j.counts));
+}
+
+// send-workbook: the profile source takes a .json file; workbooks still need .xlsx. Brevo is stubbed.
+{
+  const env = { BREVO_API_KEY: 'k', MAIL_FROM_EMAIL: 'me@x.org' };
+  const calls = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { calls.push({ url, body: JSON.parse(init.body) }); return new Response('{}', { status: 200 }); };
+  try {
+    const b64 = Buffer.from('{"profile":{}}').toString('base64');
+    let r = await post(workbookPost, { name: 'A', email: 'a@b.co', filename: 'taxcompass-profile.json', xlsxBase64: b64, source: 'profile' }, env);
+    ok('send-workbook: profile source accepts a .json attachment', r.status === 200, String(r.status));
+    const mail = calls.find((c) => /smtp\/email/.test(c.url));
+    ok('send-workbook: profile email explains Restore from file and attaches the json', mail && /Restore from file/.test(mail.body.htmlContent) && mail.body.attachment[0].name === 'taxcompass-profile.json');
+    r = await post(workbookPost, { name: 'A', email: 'a@b.co', filename: 'x.xlsx', xlsxBase64: b64, source: 'profile' }, env);
+    ok('send-workbook: profile source rejects .xlsx', r.status === 400);
+    r = await post(workbookPost, { name: 'A', email: 'a@b.co', filename: 'x.json', xlsxBase64: b64, source: 'goal' }, env);
+    ok('send-workbook: workbook sources still reject .json', r.status === 400);
+  } finally { globalThis.fetch = realFetch; }
 }
 
 console.log(failures === 0 ? '\nAll function tests passed.' : `\n${failures} test(s) FAILED.`);

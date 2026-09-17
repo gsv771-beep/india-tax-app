@@ -41,6 +41,7 @@ function setMeta(pathname) {
 
 export function navigate(path, replace = false) {
   history[replace ? 'replaceState' : 'pushState']({}, '', path);
+  window.dispatchEvent(new CustomEvent('taxcompass:navigate', { detail: { path } }));
   route();
   window.scrollTo({ top: 0 });
 }

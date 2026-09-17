@@ -419,6 +419,8 @@ table.compare td.neg { color: var(--danger); }
 .headroom summary { cursor: pointer; font-weight: 600; color: var(--accent-2); }
 .headroom .table-wrap { margin-top: 10px; }
 @media (max-width: 560px) { .slider-row { grid-template-columns: 1fr; } }
+.btn-link { background: none; border: 0; padding: 6px 4px; font: inherit; font-size: .86rem; cursor: pointer; text-decoration: underline; color: var(--muted); }
+.btn-link.danger-link:hover { color: #9b1c1c; }
 .mix-ctl { padding: 8px 0 4px; }
 .mix-ctl .slider-label { margin-bottom: 4px; }
 .mix-ctl .slider-val { min-width: 96px; }

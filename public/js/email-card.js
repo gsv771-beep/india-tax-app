@@ -20,7 +20,7 @@ export function emailWorkbookCard(opts) {
   const persist = () => savePerson({ name: name.value.trim(), email: email.value.trim() });
   name.addEventListener('input', persist); email.addEventListener('input', persist);
 
-  const send = el('button', { type: 'button', class: 'btn' }, 'Email me the Excel workbook');
+  const send = el('button', { type: 'button', class: 'btn' }, opts.buttonLabel || 'Email me the Excel workbook');
   send.addEventListener('click', async () => {
     const who = name.value.trim(), to = email.value.trim();
     if (!who) { status.textContent = 'Please enter your name.'; name.focus(); return; }
@@ -47,7 +47,7 @@ export function emailWorkbookCard(opts) {
     el('h3', { style: 'margin-top:0' }, opts.title),
     el('p', { class: 'muted' }, opts.intro),
     el('div', { class: 'two' }, [el('label', {}, ['Name', name]), el('label', {}, ['Email', email])]),
-    el('label', { class: 'check' }, [consent, 'Email me this workbook. I agree that TaxCompass may keep my name and email and contact me for feedback about the app. No third-party marketing.']),
+    el('label', { class: 'check' }, [consent, `Email me this ${opts.source === 'profile' ? 'file' : 'workbook'}. I agree that TaxCompass may keep my name and email and contact me for feedback about the app. No third-party marketing.`]),
     el('div', { class: 'btn-row' }, [send]),
     status,
   ]);
