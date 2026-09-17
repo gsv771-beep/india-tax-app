@@ -124,12 +124,17 @@ export const SPECS = {
   },
 
   goal(x) {
-    const { target, y, r, inf, sip, lump, invested, todayValue } = x;
+    const { st, r, rates, perChild, typeLabel } = x;
+    const fixed = r.type === 'fixed';
+    const sheets = [{ name: 'Goal', headline: `₹${fmtINR(r.sip)} a month for ${r.years} years reaches ₹${fmtINR(r.costThen)}`, columns: [{ header: 'Item', width: 44 }, { header: 'Value', width: 20, fmt: X.inr }],
+      rows: [fixed ? ['Amount needed then', r.costThen] : ['Cost today', r.costToday], fixed ? null : [`Cost in ${r.years} years at ${r.inflationPct}% a year`, r.costThen], bold(['Monthly SIP needed', r.sip]), bold(['Or invest today, once', r.lump]), ['SIP if equity repeats its worst 5-year stretch', r.sipIfBad], ['Total put in via SIP', r.invested]].filter(Boolean) },
+      { name: 'Where it goes', columns: [{ header: 'Where', width: 40 }, { header: 'A month', fmt: X.inr }, { header: 'Why', width: 90 }], rows: r.where.lines.map((l) => [l.label, l.amount, l.why]), note: r.where.rule }];
+    if (perChild) sheets.push({ name: 'Each child', columns: [{ header: 'Child', width: 14 }, { header: 'Years to go', fmt: '0' }, { header: 'Cost then', fmt: X.inr }, { header: 'SIP a month', fmt: X.inr }], rows: perChild.map((c) => [`Age ${c.age}`, c.plan.years, c.plan.costThen, c.plan.sip]) });
     return {
       title: 'TaxCompass India: goal plan',
-      sheets: [{ name: 'Goal', headline: `₹${fmtINR(sip)} a month for ${y} years reaches ₹${fmtINR(target)}`, columns: [{ header: 'Item', width: 44 }, { header: 'Value', width: 20, fmt: X.inr }], rows: [['Amount you want to have', target], bold(['Monthly SIP needed', sip]), bold(['Or invest today, once', lump]), ['Total put in via SIP', invested], ['Worth in today’s money', todayValue]] }],
-      inputs: [['Target amount', target], ['Years', y, '0'], ['Expected return (% p.a.)', r, '0.00'], ['Inflation (% p.a.)', inf, '0.00']],
-      notes: ['SIP needed = target x i / (((1+i)^n - 1) x (1+i)), i = annual return / 12, n = months. The one-time amount discounts the target at the annual return. Inflation is used only to state the target in today’s money.'],
+      sheets,
+      inputs: [['Goal', typeLabel], [fixed ? 'Amount needed then' : 'Cost today', r.costToday], ['Years', r.years, '0'], ['Inflation (% p.a.)', r.inflationPct, '0.00'], ['Equity share (%)', r.equityPct, '0'], ['Blended return (% p.a.)', r.returnPct, '0.00'], ['Bad-stretch return (% p.a.)', r.badReturnPct, '0.00'], ['Equity return assumed (%)', rates.equity, '0.00'], ['Safe return assumed (%)', rates.safe, '0.00']],
+      notes: [`Equity: ${rates.sources.equity}. Safe: ${rates.sources.safe}.`, 'SIP needed = target x i / (((1+i)^n - 1) x (1+i)), i = blended annual return / 12, n = months. The one-time amount discounts the target at the blended return. Equity is capped at 0% under 3 years, 30% under 5 and 50% under 7, because money needed soon cannot wait out a bad market.'],
     };
   },
 

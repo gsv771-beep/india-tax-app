@@ -419,6 +419,12 @@ table.compare td.neg { color: var(--danger); }
 .headroom summary { cursor: pointer; font-weight: 600; color: var(--accent-2); }
 .headroom .table-wrap { margin-top: 10px; }
 @media (max-width: 560px) { .slider-row { grid-template-columns: 1fr; } }
+.mix-ctl { padding: 8px 0 4px; }
+.mix-ctl .slider-label { margin-bottom: 4px; }
+.mix-ctl .slider-val { min-width: 96px; }
+.mix-desc { font-size: .86rem; line-height: 1.45; margin-top: 4px; }
+.mix-desc small { display: block; color: var(--muted); margin-top: 2px; }
+.warn-text { color: #9b1c1c; }
 
 /* charts */
 .chart-card { margin-bottom: 14px; }

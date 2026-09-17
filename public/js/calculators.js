@@ -170,7 +170,7 @@ function mount(key) {
 // What each calculator remembers in the browser. Reset clears only that; the shared profile is untouched,
 // so anything a calculator pre-fills from the profile comes back after the reset.
 const CALC_KEYS = {
-  emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'] },
+  emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
   'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
@@ -262,6 +262,7 @@ const VIEWS = {
   home: () => import('./home-buy.js').then((m) => m.renderHomeBuying(appData)),
   compare: () => import('./compare.js').then((m) => m.renderCompare(appData)),
   retirement: () => import('./retirement.js').then((m) => m.renderRetirement(appData)),
+  goal: () => import('./goal.js').then((m) => m.renderGoal(appData)),
 
   emi() {
     let lastEmi = null;
@@ -522,52 +523,4 @@ const VIEWS = {
     ], [out, calcExportCard('sip', () => lastSip)]);
   },
 
-  goal() {
-    let lastGoal = null;
-    const T = field(`Amount you want to have (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'e.g. 5000000' }, 'the actual sum you need in hand when the goal arrives');
-    const Y = field('In how many years', { value: 15, min: 1, max: 50, step: 1 });
-    const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
-    const I = field('Inflation (% p.a.)', { value: 6, min: 0, step: 0.5 }, 'only used to show what that amount is worth in today\'s money');
-    const out = el('div');
-    const fundBox = el('div');
-    let fundKey = '';
-    const render = () => {
-      const target = v(T), y = v(Y), r = v(R), inf = v(I);
-      if (!(target > 0)) { setChildren(out, [beginPrompt('Enter the amount you want to have to begin.')]); fundKey = ''; return; }
-      const sip = requiredSip(target, r, y);
-      const lump = target / Math.pow(1 + r / 100, y);
-      const todayValue = target / Math.pow(1 + inf / 100, y);
-      const invested = sip * 12 * y;
-      lastGoal = { target, y, r, inf, sip, lump, invested, todayValue };
-      setChildren(out, [
-        el('div', { class: 'stats' }, [
-          stat('Monthly SIP needed', inr(sip), true),
-          stat('Or invest today, once', inr(lump)),
-          stat('Total you would put in via SIP', inr(invested)),
-          stat("Worth in today's money", inr(todayValue)),
-        ]),
-        el('p', { class: 'explain' }, `To have ${inr(target)} in ${y} years at ${r}% a year, invest ${inr(sip)} every month, or ${inr(lump)} today. With ${inf}% inflation, ${inr(target)} then buys what ${inr(todayValue)} buys now.`),
-        el('p', { class: 'muted' }, 'If the amount you typed is what the goal costs today, it will cost more by the time you get there. Multiply it by (1 + inflation) for each year, or ask for a higher target here.'),
-        fundBox,
-        disclaimer('invest'),
-      ]);
-      const key = `${r}|${y}`;
-      if (key !== fundKey) {
-        fundKey = key;
-        renderFundPanel(fundBox, {
-          mode: 'near', target: r, horizon: y,
-          title: `What has historically delivered about ${r}% a year?`,
-          intro: `Your SIP of ${inr(sip)} a month assumes ${r}% a year for ${y} years. These fund categories have typically returned about that over ${y >= 5 ? '5' : '3'}-year periods, with the worst and best stretches investors in them have actually lived through. A goal with a fixed date needs the worst case to be survivable.`,
-        });
-      }
-    };
-    remember('goal2', [T.input, Y.input, R.input, I.input]);
-    // Pre-fill from the first goal in the shared profile; edits to the amount or years write back to it.
-    { const g = isBlankAfterReset('goal2') ? null : getProfile().horizon.goals[0]; if (g) { if (g.target > 0) T.input.value = Math.round(g.target); if (g.years > 0) Y.input.value = g.years; } }
-    const writeGoal = debounce(() => updateProfile((p) => { const g = p.horizon.goals[0] || (p.horizon.goals[0] = { name: 'Goal', years: 0, target: 0 }); g.target = v(T); g.years = v(Y); return p; }, 'calc:goal'), 300);
-    [T, Y].forEach((f) => f.input.addEventListener('input', writeGoal));
-    [T, Y, R, I].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
-    render();
-    return calcShell([T.node, Y.node, R.node, I.node], [out, calcExportCard('goal', () => lastGoal)]);
-  },
 };

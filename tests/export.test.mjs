@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
+import { goalPlan } from '../public/engine/goal.js';
 import { buildCalcWorkbookBase64, SPECS } from '../public/js/calc-export.js';
 import { salaryBreakdown } from '../public/js/salary.js';
 import { simulateLoan, sipFV, requiredSip } from '../public/js/calculators.js';
@@ -54,8 +55,11 @@ async function roundTrip(source, last, expectSheets) {
 }
 // goal
 {
-  const sip = requiredSip(5000000, 12, 15);
-  await roundTrip('goal', { target: 5000000, y: 15, r: 12, inf: 6, sip, lump: 5000000 / Math.pow(1.12, 15), invested: sip * 180, todayValue: 5000000 / Math.pow(1.06, 15) }, ['Goal']);
+  const rates = { equity: 14.5, equityWorst: 1.7, safe: 7.1, ssy: 8.2, sources: { equity: 'test equity', safe: 'test safe' } };
+  const st = { type: 'education', costToday: 2500000, childAge: 3, atAge: '', equityPct: 60, inflationPct: '' };
+  const r = goalPlan({ ...st, atAge: undefined, inflationPct: undefined }, rates);
+  const perChild = [3, 7].map((age) => ({ age, plan: goalPlan({ ...st, atAge: undefined, inflationPct: undefined, childAge: age }, rates) }));
+  await roundTrip('goal', { st, r, rates, perChild, typeLabel: "Child's education" }, ['Goal', 'Where it goes', 'Each child']);
 }
 // capital gains: property with the two options
 {

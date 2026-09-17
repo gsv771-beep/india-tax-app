@@ -60,7 +60,7 @@ export function retirement(o) {
  * your numbers, not advice: equity share of new savings = 110 - age, kept between 30% and 70%,
  * after the parts that are already decided (EPF) or clearly worth filling first (NPS, PPF).
  *
- * buildPlan({ age, monthly, epfMonthly, regime, employerNpsMonthly, hasDaughterUnder10 }, rates)
+ * buildPlan({ age, monthly, epfMonthly, regime, equityPct }, rates)
  *   -> [{ id, label, amount, why }]
  */
 export function buildPlan(o, rates) {
@@ -75,10 +75,11 @@ export function buildPlan(o, rates) {
   // NPS: own contribution up to 50,000 a year for 80CCD(1B) in the old regime; in the new regime the employer route is the one that saves tax
   if (o.regime === 'old') take('nps', 'NPS, your own contribution', 50000 / 12, `Up to ₹50,000 a year is deductible on top of 80C (80CCD(1B)); at 60, 60% comes out tax-free and 40% becomes a pension. Locked till 60, which is the point.`);
   else take('nps', 'NPS, through your employer if you can', Math.min(50000 / 12, left * 0.15), `In the new regime your own NPS gets no deduction, but an employer contribution up to 14% of basic does (80CCD(2)). Ask payroll to restructure; if not, a modest own contribution still buys a tax-free 60% at 60.`);
-  // equity share of what is left, by age
-  const equityShare = Math.max(0.3, Math.min(0.7, (110 - age) / 100));
-  const equity = left * equityShare;
-  take('equity', 'Nifty 50 or flexi-cap index fund SIP', equity, `${Math.round(equityShare * 100)}% of the rest, from a rule of thumb (110 minus your age). Over 15-25 years broad equity has beaten everything else after tax; it also falls 30-40% now and then, which is why it is not 100%.`);
+  // equity: the share the person chose (of everything saved), else a rule of thumb by age applied to what is left
+  const chosen = o.equityPct != null && Number.isFinite(+o.equityPct);
+  const equityShare = chosen ? Math.max(0, Math.min(1, +o.equityPct / 100)) : Math.max(0.3, Math.min(0.7, (110 - age) / 100));
+  const equity = chosen ? Math.min(left, monthly * equityShare) : left * equityShare;
+  take('equity', 'Nifty 50 or flexi-cap index fund SIP', equity, `${Math.round(equityShare * 100)}% ${chosen ? 'of your savings, the share you chose' : 'of the rest, from a rule of thumb (110 minus your age)'}. Over 15-25 years broad equity has beaten everything else after tax; it also falls 30-40% now and then, which is why it is rarely 100%.`);
   // PPF up to the cap, then debt
   const ppfMax = 150000 / 12;
   take('ppf', 'PPF', Math.min(ppfMax, left), `${rates.ppf}% tax-free, government-backed, 15-year lock. The safe half that does not need watching; ₹1.5 lakh a year is the cap.`);
