@@ -10,7 +10,8 @@
     "test:fixtures": "node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs && node tests/broker.test.mjs && node tests/post-tax.test.mjs && node tests/retirement.test.mjs && node tests/goal.test.mjs",
     "test:strict": "KNOWN_ANSWERS_STRICT=1 node tests/known-answers.test.mjs && node tests/fixtures.test.mjs && node tests/profile.test.mjs && node tests/home-buying.test.mjs && node tests/export.test.mjs && node tests/routes.test.mjs && node tests/broker.test.mjs && node tests/post-tax.test.mjs && node tests/retirement.test.mjs && node tests/goal.test.mjs",
     "build:funds": "node tools/build-mf-returns.mjs",
-    "deploy": "wrangler pages deploy public"
+    "deploy": "wrangler pages deploy public",
+    "backup": "node tools/backup.mjs"
   },
   "devDependencies": {
     "exceljs": "^4.4.0",
