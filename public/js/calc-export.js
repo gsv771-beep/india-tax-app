@@ -161,7 +161,9 @@ export const SPECS = {
       sheets: [
         { name: 'Summary', headline: ok ? `The money lasts past ${r.planUntil}` : `The money runs out around age ${r.shortfallAt}; ${'₹' + fmtINR(r.gapSip)} more a month closes the gap`, columns: [{ header: 'Item', width: 44 }, { header: 'Value', width: 20, fmt: X.inr }], rows: [[`Saved by ${r.retireAt}`, r.corpusAtRetirement], [`Needed at ${r.retireAt}`, r.corpusNeeded], ['Gap', r.gap], bold(['Extra to save a month', r.gapSip]), ['Spending in the first year of retirement', r.firstYearSpend], [`Left over at ${r.planUntil}`, r.surplusAtEnd]] },
         { name: 'Year by year', columns: [{ header: 'Age', width: 8, fmt: '0' }, { header: 'Phase', width: 12 }, { header: 'Added', fmt: X.inr }, { header: 'Spent', fmt: X.inr }, { header: 'Savings at year end', fmt: X.inr }], rows: r.years.map((y) => [y.age, y.phase, y.added || 0, y.spent || 0, y.corpus]) },
-      ],
+        x.build ? { name: 'How to build it', columns: [{ header: 'Where', width: 40 }, { header: 'A month', fmt: X.inr }, { header: 'Why', width: 90 }], rows: x.build.map((b) => [b.label, b.amount, b.why]) } : null,
+        x.draw ? { name: 'At retirement', columns: [{ header: 'Bucket', width: 30 }, { header: 'Amount', fmt: X.inr }, { header: 'Held in', width: 60 }, { header: 'Why', width: 70 }], rows: x.draw.buckets.map((b) => [b.label, b.amount, b.where, b.why]), note: x.draw.rules.join(' ') } : null,
+      ].filter(Boolean),
       inputs: [['Age', +st.age, '0'], ['Retire at', +st.retireAt, '0'], ['Spending a month today', +st.monthlyExpenses], ['Saved so far', +st.saved || 0], ['Investing a month', +st.monthlyInvesting || 0], ['Inflation (%)', +st.inflationPct, '0.0'], ['Spending after retirement (% of today)', +st.expensesAfterPct, '0'], ['Growth before retirement (%)', +st.growBeforePct, '0.0'], ['Growth after (%)', +st.growAfterPct, '0.0'], ['Plan until age', +st.planUntil, '0'], ['Savings step-up (%)', +st.stepUpPct, '0']],
       notes: ['One growth rate for everything saved, prices rising steadily, no one-off costs, tax at withdrawal not modelled. A fair idea, not a plan; revisit yearly.'],
     };

@@ -4,7 +4,7 @@
  * Engine: engine/retirement.js.
  */
 import { inr, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
-import { retirement } from '../engine/retirement.js';
+import { retirement, buildPlan, drawPlan } from '../engine/retirement.js';
 import { lineChart } from './charts.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { isEmptyProfile, INVESTMENT_BUCKETS } from '../engine/profile.js';
@@ -13,7 +13,10 @@ import { calcExportCard } from './calc-export-card.js';
 const STORE = 'taxcompass.retirement.v1';
 const SOURCE = 'calc:retirement';
 
-export function renderRetirement() {
+export function renderRetirement({ schemes }) {
+  const ss = schemes.small_savings_rates_q2_fy2026_27;
+  const epfRate = ((schemes.schemes || []).find((x) => x.id === 'epf') || {}).rate || 8.25;
+  const planRates = { epf: epfRate, ppf: ss.ppf.rate, scss: ss.scss.rate };
   const p = getProfile();
   const blank = isBlankAfterReset('retirement');
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch {}
@@ -62,9 +65,13 @@ export function renderRetirement() {
   function paint() {
     if (!(+st.age > 0) || !(+st.monthlyExpenses > 0) || !(+st.retireAt > +st.age)) { setChildren(out, [beginPrompt('Enter your age, when you want to retire, and what you spend a month.')]); last = null; return; }
     const r = retirement(st);
+    const epfMonthly = !isEmptyProfile(p) && p.income.basic > 0 ? Math.round(p.income.basic * 0.24 / 12) : 0;
+    const build = buildPlan({ age: +st.age, monthly: (+st.monthlyInvesting || 0) + (r.gap > 0 ? r.gapSip : 0), epfMonthly, regime: p.tax.regime }, planRates);
+    const drawCorpus = Math.max(r.corpusAtRetirement, r.corpusNeeded);   // plan the drawdown on the pot that actually lasts
+    const draw = drawPlan({ corpus: drawCorpus, firstYearSpend: r.firstYearSpend, planUntil: r.planUntil, retireAt: r.retireAt }, planRates);
     const later = retirement({ ...st, retireAt: +st.retireAt + 2 });
     const hotter = retirement({ ...st, inflationPct: +st.inflationPct + 1 });
-    last = { st: { ...st }, r };
+    last = { st: { ...st }, r, build, draw };
     const stat = (k, v, cls = '') => el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
     const ok = r.gap <= 0;
     const ages = r.years.map((y) => y.age);
@@ -86,6 +93,22 @@ export function renderRetirement() {
       el('ul', { class: 'levers' }, [
         el('li', {}, `Retire at ${+st.retireAt + 2} instead: the money ${later.gap <= 0 ? `lasts past ${later.planUntil} with ${inr(later.surplusAtEnd)} left` : `runs out at ${later.shortfallAt}; the gap falls to ${inr(later.gapSip)} a month`}.`),
         el('li', {}, `Prices rise ${+st.inflationPct + 1}% a year instead of ${st.inflationPct}%: ${hotter.gap <= 0 ? `still fine, ${inr(hotter.surplusAtEnd)} left at ${hotter.planUntil}` : `money runs out at ${hotter.shortfallAt}; gap ${inr(hotter.gapSip)} a month`}. Inflation moves this answer more than any fund choice.`),
+      ]),
+      el('div', { class: 'card next-steps' }, [
+        el('h3', { style: 'margin-top:0' }, `How to build it: ${inr(build.reduce((s, b) => s + b.amount, 0))} a month${r.gap > 0 ? ` (what you save now plus the ${inr(r.gapSip)} extra)` : ''}`),
+        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+          el('thead', {}, el('tr', {}, [el('th', {}, 'Where'), el('th', {}, 'A month'), el('th', {}, 'Why')])),
+          el('tbody', {}, build.map((b) => el('tr', {}, [el('td', {}, b.label), el('td', {}, inr(b.amount)), el('td', { class: 'small' }, b.why)]))),
+        ])),
+        el('p', { class: 'muted small' }, 'A rule of thumb with your numbers: the equity share is 110 minus your age, kept between 30% and 70%. Shift it if you know your own tolerance for a bad year; the order (EPF, NPS, equity, PPF) is what the tax rules reward.'),
+      ]),
+      el('div', { class: 'card next-steps' }, [
+        el('h3', { style: 'margin-top:0' }, r.gap > 0 ? `At ${r.retireAt}, once you have closed the gap and reached ${inr(r.corpusNeeded)}: three buckets` : `At ${r.retireAt}, with ${inr(r.corpusAtRetirement)}: three buckets`),
+        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+          el('thead', {}, el('tr', {}, [el('th', {}, 'Bucket'), el('th', {}, 'Amount'), el('th', {}, 'Held in'), el('th', {}, 'Why')])),
+          el('tbody', {}, draw.buckets.map((b) => el('tr', {}, [el('td', {}, b.label), el('td', {}, inr(b.amount)), el('td', { class: 'small' }, b.where), el('td', { class: 'small' }, b.why)]))),
+        ])),
+        el('ul', { class: 'levers' }, draw.rules.map((t) => el('li', {}, t))),
       ]),
       el('p', { class: 'muted small' }, 'A fair idea, not a plan. It assumes one growth rate for everything you save, prices rising steadily, and no big one-off costs. Tax at withdrawal is not modelled: EPF and PPF are tax-free, equity gains pay 12.5%, so the picture is a little rosy for equity-heavy savers. Check it once a year.'),
       el('div', { class: 'btn-row' }, [
