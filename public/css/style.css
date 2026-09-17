@@ -213,6 +213,9 @@ details.result-fold > :last-child { margin-bottom: 16px; }
 .insight-loss::marker { color: var(--danger); } .insight-tip::marker { color: var(--accent-3); } .insight-warn::marker { color: var(--warn); }
 .levers li.insight-tip { font-weight: 500; }
 
+table.compare tr.outside td { color: var(--muted); }
+table.compare tr.outside td:first-child { color: var(--text); }
+
 /* Capital gains reliefs */
 .relief-list { display: grid; gap: 8px; margin: 8px 0; }
 details.relief { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 12px; background: var(--surface); }

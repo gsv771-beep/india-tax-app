@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { INSTRUMENTS, postTax, compareAll, poTdRate } from '../public/engine/post-tax.js';
+import { INSTRUMENTS, RISK_PROFILES, postTax, compareAll, poTdRate } from '../public/engine/post-tax.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const schemes = JSON.parse(readFileSync(path.join(here, '../public/data/schemes.json'), 'utf8'));
@@ -74,11 +74,19 @@ const base = { amount: 100000, years: 5, slabRate: 0.3, cess: 0.04, regime: 'new
 }
 // compareAll orders by what you keep, unavailable last
 {
-  const rates = { savings: 4, liquid: 6.8, fd: 7.5, arbitrage: 7, debt: 7.2, corporate: 7.4, nsc: 7.7, ppf: 7.1, epf: 8.25, ssy: 8.2, nps: 9, elss: 12, index: 12, flexi: 12, gold: 8 };
+  const rates = { savings: 4, liquid: 6.8, fd: 7.5, arbitrage: 7, debt: 7.2, corporate: 7.4, nsc: 7.7, ppf: 7.1, epf: 8.25, ssy: 8.2, nps: 9, baf: 10, hybrid: 11, elss: 12, index: 12, largecap: 12, flexi: 12, gold: 8, midcap: 15, smallcap: 17 };
   const rows = compareAll({ ...base, years: 5 }, rates);
   ok('every instrument with a rate is listed', rows.length === INSTRUMENTS.length);
   ok('available rows first, then locked ones', rows.findIndex((r) => !r.available) > rows.filter((r) => r.available).length - 1);
-  ok('available rows sorted by post-tax value', rows.filter((r) => r.available).every((r, i, a) => i === 0 || a[i - 1].post >= r.post));
+  ok('in-profile available rows sorted by post-tax value', rows.filter((r) => r.available && r.inProfile).every((r, i, a) => i === 0 || a[i - 1].post >= r.post));
+  ok('default profile is balanced: mid and small caps sit outside it', rows.find((r) => r.inst.id === 'midcap').inProfile === false && rows.find((r) => r.inst.id === 'index').inProfile === true);
+  const cons = compareAll({ ...base, years: 5, riskProfile: 'conservative' }, rates);
+  ok('conservative: no equity in profile, arbitrage and debt funds in', cons.find((r) => r.inst.id === 'index').inProfile === false && cons.find((r) => r.inst.id === 'arbitrage').inProfile === true);
+  ok('conservative: out-of-profile rows come after in-profile ones', cons.findIndex((r) => !r.inProfile && r.available) > cons.filter((r) => r.inProfile && r.available).length - 1);
+  const aggr = compareAll({ ...base, years: 10, riskProfile: 'aggressive' }, rates);
+  ok('aggressive at 10 years: small cap is in profile and available', aggr.find((r) => r.inst.id === 'smallcap').inProfile && aggr.find((r) => r.inst.id === 'smallcap').available);
+  ok('mid and small caps need five years', !compareAll({ ...base, years: 3, riskProfile: 'aggressive' }, rates).find((r) => r.inst.id === 'smallcap').available);
+  ok('four risk profiles, rising', RISK_PROFILES.length === 4 && RISK_PROFILES.every((r, i, a) => i === 0 || r.maxRisk > a[i - 1].maxRisk));
   ok('PPF and SSY are locked at 5 years, EPF is not', rows.find((r) => r.inst.id === 'ppf').available === false && rows.find((r) => r.inst.id === 'epf').available === true);
 }
 // post office time deposit tiers

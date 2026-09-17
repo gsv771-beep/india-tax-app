@@ -8,7 +8,7 @@
  * Engine: engine/post-tax.js.
  */
 import { inr, pct, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset } from './util.js';
-import { INSTRUMENTS, compareAll, postTax, poTdRate } from '../engine/post-tax.js';
+import { INSTRUMENTS, RISK_PROFILES, compareAll, postTax, poTdRate } from '../engine/post-tax.js';
 import { loadFunds, summariseCategories } from './funds.js';
 import { getProfile } from './profile-store.js';
 import { isEmptyProfile, toTaxInputs } from '../engine/profile.js';
@@ -40,7 +40,7 @@ export function renderCompare({ rates, schemes }) {
     fromProfile.has80CRoom = p.tax.regime === 'old' && p.tax.s80cUsed < 150000;
     if (p.cashflow.monthlySurplus > 0) fromProfile.amount = Math.round(p.cashflow.monthlySurplus * 12);
   }
-  const st = { amount: '', years: 5, slabRate: 0.3, regime: 'new', has80CRoom: false, ltcgExemptionAvailable: true, rateOverrides: {}, ...saved, ...fromProfile };
+  const st = { amount: '', years: 5, slabRate: 0.3, regime: 'new', riskProfile: 'balanced', has80CRoom: false, ltcgExemptionAvailable: true, rateOverrides: {}, ...saved, ...fromProfile };
   const save = () => { clearBlankAfterReset('compare'); try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
 
   // ---- default rates, each with a source label ----
@@ -79,6 +79,7 @@ export function renderCompare({ rates, schemes }) {
   const F = {
     amount: field('amount', 'Amount (₹)', { step: 10000, placeholder: 'e.g. 100000' }, 'a lump sum today'),
     years: field('years', 'For how long', { options: HORIZONS }),
+    riskProfile: field('riskProfile', 'How much risk you will take', { options: RISK_PROFILES.map((r) => [r.id, r.label]) }, 'decides which instruments are in the running; the rest are still shown below the line'),
     slabRate: field('slabRate', 'Your income tax slab', { options: SLABS }, fromProfile.slabRate != null ? 'your marginal rate, from your profile' : 'the rate on your last rupee of income'),
     regime: field('regime', 'Regime', { options: [['new', 'New regime'], ['old', 'Old regime']] }),
     has80CRoom: field('has80CRoom', 'I still have room under 80C / 80CCD(1B) this year', { type: 'checkbox' }),
@@ -101,7 +102,7 @@ export function renderCompare({ rates, schemes }) {
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
       el('div', { class: 'opt-title' }, 'The question'),
-      F.amount.node, F.years.node,
+      F.amount.node, F.years.node, F.riskProfile.node,
       el('div', { class: 'two' }, [F.slabRate.node, F.regime.node]),
       F.has80CRoom.node, F.ltcgExemptionAvailable.node,
     ]),
@@ -118,10 +119,14 @@ export function renderCompare({ rates, schemes }) {
     const years = +st.years;
     const { rates: r, sources } = defaultRates(years);
     const ratesById = {}; for (const inst of INSTRUMENTS) if (r[inst.id] != null) ratesById[inst.id] = st.rateOverrides[inst.id] ?? r[inst.id];
-    const o = { amount: +st.amount, years, slabRate: +st.slabRate, cess: rates.cess.rate, regime: st.regime, has80CRoom: st.regime === 'old' && !!st.has80CRoom, ltcgExemptionAvailable: !!st.ltcgExemptionAvailable, ltcgExemption: rates.special_rate_income.capital_gains.ltcg_listed_equity_stt.annual_exemption };
+    const o = { amount: +st.amount, years, slabRate: +st.slabRate, cess: rates.cess.rate, regime: st.regime, riskProfile: st.riskProfile, has80CRoom: st.regime === 'old' && !!st.has80CRoom, ltcgExemptionAvailable: !!st.ltcgExemptionAvailable, ltcgExemption: rates.special_rate_income.capital_gains.ltcg_listed_equity_stt.annual_exemption };
     const rows = compareAll(o, ratesById);
-    const avail = rows.filter((x) => x.available);
+    const avail = rows.filter((x) => x.available && x.inProfile);
     const best = avail[0];
+    const outside = rows.filter((x) => x.available && !x.inProfile);
+    const profileLabel = (RISK_PROFILES.find((r) => r.id === st.riskProfile) || RISK_PROFILES[2]).label.split(':')[0].toLowerCase();
+    const horizonLabel = HORIZONS.find(([y]) => y === years)[1];
+    const parking = years <= 1;
     const fd = rows.find((x) => x.inst.id === 'fd');
     const ppf = rows.find((x) => x.inst.id === 'ppf');
     const showSaved = o.regime === 'old' && o.has80CRoom;
@@ -143,11 +148,12 @@ export function renderCompare({ rates, schemes }) {
         el('div', { class: 'stat' }, [el('div', { class: 'k' }, 'After tax, per year'), el('div', { class: 'v' }, best ? pct(best.effPost, 1) : '—')]),
         el('div', { class: 'stat' }, [el('div', { class: 'k' }, 'Your slab incl. cess'), el('div', { class: 'v' }, pct(t, 1))]),
       ]),
-      el('p', { class: 'explain' }, best ? `${inr(o.amount)} for ${HORIZONS.find(([y]) => y === years)[1]} at a ${pct(t, 1)} slab: ${best.inst.label.toLowerCase()} keeps the most, ${inr(best.post)}, ${best.how}. ${avail[1] ? `Next is ${avail[1].inst.label.toLowerCase()} at ${inr(avail[1].post)}.` : ''} The order changes with the horizon and the slab; the "pre-tax equivalent" column is what a fully taxed deposit would have to pay to match each one.${best.inst.category && categories ? (() => { const c = categories.find((x) => x.category === best.inst.category); return c && c.low < best.ratePct - 2 ? ` ${best.inst.label} is a historical median, not a promise: the same category’s worst ${years >= 5 ? '5' : '3'}-year window returned ${c.low.toFixed(1)}% a year${c.low < 0 ? ', a loss' : ''}.` : ''; })() : ''}` : 'Nothing is available for this horizon.'),
+      el('h3', {}, parking ? `Parking ${inr(o.amount)} for ${horizonLabel}` : `${inr(o.amount)} for ${horizonLabel}, ${profileLabel} risk`),
+      el('p', { class: 'explain' }, best ? `At a ${pct(t, 1)} slab and a ${profileLabel} risk profile, ${best.inst.label.toLowerCase()} keeps the most: ${inr(best.post)}, ${best.how}. ${avail[1] ? `Next is ${avail[1].inst.label.toLowerCase()} at ${inr(avail[1].post)}.` : ''} The order changes with the horizon and the slab; the "pre-tax equivalent" column is what a fully taxed deposit would have to pay to match each one.${best.inst.category && categories ? (() => { const c = categories.find((x) => x.category === best.inst.category); return c && c.low < best.ratePct - 2 ? ` ${best.inst.label} is a historical median, not a promise: the same category’s worst ${years >= 5 ? '5' : '3'}-year window returned ${c.low.toFixed(1)}% a year${c.low < 0 ? ', a loss' : ''}.` : ''; })() : ''}` : 'Nothing is available for this horizon.'),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'Instrument'), el('th', {}, 'Return assumed'), el('th', {}, 'Taxed how'), el('th', {}, 'You keep'), el('th', {}, 'After tax p.a.'), el('th', {}, 'Pre-tax equivalent'), showSaved ? el('th', {}, 'Tax saved now') : null, showSaved ? el('th', {}, 'All-in p.a.') : null])),
-        el('tbody', {}, rows.map((x, i) => el('tr', { class: !x.available ? 'muted' : i === 0 ? 'better' : '' }, [
-          el('td', {}, [x.inst.label, el('div', { class: 'muted small' }, x.available ? `lock-in: ${x.inst.lock}` : x.reason)]),
+        el('tbody', {}, rows.flatMap((x, i) => [x.available && !x.inProfile && (i === 0 || rows[i - 1].inProfile || !rows[i - 1].available) ? el('tr', { class: 'group' }, [el('td', { colspan: showSaved ? 8 : 6 }, `Outside a ${profileLabel} profile (${outside.length}): riskier than you said you would take`)]) : null, !x.available && (i === 0 || rows[i - 1].available) ? el('tr', { class: 'group' }, [el('td', { colspan: showSaved ? 8 : 6 }, 'Not for this horizon')]) : null, el('tr', { class: !x.available ? 'muted' : !x.inProfile ? 'outside' : i === 0 ? 'better' : '' }, [
+          el('td', {}, [x.inst.label, el('div', { class: 'muted small' }, x.available ? `lock-in: ${x.inst.lock}` : x.reason), x.inst.note && x.available ? el('div', { class: 'muted small' }, x.inst.note) : null]),
           el('td', {}, [`${x.ratePct}%`, st.rateOverrides[x.inst.id] != null ? el('span', { class: 'conf-flag', title: 'your figure' }, 'yours') : x.inst.category && x.inst.category !== 'nps_mix' ? el('span', { class: 'conf-flag', title: sources[x.inst.id] || '' }, 'history') : null]),
           el('td', { class: 'small' }, x.available ? x.how : '—'),
           el('td', {}, x.available ? inr(x.post) : '—'),
@@ -155,7 +161,7 @@ export function renderCompare({ rates, schemes }) {
           el('td', {}, x.available ? pct(x.preTaxEquivalent, 1) : '—'),
           showSaved ? el('td', {}, x.available && x.taxSavedNow ? inr(x.taxSavedNow) : '—') : null,
           showSaved ? el('td', {}, x.available ? pct(x.effAllIn, 1) : '—') : null,
-        ]))),
+        ])].filter(Boolean))),
       ])),
       answers.length ? el('div', { class: 'card next-steps' }, [el('h3', { style: 'margin-top:0' }, 'The questions people ask'), el('ul', { class: 'levers' }, answers.map((a) => el('li', {}, a)))]) : null,
       el('p', { class: 'muted small' }, 'Guaranteed instruments pay what is notified; small-savings rates change quarterly. Fund figures are the median of what each category returned over rolling windows near your horizon, from AMFI NAV history; the actual return will differ, and the equity ones can be negative over short periods. Equity tax assumes the yearly exemption is available once; a long holding realised in one go gets the exemption only in that year. NPS assumes 60% taken tax-free and 40% annuitised with the annuity taxed at your slab. EPF interest above ₹2.5 lakh of own contributions a year is taxable and not modelled.'),
