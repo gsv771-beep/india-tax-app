@@ -4,6 +4,7 @@ import { initTax } from './tax-ui.js';
 import { initCalculators, showCalc } from './calculators.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
+import { initFeedbackBadge } from './feedback-wall.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
 
@@ -105,6 +106,7 @@ async function boot() {
     initCalculators(appData);
     initFeedback();
     initCounter();
+    initFeedbackBadge();
     document.body.classList.add('ready');
     route();
     // Fixture loader and other dev-only controls: never on taxcompass.org.

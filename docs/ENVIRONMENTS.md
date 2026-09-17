@@ -43,6 +43,8 @@ Workers & Pages → `india-tax-app`:
 4. **Variables and secrets.** Brevo and D1 settings are per-environment. Preview deployments
    share the Preview environment; if you want staging to send email, add the same variables
    under *Preview*. Leaving them unset is fine: the email button reports it is switched off.
+   Add `FEEDBACK_ADMIN_TOKEN` (any 16+ character secret) to Production to use the feedback moderation
+   page at `https://taxcompass.org/api/feedback-admin`; paste the token there once per browser session.
 
 ## One-time GitHub setup (repository settings; cannot be done from the repo)
 

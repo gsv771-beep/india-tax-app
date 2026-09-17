@@ -15,8 +15,30 @@ export function escapeHtml(s) {
 export async function ensureSchema(db) {
   await db.batch([
     db.prepare('CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL DEFAULT 0)'),
-    db.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, name TEXT NOT NULL, email TEXT, rating INTEGER, message TEXT NOT NULL, page TEXT, ua TEXT)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, name TEXT NOT NULL, email TEXT, rating INTEGER, message TEXT NOT NULL, page TEXT, ua TEXT, public_ok INTEGER NOT NULL DEFAULT 0, approved INTEGER NOT NULL DEFAULT 0)'),
   ]);
+  // Databases created before the public wall: add the two columns once. SQLite has no IF NOT EXISTS for columns.
+  for (const col of ['public_ok', 'approved']) {
+    try { await db.prepare(`ALTER TABLE feedback ADD COLUMN ${col} INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* already there */ }
+  }
+}
+
+/** First name plus the initial of the last: what the public wall shows. */
+export function displayName(name) {
+  const parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'Anonymous';
+  return parts.length === 1 ? parts[0] : `${parts[0]} ${parts[parts.length - 1][0].toUpperCase()}.`;
+}
+
+/** Constant-time-ish token check for the admin endpoint. */
+export function adminAuthorised(request, env) {
+  const want = String(env.FEEDBACK_ADMIN_TOKEN || '');
+  if (want.length < 16) return false;
+  const got = (request.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  if (got.length !== want.length) return false;
+  let diff = 0;
+  for (let i = 0; i < want.length; i++) diff |= want.charCodeAt(i) ^ got.charCodeAt(i);
+  return diff === 0;
 }
 
 export async function bump(db, name) {

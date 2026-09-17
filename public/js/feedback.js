@@ -9,6 +9,7 @@ export function initFeedback() {
   const email = el('input', { type: 'email', placeholder: 'Email (optional, only if you want a reply)', maxlength: 120, autocomplete: 'email' });
   const message = el('textarea', { rows: 4, maxlength: 2000, placeholder: 'What worked, what did not, what is wrong or missing?', required: true });
   const honey = el('input', { type: 'text', name: 'website', tabindex: -1, autocomplete: 'off', style: 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0' });
+  const publicOk = el('input', { type: 'checkbox' });
   const status = el('p', { class: 'muted small', style: 'margin:6px 0 0' });
   let rating = 0;
   const stars = el('div', { class: 'stars', role: 'radiogroup', 'aria-label': 'Rating' });
@@ -22,7 +23,8 @@ export function initFeedback() {
     el('label', {}, ['How useful was this?', stars]),
     el('label', {}, ['Your feedback', message]),
     honey,
-    el('p', { class: 'muted small' }, 'We keep your name and message to improve the site. Your email is kept only if you give it, and only to reply.'),
+    el('label', { class: 'check' }, [publicOk, 'You may show this on the site, with my first name']),
+    el('p', { class: 'muted small' }, 'We keep your name and message to improve the site. Your email is kept only if you give it, and only to reply. Nothing is shown publicly unless you tick the box above.'),
     el('div', { class: 'btn-row' }, [send]),
     status,
   ]);
@@ -30,11 +32,11 @@ export function initFeedback() {
     e.preventDefault();
     send.disabled = true; status.textContent = 'Sending…';
     try {
-      const res = await fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: name.value.trim(), email: email.value.trim(), rating, message: message.value.trim(), page: location.pathname, website: honey.value }) });
+      const res = await fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: name.value.trim(), email: email.value.trim(), rating, message: message.value.trim(), page: location.pathname, publicOk: publicOk.checked, website: honey.value }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Could not send (${res.status})`);
       status.textContent = 'Thank you. Your feedback has been received.';
-      message.value = ''; rating = 0; drawStars();
+      message.value = ''; rating = 0; publicOk.checked = false; drawStars();
       setTimeout(() => { panel.hidden = true; status.textContent = ''; }, 1800);
     } catch (err) {
       status.textContent = /not configured|503/.test(err.message) ? 'Feedback is not switched on for this deployment yet.' : err.message;

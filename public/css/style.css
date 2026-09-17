@@ -479,6 +479,12 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .fb-form textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--line-strong); border-radius: var(--radius-sm); font: inherit; background: var(--surface); color: var(--text); resize: vertical; }
 .fb-form textarea:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 3px rgba(29, 107, 61, .18); }
 .stars { display: flex; gap: 4px; }
+.stars-static { color: var(--gold); letter-spacing: 1px; }
+.wall-rating { font-size: 1.05rem; font-weight: 600; margin: 0 0 12px; }
+.wall { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.wall-item { margin: 0; padding: 12px 14px; background: var(--accent-soft); border-radius: var(--radius-sm); border-left: 4px solid var(--accent); }
+.wall-item p { margin: 0 0 8px; white-space: pre-wrap; }
+.wall-item footer { font-size: .82rem; color: var(--muted); }
 .stars button { background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--line-strong); padding: 0 2px; }
 .stars button.on { color: var(--gold); }
 .stars button:hover { color: var(--gold); }

@@ -1,9 +1,12 @@
+import { feedbackWallCard } from './feedback-wall.js';
 import { el, setChildren, loadJSON } from './util.js';
 
 const FEEDBACK_EMAIL = 'gsv771@gmail.com';
 export const CREATOR = { name: 'Gaurav', linkedin: 'https://www.linkedin.com/in/gauravsv/' };
 
 export function initAbout({ rates, schemes, capgains }) {
+  const wallSlot = el('div');
+  feedbackWallCard().then((card) => { if (card) { wallSlot.replaceChildren(card); if (location.hash === '#what-people-say') card.scrollIntoView({ block: 'start' }); } });
   const body = document.getElementById('about-body');
   const fundStamp = el('span', {}, 'loading…');
   loadJSON('/data/mf_returns.json').then((d) => { fundStamp.textContent = `${d._meta.fund_count} open-ended funds, NAV as of ${d._meta.nav_as_of}, source ${d._meta.source}`; }).catch(() => { fundStamp.textContent = 'not available in this build'; });
@@ -43,15 +46,16 @@ export function initAbout({ rates, schemes, capgains }) {
     section('Privacy', [
       el('ul', {}, [
         'Everything you type into the tax comparison and the calculators stays in your own browser, in its local storage. It is never sent anywhere, and the site has no user accounts.',
-        'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Export it as a JSON file to move it to another browser, import it there, or wipe it with one click. Nothing in it is uploaded, and TaxCompass keeps no copy.',
+        'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Email it to yourself as a small file to move it to another browser, restore it there, or wipe it with one click. It is sent to you only, through our email provider, and TaxCompass keeps no copy.',
         'If you ask for an Excel workbook by email, your name, email address and the workbook are sent once to our email provider (Brevo) for delivery. With your consent on that form, we keep your name and email to ask for feedback about the app. We do not sell or share them, and you can ask to be removed by replying to any email.',
-        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. A simple counter records how many visits and comparisons happen; it stores numbers, not people.',
+        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. Feedback appears under "What people say" only if you ticked the box allowing it, and then with your first name and an initial. Ratings are averaged across everyone who gave one. A simple counter records how many visits and comparisons happen; it stores numbers, not people.',
         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',
       ].map((t) => el('li', {}, t))),
     ]),
     section('Feedback and corrections', [
       el('p', {}, ['Found a mistake, a rule that changed, or something confusing? Use the Feedback button at the bottom right of any page, or write to ', el('a', { href: `mailto:${FEEDBACK_EMAIL}?subject=TaxCompass%20feedback` }, FEEDBACK_EMAIL), '. Corrections to rates or limits are especially welcome, with a link to the notification or circular if you have one.']),
     ]),
+    wallSlot,
     section('Who built this', [
       el('p', {}, [`TaxCompass is built and maintained by ${CREATOR.name}, one person, in the open. If you would like to talk about the project, a partnership, or licensing the calculation engine for a payroll or planning product, `, el('a', { href: CREATOR.linkedin, target: '_blank', rel: 'noopener' }, 'connect on LinkedIn'), '. For corrections and bugs the Feedback button is faster; it reaches the same person, with the page and the figures attached.']),
       el('div', { class: 'btn-row' }, [el('a', { class: 'btn secondary', href: CREATOR.linkedin, target: '_blank', rel: 'noopener' }, 'Message on LinkedIn')]),
