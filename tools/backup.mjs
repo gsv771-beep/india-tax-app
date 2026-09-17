@@ -29,7 +29,7 @@ console.log(`\nRepository bundle: ${bundle} (${mb} MB, HEAD ${head}, all branche
 
 // D1: best effort. Needs `npx wrangler login` once; skipped quietly when not available.
 const sql = bundle.replace(/\.bundle$/, '-d1.sql');
-const r = spawnSync('npx', ['wrangler', 'd1', 'export', 'taxcompass', '--remote', `--output=${sql}`], { cwd: root, shell: true, encoding: 'utf8', timeout: 120000 });
+const r = spawnSync(`npx wrangler d1 export taxcompass --remote --output="${sql}"`, { cwd: root, shell: true, encoding: 'utf8', timeout: 120000 });
 if (r.status === 0 && existsSync(sql)) console.log(`Database export:  ${sql}`);
 else console.log('Database export skipped (run "npx wrangler login" once to include the feedback and counter tables; see docs/RECOVERY.md).');
 
