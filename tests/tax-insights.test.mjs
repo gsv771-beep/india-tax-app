@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
 import { compareRegimes, DEFAULT_FLAGS } from '../public/js/tax-engine.js';
-import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps } from '../public/js/tax-insights.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps, taxDrivers } from '../public/js/tax-insights.js';
 import { buildTaxWorkbookBase64 } from '../public/js/tax-export.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -109,6 +109,25 @@ ok('no income: kind none', breakEven({}, rates).kind === 'none');
   const be = wb.getWorksheet('Break-even');
   ok('break-even sentence present', /regime/.test(String(be.getCell('A4').value)));
   ok('inputs sheet lists gross salary', wb.getWorksheet('Inputs').getCell('B5').value === 1500000);
+}
+
+// tax drivers: what adds tax and what cuts it, by taking each item out
+{
+  const inputs = { salary: { gross: 2400000, basicDa: 1000000, hraReceived: 400000, rentPaid: 480000, city: 'Mumbai' }, houseProperty: { selfOccupiedInterest: 200000 }, deductions: { s80c: 150000, nps1b: 50000, healthSelf: 25000 }, otherIncome: { depositInterest: 60000 } };
+  const d = taxDrivers(inputs, rates);
+  const cmp = compareRegimes(inputs, rates);
+  ok('drivers: regime is the lower one', d.regime === (cmp.better === 'old' ? 'old' : 'new'));
+  ok('drivers: salary is the biggest, and adds tax', d.items[0].id === 'salary' && d.items[0].effect > 0);
+  const hra = d.items.find((i) => i.id === 'hra'), loan = d.items.find((i) => i.id === 'homeloan'), c = d.items.find((i) => i.id === '80c');
+  ok('drivers: HRA, home loan and 80C cut old-regime tax and do nothing in the new', hra.old < 0 && hra.new === 0 && loan.old < 0 && loan.new === 0 && c.old < 0 && c.new === 0);
+  ok('drivers: deposit interest adds tax in both', d.items.find((i) => i.id === 'other').old > 0 && d.items.find((i) => i.id === 'other').new > 0);
+  const size = (it) => Math.max(Math.abs(it.old), Math.abs(it.new));
+  ok('drivers: sorted by size in either regime', d.items.every((it, i) => i === 0 || size(d.items[i - 1]) >= size(it)));
+  ok('drivers: items with no tax effect in either regime are dropped', d.items.every((it) => it.old !== 0 || it.new !== 0));
+  // removing salary from a salary-only case takes the tax to zero, so its effect is the whole tax
+  const solo = taxDrivers({ salary: { gross: 1500000 } }, rates);
+  near('drivers: salary-only effect equals the total tax', solo.items[0].effect, compareRegimes({ salary: { gross: 1500000 } }, rates).new.tax.total, 1);
+  ok('drivers: nothing entered -> no items', taxDrivers({}, rates).items.length === 0);
 }
 
 console.log(failures === 0 ? '\nAll tax insight tests passed.' : `\n${failures} test(s) FAILED.`);

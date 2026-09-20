@@ -129,6 +129,49 @@ export function waterfallSteps(regimeResult) {
 }
 
 /** Re-run the comparison with extra old-regime deductions the user is considering. */
+/**
+ * What moves your tax most: each income source and each deduction or exemption, measured by
+ * removing it and recomputing, under both regimes. `effect` is the rupees of tax the item is
+ * responsible for: positive means it adds tax (income), negative means it cuts tax (a deduction).
+ * Returns items sorted by size under the regime that is currently lower (`regime`).
+ *   -> { regime, items: [{ id, label, kind: 'income'|'relief', amount, old, new, effect }] }
+ */
+export function taxDrivers(inputs, rates, flags = DEFAULT_FLAGS) {
+  const inp = mergeInputs(inputs);
+  const base = compareRegimes(inp, rates, flags);
+  const regime = base.better === 'old' ? 'old' : 'new';
+  const num = (v) => (Number.isFinite(+v) ? +v : 0);
+  const sum = (...v) => v.reduce((s, x) => s + num(x), 0);
+  const without = (mutate) => { const m = mergeInputs(inp); mutate(m); return compareRegimes(m, rates, flags); };
+  const cand = [
+    { id: 'salary', label: 'Salary', kind: 'income', amount: num(inp.salary.gross), mutate: (m) => { m.salary.gross = 0; m.salary.basicDa = 0; m.salary.hraReceived = 0; m.salary.rentPaid = 0; m.salary.ltaExempt = 0; m.salary.professionalTax = 0; m.deductions.includeEpf = false; m.deductions.epfEmployee = 0; } },
+    { id: 'business', label: 'Business or professional income', kind: 'income', amount: num(inp.business.income), mutate: (m) => { m.business.income = 0; } },
+    { id: 'rent', label: 'Rent from property', kind: 'income', amount: num(inp.houseProperty.letOut.rent), mutate: (m) => { m.houseProperty.letOut = { rent: 0, municipalTax: 0, interest: 0 }; } },
+    { id: 'other', label: 'Interest, dividends and other income', kind: 'income', amount: sum(inp.otherIncome.savingsInterest, inp.otherIncome.depositInterest, inp.otherIncome.dividends, inp.otherIncome.other), mutate: (m) => { m.otherIncome = { savingsInterest: 0, depositInterest: 0, dividends: 0, other: 0 }; } },
+    { id: 'capgains', label: 'Capital gains', kind: 'income', amount: sum(inp.capitalGains.stcgEquity, inp.capitalGains.ltcgEquity, inp.capitalGains.ltcgOther, inp.capitalGains.lottery), mutate: (m) => { m.capitalGains = { stcgEquity: 0, ltcgEquity: 0, ltcgOther: 0, lottery: 0 }; } },
+    { id: 'hra', label: 'HRA exemption (rent paid)', kind: 'relief', amount: num(inp.salary.rentPaid), mutate: (m) => { m.salary.rentPaid = 0; } },
+    { id: 'homeloan', label: 'Home loan interest, self-occupied (24(b))', kind: 'relief', amount: num(inp.houseProperty.selfOccupiedInterest), mutate: (m) => { m.houseProperty.selfOccupiedInterest = 0; } },
+    { id: '80c', label: '80C (EPF, PPF, ELSS, insurance)', kind: 'relief', amount: num(inp.deductions.s80c) + (inp.deductions.includeEpf ? Math.max(num(inp.deductions.epfEmployee), 0.12 * num(inp.salary.basicDa)) : 0), mutate: (m) => { m.deductions.s80c = 0; m.deductions.includeEpf = false; m.deductions.epfEmployee = 0; } },
+    { id: 'nps_employer', label: 'Employer NPS (80CCD(2))', kind: 'relief', amount: num(inp.employer.npsContribution), mutate: (m) => { m.employer.npsContribution = 0; } },
+    { id: 'nps_own', label: 'Own NPS (80CCD(1B))', kind: 'relief', amount: num(inp.deductions.nps1b), mutate: (m) => { m.deductions.nps1b = 0; } },
+    { id: '80d', label: 'Health insurance (80D)', kind: 'relief', amount: sum(inp.deductions.healthSelf, inp.deductions.healthParents), mutate: (m) => { m.deductions.healthSelf = 0; m.deductions.healthParents = 0; } },
+    { id: '80e', label: 'Education loan interest (80E)', kind: 'relief', amount: num(inp.deductions.educationLoanInterest), mutate: (m) => { m.deductions.educationLoanInterest = 0; } },
+    { id: '80g', label: 'Donations (80G)', kind: 'relief', amount: num(inp.deductions.donations), mutate: (m) => { m.deductions.donations = 0; } },
+    { id: 'lta', label: 'LTA exemption', kind: 'relief', amount: num(inp.salary.ltaExempt), mutate: (m) => { m.salary.ltaExempt = 0; } },
+  ].filter((c) => c.amount > 0);
+  const items = cand.map((c) => {
+    const w = without(c.mutate);
+    // income: tax falls when removed, so effect = base - without; relief: tax rises, effect = -(without - base)
+    const eff = (k) => base[k].tax.total - w[k].tax.total;
+    const item = { id: c.id, label: c.label, kind: c.kind, amount: Math.round(c.amount), old: Math.round(eff('old')), new: Math.round(eff('new')) };
+    item.effect = item[regime];
+    return item;
+  }).filter((it) => it.old !== 0 || it.new !== 0);
+  const size = (it) => Math.max(Math.abs(it.old), Math.abs(it.new));   // biggest in either regime first: a deduction the new regime ignores is still a driver
+  items.sort((a, b) => size(b) - size(a));
+  return { regime, items };
+}
+
 export function whatIf(inputs, extras, rates, flags = DEFAULT_FLAGS) {
   const inp = mergeInputs(inputs);
   const before = compareRegimes(inp, rates, flags);

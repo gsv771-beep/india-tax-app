@@ -1,6 +1,6 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
-import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps } from './tax-insights.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps, taxDrivers } from './tax-insights.js';
 import { emailWorkbookCard } from './email-card.js';
 import { lineChart, waterfallChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
@@ -100,7 +100,7 @@ function render(inputs, rates, flags) {
   lastInputs = inputs;
   const result = compareRegimes(inputs, rates, flags);
   if (result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) countEvent('compare');
-  renderHeadline(result);
+  renderHeadline(result, inputs, rates, flags);
   renderWarnings(result);
   renderInsights(inputs, result, rates, flags);
   renderCharts(inputs, result, rates, flags);
@@ -265,12 +265,7 @@ function renderInsights(inputs, cmp, rates, flags) {
   const be = breakEven(inputs, rates, flags);
   const hr = headroom(inputs, rates, flags);
 
-  const sentence = {
-    need: `The old regime would win only if you had about ${fmt(be.extra)} more in deductions or exemptions than you do now.`,
-    impossible: 'On these figures no amount of old-regime deductions would beat the new regime.',
-    cushion: `The old regime stays ahead until about ${fmt(be.cushion)} of the ${fmt(be.claimed)} you currently claim is lost.`,
-    always: 'The old regime would stay lower even without any of its deductions.',
-  }[be.kind];
+  const sentence = breakEvenSentence(be);
 
   // what-if sliders for old-regime room
   const roomOf = (id) => (hr.items.find((i) => i.id === id) || { room: 0 }).room;
@@ -313,10 +308,9 @@ function renderInsights(inputs, cmp, rates, flags) {
 
   setChildren(box, [
     el('div', { class: 'card insights' }, [
-      el('h3', { style: 'margin-top:0' }, 'How far is this from flipping?'),
-      el('p', {}, sentence),
+      el('h3', { style: 'margin-top:0' }, 'What if you used the room you have left?'),
+      el('p', { class: 'muted small' }, sentence),
       sliders.length ? el('div', {}, [
-        el('h4', {}, 'What if you used the room you have left?'),
         el('p', { class: 'muted small' }, 'These deductions apply in the old regime only. Drag to see what more investing would do to the comparison.'),
         ...sliderRows,
         result,
@@ -333,7 +327,43 @@ function renderInsights(inputs, cmp, rates, flags) {
   ]);
 }
 
-function renderHeadline(r) {
+function breakEvenSentence(be) {
+  return {
+    need: `You would need about ${fmt(be.extra)} more in old-regime deductions or exemptions before the old regime became cheaper.`,
+    impossible: 'On these figures no amount of old-regime deductions would beat the new regime.',
+    cushion: `The old regime stays cheaper until about ${fmt(be.cushion)} of the ${fmt(be.claimed)} you currently claim is lost.`,
+    always: 'The old regime would stay cheaper even without any of its deductions.',
+    none: '',
+  }[be.kind] || '';
+}
+
+/** Your biggest tax drivers: what adds tax and what cuts it, under the regime that is lower. */
+function driversCard(inputs, r, rates, flags) {
+  const d = taxDrivers(inputs, rates, flags);
+  if (!d.items.length) return null;
+  const top = d.items.slice(0, 6);
+  const scale = Math.max(...top.map((it) => Math.max(Math.abs(it.old), Math.abs(it.new))), 1);
+  const other = d.regime === 'old' ? 'new' : 'old';
+  const rows = top.map((it, i) => {
+    // an item that does nothing in the lower regime but would in the other is still a driver worth seeing
+    const onlyOther = it.effect === 0 && it[other] !== 0;
+    const eff = onlyOther ? it[other] : it.effect;
+    const adds = eff > 0;
+    const note = !onlyOther && it[other] !== eff && it[other] !== 0 ? `${other} regime: ${it[other] > 0 ? 'adds' : 'cuts'} ${fmt(Math.abs(it[other]))}` : '';
+    return el('div', { class: 'driver' + (onlyOther ? ' only-other' : '') }, [
+      el('div', { class: 'driver-head' }, [el('span', { class: 'driver-rank' }, String(i + 1)), el('span', { class: 'driver-label' }, [termify(it.label), el('small', { class: 'muted' }, ` ${fmt(it.amount)}`)]), el('span', { class: 'driver-eff ' + (adds ? 'adds' : 'cuts') }, [`${adds ? 'adds ' : 'cuts '}${fmt(Math.abs(eff))}`, onlyOther ? el('small', {}, ` ${other} regime only`) : null])]),
+      el('div', { class: 'driver-bar' }, el('span', { class: adds ? 'adds' : 'cuts', style: `width:${Math.max(2, Math.round(Math.abs(eff) / scale * 100))}%` })),
+      note ? el('div', { class: 'muted small driver-note' }, note) : null,
+    ]);
+  });
+  return el('div', { class: 'card drivers' }, [
+    el('h3', { style: 'margin-top:0' }, 'Your biggest tax drivers'),
+    el('p', { class: 'muted small' }, `What each item does to your tax under the ${d.regime} regime, found by taking it out and recomputing. Income adds tax; deductions and exemptions cut it.`),
+    ...rows,
+  ]);
+}
+
+function renderHeadline(r, inputs, rates, flags) {
   const box = document.getElementById('tax-headline');
   box.replaceChildren();
   const card = (key, label) => {
@@ -347,20 +377,23 @@ function renderHeadline(r) {
       el('div', { class: 'eff' }, `Total income ${inr(t.totalIncome)} · effective rate ${pct(t.effectiveRate)}`),
     ]);
   };
-  box.append(card('old', 'Old regime'), card('new', 'New regime (default)'));
   const empty = r.old.tax.totalIncome === 0 && r.new.tax.totalIncome === 0;
+  // 1. The answer, in large type; 2. how far it is from flipping; 3. why (the two totals); 4. what drives it.
   let verdict;
   if (empty) {
     verdict = el('div', { class: 'verdict same' }, 'Enter your income on the left to see both regimes computed side by side.');
   } else if (r.better === 'same') {
     verdict = el('div', { class: 'verdict same' }, 'Both regimes give the same tax. The new regime is the default and needs no form.');
   } else {
-    const saving = el('span');
+    const saving = el('span', { class: 'verdict-amount' });
     animateNumber(saving, 'tax:saving', inr(r.saving));
-    verdict = el('div', { class: 'verdict' }, [`The ${r.better} regime saves you `, saving, ' this year.']);
+    verdict = el('div', { class: 'verdict' }, [el('div', { class: 'verdict-k' }, 'Your result'), el('div', { class: 'verdict-line' }, [`The ${r.better} regime saves you `, saving, ' this year']), el('div', { class: 'verdict-sub' }, breakEvenSentence(breakEven(inputs, rates, flags)))]);
   }
   box.append(verdict);
   if (!empty) {
+    box.append(el('div', { class: 'why-title' }, 'Why?'), card('old', 'Old regime'), card('new', 'New regime (default)'));
+    const drivers = driversCard(inputs, r, rates, flags);
+    if (drivers) box.append(drivers);
     box.append(el('div', { class: 'headline-foot' }, [
       el('span', { class: 'trust' }, 'Checked against the 10 statutory worked examples and 190+ automated tests. Rates as compiled 13 Sep 2026.'),
       shareCard(r, FY_SHORT[lastInputs?.fy] || 'FY 2026-27'),
