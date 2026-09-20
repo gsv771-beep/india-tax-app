@@ -6,6 +6,7 @@ import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
 import { initHome } from './home.js';
+import { initSnapshot } from './snapshot.js';
 import { ensureFresh } from './fresh.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
@@ -107,6 +108,7 @@ async function boot() {
     initGlossaryTooltips(glossary);
     initProfilePanel();
     initHome(appData);
+    initSnapshot(appData);
     initTax(appData);
     initCalculators(appData);
     initFeedback();

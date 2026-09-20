@@ -271,6 +271,23 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .hero p { font-size: 1.08rem; color: var(--muted); margin: 0; }
 .home-profile { margin-top: 12px !important; font-size: .95rem !important; color: var(--text) !important; padding: 10px 14px; background: var(--accent-soft); border-radius: var(--radius-sm); display: inline-block; }
 .decide-title { font-size: 1.1rem; margin: 26px 0 12px; }
+/* snapshot */
+.snap, .snap-start { margin-top: 18px; }
+.snap-title { font-weight: 800; font-size: 1.15rem; }
+.snap-head { margin-bottom: 8px; }
+.snap-rows { display: grid; }
+.snap-row { display: grid; grid-template-columns: 150px 1fr; column-gap: 14px; row-gap: 2px; padding: 10px 0; border-top: 1px dashed var(--line); align-items: baseline; }
+.snap-row:first-child { border-top: 0; }
+.snap-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+.snap-value { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.snap-note { grid-column: 2; font-size: .9rem; color: var(--muted); }
+.snap-note a { font-weight: 600; white-space: nowrap; }
+.snap-foot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; display: grid; gap: 6px; }
+.snap-mix { font-size: .9rem; font-weight: 600; }
+.snap-mix input { display: block; width: 100%; max-width: 320px; accent-color: var(--accent); margin-top: 4px; }
+.snap-form { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.snap-form label { flex: 1; min-width: 200px; max-width: 320px; }
+@media (max-width: 560px) { .snap-row { grid-template-columns: 1fr; } .snap-note { grid-column: 1; } }
 .decide-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
 .decide { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 12px; row-gap: 4px; align-items: start; padding: 16px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); color: var(--text); text-decoration: none; transition: transform .12s ease, border-color .12s ease; }
 .decide:hover { transform: translateY(-2px); border-color: var(--accent); text-decoration: none; }
