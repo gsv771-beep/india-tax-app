@@ -6,6 +6,7 @@ import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
 import { initHome } from './home.js';
+import { ensureFresh } from './fresh.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
 
@@ -85,6 +86,8 @@ document.addEventListener('wheel', (e) => {
 }, { passive: true });
 
 async function boot() {
+  // A fresh page with stale scripts is the one failure the site cannot explain to the user; check first.
+  if (await ensureFresh()) return;
   // Show the right section at once; results fill in when the data arrives (a few tens of milliseconds on a warm cache).
   route();
   try {

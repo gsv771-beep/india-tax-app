@@ -65,6 +65,12 @@ There is no build step and no hashed filenames, so `public/_headers` forces brow
 4-hour `max-age` let a browser pair a fresh `index.html` with a stale `calculators.js`, and a newly
 added tab did nothing when clicked. Data files keep a 1-hour cache.
 
+**Self-healing (in the code):** `npm run stamp` (run automatically before `npm test`) hashes every script and
+stylesheet into a build stamp written to `<meta name="tc-build">` in `index.html`, `public/js/version.js` and
+`public/js/manifest.json`. On boot `public/js/fresh.js` compares the page's stamp with the loaded script's; if they
+differ it re-fetches every listed file with `cache: 'reload'` and reloads once (a session flag prevents loops).
+`tests/build-stamp.test.mjs` fails when the stamp is out of date, so an unstamped change cannot pass CI.
+
 **Zone setting (one-time, dashboard):** the `taxcompass.org` zone's *Browser Cache TTL* defaults to 4 hours
 and overrides any shorter header the site sends, which silently re-creates the stale-script problem on the
 custom domain only. Set **Caching → Configuration → Browser Cache TTL → Respect Existing Headers**.
