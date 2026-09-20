@@ -316,6 +316,15 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
    Forms
    ============================================================ */
 label { display: flex; flex-direction: column; gap: 5px; font-size: .9rem; font-weight: 500; }
+/* drag line under a number, and the ₹ | % switch */
+input[type=range].drag { width: 100%; margin: 0; accent-color: var(--accent); height: 18px; }
+.pct-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 400; }
+.seg-group { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; }
+.seg { background: var(--surface); border: 0; padding: 3px 11px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--muted); }
+.seg.on { background: var(--accent); color: #fff; }
+.pct-input { width: 84px !important; flex: none; }
+.pct-note { color: var(--muted); }
+input.derived { background: var(--accent-soft); color: var(--muted); }
 label small { font-size: .78rem; }
 label.check { flex-direction: row; align-items: flex-start; gap: 9px; font-weight: 400; line-height: 1.45; }
 label.check input { margin-top: 3px; }

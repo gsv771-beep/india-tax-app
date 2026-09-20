@@ -9,6 +9,7 @@ import { setHandoff } from './handoff.js';
 import { calcExportCard } from './calc-export-card.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, fromSalaryStore, isEmptyProfile } from '../engine/profile.js';
+import { attachSlider } from './amount-input.js';
 
 const SOURCE = 'calc:salary';
 
@@ -78,8 +79,10 @@ export function renderSalary(data) {
   const out = el('div');
   let last = null;
   const exportCard = calcExportCard('salary', () => last);
+  const ctcField = field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'cost to company, as on your offer letter');
+  attachSlider(ctcField.querySelector('input'), { max: 10000000, step: 50000 });
   const inputs = el('div', { class: 'card inputs' }, [
-    field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'cost to company, as on your offer letter'),
+    ctcField,
     el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, 'usually 35 to 50%'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
     el('div', { class: 'opts' }, [
       el('div', { class: 'opt-title' }, 'Inside the CTC'),

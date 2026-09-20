@@ -5,6 +5,7 @@ import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
+import { attachSlider } from './amount-input.js';
 
 let appData = null;
 let currentCalc = null;
@@ -269,6 +270,7 @@ const VIEWS = {
     const P = field(`Loan amount (${RUPEE})`, { value: '', min: 0, step: 50000, placeholder: 'e.g. 5000000' });
     const R = field('Interest rate (% p.a.)', { value: 8.5, min: 0, step: 0.05 });
     const Y = field('Tenure (years)', { value: 20, min: 1, max: 40, step: 1 });
+    attachSlider(P.input, { max: 50000000, step: 100000 }); attachSlider(R.input, { min: 0, max: 20, step: 0.05 }); attachSlider(Y.input, { min: 1, max: 30, step: 1 });
     // Optional: work the loan out from the price and the down payment, and estimate pre-EMI interest
     // if the bank releases it in stages while the home is being built.
     const PR = field(`Property price (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'optional' });
@@ -436,6 +438,7 @@ const VIEWS = {
     const A = field(`Monthly SIP (${RUPEE})`, { value: '', min: 0, step: 500, placeholder: 'e.g. 10000' }, 'leave empty or 0 if you are only investing lump sums');
     const R = field('Expected return (% p.a.)', { value: 12, min: 0, step: 0.5 });
     const Y = field('Years', { value: 10, min: 1, max: 50, step: 1 });
+    attachSlider(A.input, { max: 200000, step: 500 }); attachSlider(R.input, { min: 0, max: 20, step: 0.5 }); attachSlider(Y.input, { min: 1, max: 40, step: 1 });
     const step = stepUpControl('SIP');
     // One-off amounts on top of the SIP: today, or at the end of a given year (a bonus, a maturing FD, a sale).
     const lumps = [];

@@ -1,6 +1,7 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
 import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps, taxDrivers } from './tax-insights.js';
+import { attachSlider, pctToggle } from './amount-input.js';
 import { emailWorkbookCard } from './email-card.js';
 import { lineChart, waterfallChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
@@ -22,6 +23,11 @@ export function initTax({ rates, onboarding }) {
 
   restore(form);
   applyProfile(form, getProfile());
+  // a drag line under the salary, and ₹ | % switches for the two figures people know as a share
+  { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
+    attachSlider(gross, { max: 10000000, step: 50000 });
+    pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary' });
+    pctToggle({ input: empNps, baseInput: basic, defaultPct: 10, name: 'tax.employerNps', hint: 'Basic + DA', max: 30 }); }
   document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
     title: 'Email me this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',

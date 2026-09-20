@@ -3,6 +3,7 @@
  * Data: nps section of data/schemes.json.
  */
 import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js';
+import { attachSlider, pctToggle } from './amount-input.js';
 import { sipFV } from './calculators.js';
 import { lineChart } from './charts.js';
 import { getProfile } from './profile-store.js';
@@ -64,9 +65,9 @@ function overview(nps) {
 
 function projector(nps) {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch {}
-  const st = { age: 30, retireAge: 60, monthly: 5000, employerMonthly: 0, stepUpPct: 5, returnPct: 10, annuityPct: 40, annuityRatePct: 6, ...saved };
-  // Pre-fill contributions from the shared profile when it has them.
-  { const p = getProfile(); if (!isEmptyProfile(p)) { if (p.income.employerNps > 0) st.employerMonthly = Math.round(p.income.employerNps / 12); if (p.tax.nps1bUsed > 0) st.monthly = Math.round(p.tax.nps1bUsed / 12); } }
+  const st = { age: 30, retireAge: 60, monthly: 5000, employerMonthly: 0, basicMonthly: '', stepUpPct: 5, returnPct: 10, annuityPct: 40, annuityRatePct: 6, ...saved };
+  // Pre-fill contributions and Basic from the shared profile when it has them.
+  { const p = getProfile(); if (!isEmptyProfile(p)) { if (p.income.employerNps > 0) st.employerMonthly = Math.round(p.income.employerNps / 12); if (p.tax.nps1bUsed > 0) st.monthly = Math.round(p.tax.nps1bUsed / 12); if (p.income.basic > 0 && st.basicMonthly === '') st.basicMonthly = Math.round(p.income.basic / 12); } }
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
   const f = (key, label, attrs, hint) => {
     const input = el('input', { type: 'number', ...attrs, value: st[key] });
@@ -74,10 +75,16 @@ function projector(nps) {
     return el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
   };
   const out = el('div');
+  const basicF = f('basicMonthly', 'Monthly Basic + DA (₹)', { min: 0, step: 1000, placeholder: 'optional' }, 'lets you enter the contributions below as a % of it');
+  const ownF = f('monthly', 'Your monthly contribution (₹)', { min: 0, step: 500 });
+  const empF = f('employerMonthly', 'Employer monthly contribution (₹)', { min: 0, step: 500 }, 'deductible in both regimes up to 14% of Basic + DA');
+  const basicIn = basicF.querySelector('input'), ownIn = ownF.querySelector('input'), empIn = empF.querySelector('input');
+  attachSlider(ownIn, { max: 50000, step: 500 }); attachSlider(empIn, { max: 50000, step: 500 });
+  pctToggle({ input: ownIn, baseInput: basicIn, defaultPct: 10, name: 'nps.own', hint: 'monthly Basic + DA', max: 50 });
+  pctToggle({ input: empIn, baseInput: basicIn, defaultPct: 10, name: 'nps.employer', hint: 'monthly Basic + DA', max: 30 });
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'two' }, [f('age', 'Your age', { min: 18, max: 70, step: 1 }), f('retireAge', 'Retire at', { min: 40, max: 75, step: 1 }, 'normal exit is 60')]),
-    f('monthly', 'Your monthly contribution (₹)', { min: 0, step: 500 }),
-    f('employerMonthly', 'Employer monthly contribution (₹)', { min: 0, step: 500 }, 'deductible in both regimes up to 14% of Basic + DA'),
+    basicF, ownF, empF,
     f('stepUpPct', 'Increase contributions every year (%)', { min: 0, max: 30, step: 1 }),
     f('returnPct', 'Expected return (% p.a.)', { min: 0, max: 20, step: 0.5 }, 'NPS equity has returned about 13% and debt about 7% over ten years; a 50:50 mix sits near 10%'),
     el('div', { class: 'two' }, [f('annuityPct', 'Share used to buy the pension (%)', { min: 20, max: 100, step: 5 }, 'at least 20% (40% for corporate subscribers)'), f('annuityRatePct', 'Annuity rate (% p.a.)', { min: 0, max: 12, step: 0.25 }, 'what insurers pay on a lifetime annuity, roughly 6 to 7%')]),

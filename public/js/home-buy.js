@@ -13,6 +13,7 @@ import { getProfile, updateProfile } from './profile-store.js';
 import { isEmptyProfile } from '../engine/profile.js';
 import { setHandoff } from './handoff.js';
 import { calcExportCard } from './calc-export-card.js';
+import { attachSlider } from './amount-input.js';
 
 const STORE = 'taxcompass.home.v1';
 const SOURCE = 'calc:home';
@@ -155,6 +156,7 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     F.brokerageRate.node.hidden = !(st.status === 'resale' || st.brokerageOnNew);
     fundingBlock.hidden = !st.funding;
   };
+  attachSlider(F.price.input, { max: 50000000, step: 100000 }); attachSlider(F.loan.input, { max: 50000000, step: 100000 });
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
       el('div', { class: 'opt-title' }, 'The property'),
