@@ -8,6 +8,7 @@ export const SITE = 'TaxCompass India';
 export const ORIGIN = 'https://taxcompass.org';
 
 export const PAGES = {
+  home: { title: 'TaxCompass India: know the number, make the decision', desc: 'Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.' },
   tax: { title: 'Old vs new tax regime calculator', desc: 'Compare the old and new income tax regimes line by line for FY 2025-26 and FY 2026-27, see how far you are from the other regime winning, and what unused deductions would save.' },
   calculators: { title: 'Calculators', desc: 'In-hand salary, expenses and savings, EMI with step-up and prepayment, SIP with lump sums, home loan eligibility with the true cost of buying, capital gains and a goal planner, with historical mutual fund returns for context.' },
   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
@@ -34,16 +35,16 @@ export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculato
 export function parsePath(pathname) {
   const parts = String(pathname || '/').replace(/\/+$/, '').split('/').filter(Boolean);
   const first = ALIASES[parts[0]] || parts[0];
-  const tab = PAGES[first] ? first : 'tax';
+  const tab = !parts.length || first === 'index.html' ? 'home' : PAGES[first] ? first : 'tax';
   return { tab, sub: parts[1] || null };
 }
 
 /** Title, description and canonical URL for a path. */
 export function metaFor(pathname) {
-  const clean = String(pathname || '/').replace(/\/+$/, '') || '/tax';
-  const target = REMOVED[clean] || (clean === '/' || clean === '/index.html' ? '/tax' : clean);
+  const clean = String(pathname || '/').replace(/\/+$/, '') || '/';
+  const target = REMOVED[clean] || (clean === '/index.html' ? '/' : clean);
   const { tab, sub } = parsePath(target);
   const page = tab === 'calculators' && CALCS[sub] ? CALCS[sub] : PAGES[tab];
-  const path = tab === 'calculators' ? `/calculators/${CALCS[sub] ? sub : 'emi'}` : `/${tab}`;
-  return { title: `${page.title} · ${SITE}`, desc: page.desc, url: ORIGIN + path, tab, sub };
+  const path = tab === 'home' ? '/' : tab === 'calculators' ? `/calculators/${CALCS[sub] ? sub : 'emi'}` : `/${tab}`;
+  return { title: tab === 'home' ? page.title : `${page.title} · ${SITE}`, desc: page.desc, url: ORIGIN + path, tab, sub };
 }

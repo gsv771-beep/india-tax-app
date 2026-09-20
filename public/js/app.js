@@ -5,6 +5,7 @@ import { initCalculators, showCalc } from './calculators.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
+import { initHome } from './home.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
 
@@ -53,7 +54,7 @@ function route() {
   if (m) history.replaceState({}, '', `/${m[1] === 'schemes' ? 'nps' : m[1]}${m[2] || ''}`);
   const gone = REMOVED[location.pathname.replace(/\/+$/, '')];
   if (gone) history.replaceState({}, '', gone + location.search);
-  if (location.pathname === '/' || location.pathname === '/index.html') history.replaceState({}, '', '/tax' + location.search);
+  if (location.pathname === '/index.html') history.replaceState({}, '', '/' + location.search);
   else if (location.pathname.startsWith('/schemes')) history.replaceState({}, '', '/nps');
   const { tab, sub } = parsePath(location.pathname);
   showTab(tab);
@@ -102,6 +103,7 @@ async function boot() {
 
     initGlossaryTooltips(glossary);
     initProfilePanel();
+    initHome(appData);
     initTax(appData);
     initCalculators(appData);
     initFeedback();
