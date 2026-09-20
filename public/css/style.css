@@ -337,6 +337,16 @@ select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
   .tax-layout > .tax-left > #tax-working { grid-column: 1; grid-row: 3; }
 }
 .tax-form .stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-bottom: 10px; box-shadow: var(--shadow); overflow: hidden; }
+.tax-form .opt-help { margin: 0 16px 10px; }
+.topics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 6px; }
+.topic { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); cursor: pointer; font-size: .92rem; background: var(--bg); }
+.topic:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.topic input { margin: 0; accent-color: var(--accent); }
+.topic-actions { padding: 0 12px 10px; }
+.topic-group { border: 0; border-top: 1px dashed var(--line); margin: 0; padding: 12px 0 4px; }
+.topic-group[hidden] { display: none; }
+.topic-group legend { font-weight: 700; font-size: .95rem; padding: 0 16px; margin-left: 0; }
+@media (max-width: 420px) { .topics { grid-template-columns: 1fr; } }
 .tax-form summary { cursor: pointer; padding: 13px 16px; font-weight: 600; list-style: none; display: flex; align-items: center; gap: 10px; }
 .tax-form summary::-webkit-details-marker { display: none; }
 .tax-form summary::after { content: "+"; margin-left: auto; color: var(--muted); font-weight: 400; font-size: 1.2rem; }

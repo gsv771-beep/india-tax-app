@@ -133,8 +133,21 @@
         <div class="tax-left">
         <form id="tax-form" class="tax-form" autocomplete="off">
           <details open class="stage">
-            <summary><span class="step">1</span> Essentials</summary>
+            <summary><span class="step">1</span> Your salary</summary>
             <div class="grid">
+              <label>Gross annual salary or pension (₹)
+                <input type="number" min="0" step="1000" data-path="salary.gross" placeholder="e.g. 1500000">
+              </label>
+              <label>Annual Basic + DA (₹) <small>on your payslip; usually 40-50% of gross</small>
+                <input type="number" min="0" step="1000" data-path="salary.basicDa" placeholder="e.g. 600000">
+              </label>
+              <label>Age
+                <select data-path="ageBand">
+                  <option value="below_60">Below 60</option>
+                  <option value="senior_60_to_79">60 to 79</option>
+                  <option value="super_senior_80_plus">80 and above</option>
+                </select>
+              </label>
               <label>Financial year
                 <select data-path="fy">
                   <option value="FY2026-27">FY 2026-27 (current, Income-tax Act 2025)</option>
@@ -147,100 +160,130 @@
                   <option value="false">Non-resident (NRI)</option>
                 </select>
               </label>
-              <label>Age
-                <select data-path="ageBand">
-                  <option value="below_60">Below 60</option>
-                  <option value="senior_60_to_79">60 to 79</option>
-                  <option value="super_senior_80_plus">80 and above</option>
-                </select>
-              </label>
-              <label>Gross annual salary or pension (₹)
-                <input type="number" min="0" step="1000" data-path="salary.gross" placeholder="e.g. 1500000">
-              </label>
-              <label>Annual Basic + DA (₹) <small>drives HRA and employer NPS caps</small>
-                <input type="number" min="0" step="1000" data-path="salary.basicDa" placeholder="usually 40-50% of gross">
-              </label>
-              <label>Business / professional income (₹)
-                <input type="number" step="1000" data-path="business.income" placeholder="0">
-              </label>
-              <label class="check"><input type="checkbox" data-path="hasBusinessIncome"> I have business or professional income (regime switching is restricted)</label>
             </div>
           </details>
 
-          <details class="stage">
-            <summary><span class="step">2</span> Other income and capital gains</summary>
-            <div class="grid">
-              <label>Savings account interest (₹)<input type="number" min="0" step="100" data-path="otherIncome.savingsInterest"></label>
-              <label>FD / RD interest (₹)<input type="number" min="0" step="100" data-path="otherIncome.depositInterest"></label>
-              <label>Dividends (₹)<input type="number" min="0" step="100" data-path="otherIncome.dividends"></label>
-              <label>Other income (₹)<input type="number" step="100" data-path="otherIncome.other"></label>
-              <label>STCG on listed equity / equity MF (₹) <small>held 12 months or less, taxed at 20%</small><input type="number" min="0" step="1000" data-path="capitalGains.stcgEquity"></label>
-              <label>LTCG on listed equity / equity MF (₹) <small>first ₹1,25,000 exempt, then 12.5%</small><input type="number" min="0" step="1000" data-path="capitalGains.ltcgEquity"></label>
-              <label>LTCG on other assets (₹) <small>12.5% without indexation</small><input type="number" min="0" step="1000" data-path="capitalGains.ltcgOther"></label>
-              <label>Lottery / online gaming / crypto gains (₹) <small>30%</small><input type="number" min="0" step="1000" data-path="capitalGains.lottery"></label>
+          <details open class="stage">
+            <summary><span class="step">2</span> Do you have any of these?</summary>
+            <p class="opt-help">Tick what applies and only those questions appear. Nothing ticked is fine: salary alone gives a real answer.</p>
+            <div class="topics" id="tax-topics">
+              <label class="topic"><input type="checkbox" value="hra"> <span>🏢 I pay rent / get HRA</span></label>
+              <label class="topic"><input type="checkbox" value="homeloan"> <span>🏠 Home loan</span></label>
+              <label class="topic"><input type="checkbox" value="invest"> <span>💹 80C investments, NPS</span></label>
+              <label class="topic"><input type="checkbox" value="health"> <span>🩺 Health insurance</span></label>
+              <label class="topic"><input type="checkbox" value="capgains"> <span>📈 Sold shares, funds or property</span></label>
+              <label class="topic"><input type="checkbox" value="other"> <span>💵 Interest, dividends, rent received</span></label>
+              <label class="topic"><input type="checkbox" value="business"> <span>💼 Business or freelance income</span></label>
+              <label class="topic"><input type="checkbox" value="more"> <span>➕ Other deductions and perks</span></label>
             </div>
+            <div class="topic-actions"><button type="button" class="btn-link" id="tax-topics-all">Show every field</button></div>
           </details>
 
-          <details class="stage">
-            <summary><span class="step">3</span> House property</summary>
-            <div class="grid">
-              <label>Home loan interest, self-occupied (₹) <small>old regime only, cap ₹2,00,000</small><input type="number" min="0" step="1000" data-path="houseProperty.selfOccupiedInterest"></label>
-              <label>Rent received, let-out property (₹)<input type="number" min="0" step="1000" data-path="houseProperty.letOut.rent"></label>
-              <label>Municipal tax paid (₹)<input type="number" min="0" step="100" data-path="houseProperty.letOut.municipalTax"></label>
-              <label>Home loan interest, let-out (₹) <small>uncapped in both regimes; loss is stranded in the new</small><input type="number" min="0" step="1000" data-path="houseProperty.letOut.interest"></label>
-            </div>
-          </details>
+          <details open class="stage" id="tax-details" hidden>
+            <summary><span class="step">3</span> Your details</summary>
 
-          <details class="stage">
-            <summary><span class="step">4</span> Salary exemptions and deductions <small>(mostly old regime)</small></summary>
-            <div class="grid">
-              <label>HRA received (₹)<input type="number" min="0" step="1000" data-path="salary.hraReceived"></label>
-              <label>Annual rent paid (₹)<input type="number" min="0" step="1000" data-path="salary.rentPaid"></label>
-              <label>City
-                <select data-path="salary.city">
-                  <option>Other</option><option>Delhi</option><option>Mumbai</option><option>Kolkata</option><option>Chennai</option>
-                  <option>Bengaluru</option><option>Hyderabad</option><option>Pune</option><option>Ahmedabad</option>
-                </select>
-              </label>
-              <label>LTA exemption claimable (₹) <small>travel fare only</small><input type="number" min="0" step="1000" data-path="salary.ltaExempt"></label>
-              <label>Professional tax paid (₹)<input type="number" min="0" step="100" data-path="salary.professionalTax" placeholder="e.g. 2500"></label>
-              <label class="check"><input type="checkbox" data-path="deductions.includeEpf" checked> Count my EPF contribution in 80C <small>(your own 12% of Basic + DA; the employer's share is exempt, not a deduction)</small></label>
-              <label>My actual EPF + VPF contribution per year (₹) <small>leave 0 to use 12% of Basic + DA</small><input type="number" min="0" step="1000" data-path="deductions.epfEmployee"></label>
-              <label>Other 80C investments, excluding EPF (₹) <small>PPF, ELSS, LIC, NSC, SSY, home loan principal, tuition</small><input type="number" min="0" step="1000" data-path="deductions.s80c"></label>
-              <label>Own NPS contribution, 80CCD(1B) (₹)<input type="number" min="0" step="1000" data-path="deductions.nps1b"></label>
-              <label>Health insurance, self and family (₹)<input type="number" min="0" step="500" data-path="deductions.healthSelf"></label>
-              <label>Health insurance, parents (₹)<input type="number" min="0" step="500" data-path="deductions.healthParents"></label>
-              <label class="check"><input type="checkbox" data-path="deductions.parentsSenior"> Parents are 60 or above</label>
-              <label>Education loan interest (₹)<input type="number" min="0" step="1000" data-path="deductions.educationLoanInterest"></label>
-              <label>Donations, 80G (₹)<input type="number" min="0" step="500" data-path="deductions.donations"></label>
-              <label>Donation category
-                <select data-path="deductions.donationCategory">
-                  <option value="D">Approved charity (50%, within 10% of income)</option>
-                  <option value="A">PM National Relief Fund etc. (100%, no limit)</option>
-                  <option value="B">Specified funds (50%, no limit)</option>
-                  <option value="C">Specified purposes (100%, within 10% of income)</option>
-                </select>
-              </label>
-              <label>Disability
-                <select data-path="deductions.disability">
-                  <option value="none">None</option>
-                  <option value="self_40">Self, 40 to 79%</option>
-                  <option value="self_80">Self, 80% or more</option>
-                  <option value="dependant_40">Dependant, 40 to 79%</option>
-                  <option value="dependant_80">Dependant, 80% or more</option>
-                </select>
-              </label>
-            </div>
-          </details>
+            <fieldset class="topic-group" data-topic="hra">
+              <legend>Rent and HRA</legend>
+              <div class="grid">
+                <label>HRA received (₹)<input type="number" min="0" step="1000" data-path="salary.hraReceived"></label>
+                <label>Annual rent paid (₹)<input type="number" min="0" step="1000" data-path="salary.rentPaid"></label>
+                <label>City
+                  <select data-path="salary.city">
+                    <option>Other</option><option>Delhi</option><option>Mumbai</option><option>Kolkata</option><option>Chennai</option>
+                    <option>Bengaluru</option><option>Hyderabad</option><option>Pune</option><option>Ahmedabad</option>
+                  </select>
+                </label>
+              </div>
+            </fieldset>
 
-          <details class="stage">
-            <summary><span class="step">5</span> Employer contributions and perquisites <small>(both regimes)</small></summary>
-            <div class="grid">
-              <label>Employer NPS contribution (₹) <small>14% cap in new regime for everyone; 10% for private employers in old</small><input type="number" min="0" step="1000" data-path="employer.npsContribution"></label>
-              <label class="check"><input type="checkbox" data-path="employer.isGovernment"> Central or State Government employer</label>
-              <label>Employer PF + superannuation + NPS combined (₹) <small>above ₹7,50,000 is a taxable perquisite</small><input type="number" min="0" step="1000" data-path="employer.totalRetirementContribution"></label>
-              <label>Other taxable perquisites (₹) <small>company car, accommodation, per your Form 16</small><input type="number" min="0" step="1000" data-path="perquisites.other"></label>
-            </div>
+            <fieldset class="topic-group" data-topic="homeloan">
+              <legend>Home loan</legend>
+              <div class="grid">
+                <label>Interest paid this year, home you live in (₹) <small>old regime only, cap ₹2,00,000</small><input type="number" min="0" step="1000" data-path="houseProperty.selfOccupiedInterest"></label>
+                <label>Interest paid, a home you rent out (₹) <small>uncapped in both regimes; loss is stranded in the new</small><input type="number" min="0" step="1000" data-path="houseProperty.letOut.interest"></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="topic-group" data-topic="invest">
+              <legend>80C investments and NPS</legend>
+              <div class="grid">
+                <label class="check"><input type="checkbox" data-path="deductions.includeEpf" checked> Count my EPF contribution in 80C <small>(your own 12% of Basic + DA; the employer's share is exempt, not a deduction)</small></label>
+                <label>My actual EPF + VPF contribution per year (₹) <small>leave 0 to use 12% of Basic + DA</small><input type="number" min="0" step="1000" data-path="deductions.epfEmployee"></label>
+                <label>Other 80C investments, excluding EPF (₹) <small>PPF, ELSS, LIC, NSC, SSY, home loan principal, tuition</small><input type="number" min="0" step="1000" data-path="deductions.s80c"></label>
+                <label>Own NPS contribution, 80CCD(1B) (₹)<input type="number" min="0" step="1000" data-path="deductions.nps1b"></label>
+                <label>Employer NPS contribution (₹) <small>14% cap in new regime for everyone; 10% for private employers in old</small><input type="number" min="0" step="1000" data-path="employer.npsContribution"></label>
+                <label class="check"><input type="checkbox" data-path="employer.isGovernment"> Central or State Government employer</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="topic-group" data-topic="health">
+              <legend>Health insurance (80D)</legend>
+              <div class="grid">
+                <label>Premium, self and family (₹)<input type="number" min="0" step="500" data-path="deductions.healthSelf"></label>
+                <label>Premium, parents (₹)<input type="number" min="0" step="500" data-path="deductions.healthParents"></label>
+                <label class="check"><input type="checkbox" data-path="deductions.parentsSenior"> Parents are 60 or above</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="topic-group" data-topic="capgains">
+              <legend>Capital gains</legend>
+              <div class="grid">
+                <label>STCG on listed equity / equity MF (₹) <small>held 12 months or less, taxed at 20%</small><input type="number" min="0" step="1000" data-path="capitalGains.stcgEquity"></label>
+                <label>LTCG on listed equity / equity MF (₹) <small>first ₹1,25,000 exempt, then 12.5%</small><input type="number" min="0" step="1000" data-path="capitalGains.ltcgEquity"></label>
+                <label>LTCG on other assets (₹) <small>12.5% without indexation</small><input type="number" min="0" step="1000" data-path="capitalGains.ltcgOther"></label>
+                <label>Lottery / online gaming / crypto gains (₹) <small>30%</small><input type="number" min="0" step="1000" data-path="capitalGains.lottery"></label>
+              </div>
+              <p class="opt-help">Not sure of the figures? The <a href="/calculators/capital-gains">capital gains calculator</a> works them out from a sale, or from your broker's Tax P&amp;L file.</p>
+            </fieldset>
+
+            <fieldset class="topic-group" data-topic="other">
+              <legend>Interest, dividends and rent received</legend>
+              <div class="grid">
+                <label>Savings account interest (₹)<input type="number" min="0" step="100" data-path="otherIncome.savingsInterest"></label>
+                <label>FD / RD interest (₹)<input type="number" min="0" step="100" data-path="otherIncome.depositInterest"></label>
+                <label>Dividends (₹)<input type="number" min="0" step="100" data-path="otherIncome.dividends"></label>
+                <label>Other income (₹)<input type="number" step="100" data-path="otherIncome.other"></label>
+                <label>Rent received, property you let out (₹)<input type="number" min="0" step="1000" data-path="houseProperty.letOut.rent"></label>
+                <label>Municipal tax paid on it (₹)<input type="number" min="0" step="100" data-path="houseProperty.letOut.municipalTax"></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="topic-group" data-topic="business">
+              <legend>Business or professional income</legend>
+              <div class="grid">
+                <label>Net business / professional income (₹)<input type="number" step="1000" data-path="business.income" placeholder="0"></label>
+                <label class="check"><input type="checkbox" data-path="hasBusinessIncome"> I have business or professional income (regime switching is restricted)</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="topic-group" data-topic="more">
+              <legend>Other deductions and perks</legend>
+              <div class="grid">
+                <label>LTA exemption claimable (₹) <small>travel fare only</small><input type="number" min="0" step="1000" data-path="salary.ltaExempt"></label>
+                <label>Professional tax paid (₹)<input type="number" min="0" step="100" data-path="salary.professionalTax" placeholder="e.g. 2500"></label>
+                <label>Education loan interest (₹)<input type="number" min="0" step="1000" data-path="deductions.educationLoanInterest"></label>
+                <label>Donations, 80G (₹)<input type="number" min="0" step="500" data-path="deductions.donations"></label>
+                <label>Donation category
+                  <select data-path="deductions.donationCategory">
+                    <option value="D">Approved charity (50%, within 10% of income)</option>
+                    <option value="A">PM National Relief Fund etc. (100%, no limit)</option>
+                    <option value="B">Specified funds (50%, no limit)</option>
+                    <option value="C">Specified purposes (100%, within 10% of income)</option>
+                  </select>
+                </label>
+                <label>Disability
+                  <select data-path="deductions.disability">
+                    <option value="none">None</option>
+                    <option value="self_40">Self, 40 to 79%</option>
+                    <option value="self_80">Self, 80% or more</option>
+                    <option value="dependant_40">Dependant, 40 to 79%</option>
+                    <option value="dependant_80">Dependant, 80% or more</option>
+                  </select>
+                </label>
+                <label>Employer PF + superannuation + NPS combined (₹) <small>above ₹7,50,000 is a taxable perquisite</small><input type="number" min="0" step="1000" data-path="employer.totalRetirementContribution"></label>
+                <label>Other taxable perquisites (₹) <small>company car, accommodation, per your Form 16</small><input type="number" min="0" step="1000" data-path="perquisites.other"></label>
+              </div>
+            </fieldset>
           </details>
 
           <div class="form-actions">

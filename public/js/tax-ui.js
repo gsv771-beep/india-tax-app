@@ -33,19 +33,61 @@ export function initTax({ rates, onboarding }) {
   const run = debounce(() => { const inputs = readForm(form); render(inputs, rates, flags); updateProfile((p) => fromTaxInputs(p, inputs), 'tax'); }, 120);
   form.addEventListener('input', run);
   form.addEventListener('change', run);
+  initTopics(form, run);
   document.getElementById('tax-reset').addEventListener('click', () => {
     form.reset();
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(TOPICS_KEY); } catch {}
+    syncTopics(form);
     run();
   });
   // Edits made elsewhere (the profile panel, the salary calculator, a fixture) flow into the form.
-  onProfileChange((p) => { applyProfile(form, p); render(readForm(form), rates, flags); }, 'tax');
+  onProfileChange((p) => { applyProfile(form, p); syncTopics(form); render(readForm(form), rates, flags); }, 'tax');
 
   renderProvisionTable(onboarding);
+  syncTopics(form);
   const first = readForm(form);
   render(first, rates, flags);
   // Existing users: a form saved before the shared profile existed seeds it once.
   if (isEmptyProfile(getProfile()) && (first.salary?.gross > 0)) updateProfile((p) => fromTaxInputs(p, first), 'tax');
+}
+
+// ---- progressive disclosure: topics ----
+// Step 2 is a row of tick boxes; each topic-group of fields shows only when its topic is ticked. A topic
+// ticks itself when any of its fields already holds a value (a saved form, the profile, a fixture), and
+// unticking one clears its fields so a hidden number can never shape the result.
+const TOPICS_KEY = 'taxcompass.tax-topics.v1';
+const isCheck = (f) => f.type === 'checkbox';
+const hasValue = (f) => (isCheck(f) ? f.checked !== f.defaultChecked : f.tagName === 'SELECT' ? f.selectedIndex > 0 : f.value !== '' && +f.value !== 0);
+function topicBoxes(form) { return [...form.querySelectorAll('#tax-topics input[type=checkbox]')]; }
+function initTopics(form, run) {
+  let saved = []; try { saved = JSON.parse(localStorage.getItem(TOPICS_KEY) || '[]'); } catch {}
+  for (const box of topicBoxes(form)) box.checked = saved.includes(box.value);
+  form.querySelector('#tax-topics').addEventListener('change', (e) => {
+    const box = e.target; if (!box.value) return;
+    if (!box.checked) {
+      for (const f of form.querySelectorAll(`[data-topic="${box.value}"] [data-path]`)) { if (isCheck(f)) f.checked = f.defaultChecked; else if (f.tagName === 'SELECT') f.selectedIndex = 0; else f.value = ''; }
+      run();
+    }
+    showTopics(form);
+  });
+  form.querySelector('#tax-topics-all').addEventListener('click', () => { for (const box of topicBoxes(form)) box.checked = true; showTopics(form); });
+}
+/** Tick every topic whose fields carry a value, then show/hide. Called after restore, profile apply and reset. */
+function syncTopics(form) {
+  for (const box of topicBoxes(form)) {
+    const fields = [...form.querySelectorAll(`[data-topic="${box.value}"] [data-path]`)];
+    if (fields.some(hasValue)) box.checked = true;
+  }
+  showTopics(form);
+}
+function showTopics(form) {
+  const on = topicBoxes(form).filter((b) => b.checked).map((b) => b.value);
+  for (const g of form.querySelectorAll('.topic-group')) g.hidden = !on.includes(g.dataset.topic);
+  const details = form.querySelector('#tax-details');
+  details.hidden = on.length === 0;
+  const all = form.querySelector('#tax-topics-all');
+  all.textContent = on.length === topicBoxes(form).length ? 'Every field is showing' : 'Show every field';
+  try { localStorage.setItem(TOPICS_KEY, JSON.stringify(on)); } catch {}
 }
 
 // Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
