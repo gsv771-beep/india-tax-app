@@ -271,6 +271,7 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .hero p { font-size: 1.08rem; color: var(--muted); margin: 0; }
 .home-profile { margin-top: 12px !important; font-size: .95rem !important; color: var(--text) !important; padding: 10px 14px; background: var(--accent-soft); border-radius: var(--radius-sm); display: inline-block; }
 .decide-title { font-size: 1.1rem; margin: 26px 0 12px; }
+.calc-count { margin: -4px 0 10px; }
 /* snapshot */
 .snap, .snap-start { margin-top: 18px; }
 .snap-title { font-weight: 800; font-size: 1.15rem; }

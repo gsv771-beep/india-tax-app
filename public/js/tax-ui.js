@@ -26,8 +26,8 @@ export function initTax({ rates, onboarding }) {
   // a drag line under the salary, and ₹ | % switches for the two figures people know as a share
   { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
     attachSlider(gross, { max: 10000000, step: 50000 });
-    pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary' });
-    pctToggle({ input: empNps, baseInput: basic, defaultPct: 10, name: 'tax.employerNps', hint: 'Basic + DA', max: 30 }); }
+    pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary', defaultMode: 'pct' });
+    pctToggle({ input: empNps, baseInput: basic, defaultPct: 10, name: 'tax.employerNps', hint: 'Basic + DA', max: 30, defaultMode: 'pct' }); }
   document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
     title: 'Email me this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
@@ -147,7 +147,8 @@ function restore(form) {
 function render(inputs, rates, flags) {
   lastInputs = inputs;
   const result = compareRegimes(inputs, rates, flags);
-  if (result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) countEvent('compare');
+  // a comparison counts only when the person is on this page; re-renders from profile edits elsewhere do not
+  if ((result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) && !document.getElementById('tax').hidden) countEvent('compare');
   renderHeadline(result, inputs, rates, flags);
   renderWarnings(result);
   renderInsights(inputs, result, rates, flags);

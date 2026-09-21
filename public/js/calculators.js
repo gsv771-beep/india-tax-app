@@ -6,6 +6,8 @@ import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
 import { attachSlider } from './amount-input.js';
+import { countEvent, getCounts } from './feedback.js';
+import { CALCS } from './routes.js';
 
 let appData = null;
 let currentCalc = null;
@@ -157,6 +159,20 @@ export function showCalc(name) {
   currentCalc = key;
   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
   mount(key);
+  showCalcCount(key);
+}
+/** "EMI calculator: run 1,234 times so far", from the counts the footer already fetched. */
+function showCalcCount(key) {
+  const line = document.getElementById('calc-count');
+  if (!line) return;
+  const paint = () => {
+    const c = getCounts();
+    const k = c && c.calculators ? c.calculators[key] : null;
+    line.hidden = !(k > 0);
+    if (k > 0) line.textContent = `${CALCS[key] ? CALCS[key].title : key}: run ${k.toLocaleString('en-IN')} times so far`;
+  };
+  paint();
+  window.addEventListener('counts', paint, { once: true });
 }
 /** Render a view into the calculator body; the heavier views load their module on first use. */
 function mount(key) {
@@ -166,6 +182,8 @@ function mount(key) {
     body.replaceChildren(el('div', { class: 'skeleton calc-skeleton', 'aria-busy': 'true' }));
     view.then((node) => { if (currentCalc === key) body.replaceChildren(withReset(key, node)); }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
   } else body.replaceChildren(withReset(key, view));
+  // a calculation counts once per session per calculator, on the first edit
+  body.addEventListener('input', () => countEvent(`calc:${key}`), { once: true });
 }
 
 // What each calculator remembers in the browser. Reset clears only that; the shared profile is untouched,

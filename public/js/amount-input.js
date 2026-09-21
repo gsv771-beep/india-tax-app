@@ -27,11 +27,14 @@ export function attachSlider(input, { min = 0, max, step }) {
   return range;
 }
 
-export function pctToggle({ input, baseInput, base, defaultPct, name, hint, max = 100 }) {
+export function pctToggle({ input, baseInput, base, defaultPct, name, hint, max = 100, defaultMode = 'inr' }) {
   const KEY = `taxcompass.pct.${name}`;
   let saved = null; try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch {}
-  let mode = saved && saved.mode === 'pct' ? 'pct' : 'inr';
-  const pct = el('input', { type: 'number', min: 0, max, step: 0.5, value: saved && saved.pct != null ? saved.pct : defaultPct, class: 'pct-input', 'aria-label': 'percent' });
+  let mode = saved ? (saved.mode === 'pct' ? 'pct' : 'inr') : defaultMode;
+  // first visit in % mode with a rupee figure already typed: keep that figure by turning it into its %
+  const baseNow = base ? base() : baseInput ? +baseInput.value || 0 : 0;
+  const startPct = saved && saved.pct != null ? saved.pct : (!saved && mode === 'pct' && +input.value > 0 && baseNow > 0) ? Math.round((+input.value / baseNow) * 1000) / 10 : defaultPct;
+  const pct = el('input', { type: 'number', min: 0, max, step: 0.1, value: startPct, class: 'pct-input', 'aria-label': 'percent' });
   const bR = el('button', { type: 'button', class: 'seg' }, '₹');
   const bP = el('button', { type: 'button', class: 'seg' }, '%');
   const note = el('small', { class: 'pct-note' });

@@ -64,17 +64,22 @@ export function countEvent(event) {
   if (!once(event)) return;
   fetch('/api/counter', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event }), keepalive: true }).catch(() => {});
 }
+let counts = null;
+const n = (x) => (x || 0).toLocaleString('en-IN');
+/** The latest counts, once fetched: { counts: { visits, comparisons, workbooks, calculations }, calculators: { emi: n } } */
+export function getCounts() { return counts; }
 export async function initCounter() {
   countEvent('visit');
   try {
     const res = await fetch('/api/counter');
     const data = await res.json();
     if (!data.available) return;
-    const n = data.counts.comparisons || 0;
-    const v = data.counts.visits || 0;
-    document.querySelectorAll('[data-counter]').forEach((node) => {
-      node.textContent = n >= 20 ? `${n.toLocaleString('en-IN')} comparisons run so far` : `${v.toLocaleString('en-IN')} visits so far`;
-      node.hidden = false;
-    });
+    counts = data;
+    const c = data.counts;
+    // tax page pill: comparisons; calculators page pill: calculations; footer: everything
+    document.querySelectorAll('[data-counter]').forEach((node) => { node.textContent = `${n(c.comparisons)} comparisons run so far`; node.hidden = false; });
+    document.querySelectorAll('[data-counter-calcs]').forEach((node) => { node.textContent = `${n(c.calculations)} calculations run so far`; node.hidden = false; });
+    document.querySelectorAll('[data-counter-all]').forEach((node) => { node.textContent = `${n(c.visits)} visits · ${n(c.comparisons)} tax comparisons · ${n(c.calculations)} calculations`; node.hidden = false; });
+    window.dispatchEvent(new CustomEvent('counts', { detail: data }));
   } catch { /* counter is decorative */ }
 }
