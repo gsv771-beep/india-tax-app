@@ -76,10 +76,15 @@ export async function initCounter() {
     if (!data.available) return;
     counts = data;
     const c = data.counts;
-    // tax page pill: comparisons; calculators page pill: calculations; footer: everything
-    document.querySelectorAll('[data-counter]').forEach((node) => { node.textContent = `${n(c.comparisons)} comparisons run so far`; node.hidden = false; });
-    document.querySelectorAll('[data-counter-calcs]').forEach((node) => { node.textContent = `${n(c.calculations)} calculations run so far`; node.hidden = false; });
-    document.querySelectorAll('[data-counter-all]').forEach((node) => { node.textContent = `${n(c.visits)} visits · ${n(c.comparisons)} tax comparisons · ${n(c.calculations)} calculations`; node.hidden = false; });
+    // Visits is the number that always shows; the finer counts join in once they are big enough to mean something.
+    const MIN = 20;
+    const visits = `${n(c.visits)} visits so far`;
+    document.querySelectorAll('[data-counter]').forEach((node) => { node.textContent = c.comparisons >= MIN ? `${n(c.comparisons)} comparisons run so far` : visits; node.hidden = false; });
+    document.querySelectorAll('[data-counter-calcs]').forEach((node) => { node.textContent = c.calculations >= MIN ? `${n(c.calculations)} calculations run so far` : visits; node.hidden = false; });
+    document.querySelectorAll('[data-counter-all]').forEach((node) => {
+      node.textContent = [visits, c.comparisons >= MIN ? `${n(c.comparisons)} tax comparisons` : null, c.calculations >= MIN ? `${n(c.calculations)} calculations` : null].filter(Boolean).join(' · ');
+      node.hidden = false;
+    });
     window.dispatchEvent(new CustomEvent('counts', { detail: data }));
   } catch { /* counter is decorative */ }
 }

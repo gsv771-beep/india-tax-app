@@ -168,8 +168,8 @@ function showCalcCount(key) {
   const paint = () => {
     const c = getCounts();
     const k = c && c.calculators ? c.calculators[key] : null;
-    line.hidden = !(k > 0);
-    if (k > 0) line.textContent = `${CALCS[key] ? CALCS[key].title : key}: run ${k.toLocaleString('en-IN')} times so far`;
+    line.hidden = !(k >= 10);   // a single-digit count says nothing worth reading
+    if (k >= 10) line.textContent = `${CALCS[key] ? CALCS[key].title : key}: run ${k.toLocaleString('en-IN')} times so far`;
   };
   paint();
   window.addEventListener('counts', paint, { once: true });
