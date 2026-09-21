@@ -398,11 +398,12 @@ select { max-width: 100%; min-width: 0; text-overflow: ellipsis; }
 .driver-eff { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .driver-eff.adds { color: #9b1c1c; }
 .driver-eff.cuts { color: var(--accent-2); }
-.driver-bar { height: 6px; background: var(--line); border-radius: 3px; margin: 6px 0 0 32px; overflow: hidden; }
+.driver-bar { height: 6px; background: var(--line); border-radius: 3px; margin: 6px 0 0; overflow: hidden; }
 .driver-bar span { display: block; height: 100%; border-radius: 3px; }
 .driver-bar span.adds { background: #c96a6a; }
 .driver-bar span.cuts { background: var(--accent-3); }
-.driver-note { margin: 4px 0 0 32px; }
+.driver-group h4 { margin: 12px 0 2px; font-size: .82rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.driver-eff small { font-weight: 400; color: var(--muted); }
 .driver.only-other .driver-eff { opacity: .7; font-weight: 600; }
 .driver.only-other .driver-eff small { font-weight: 400; color: var(--muted); }
 .driver.only-other .driver-bar span { opacity: .45; }

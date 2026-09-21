@@ -388,26 +388,32 @@ function breakEvenSentence(be) {
 /** Your biggest tax drivers: what adds tax and what cuts it, under the regime that is lower. */
 function driversCard(inputs, r, rates, flags) {
   const d = taxDrivers(inputs, rates, flags);
-  if (!d.items.length) return null;
-  const top = d.items.slice(0, 6);
-  const scale = Math.max(...top.map((it) => Math.max(Math.abs(it.old), Math.abs(it.new))), 1);
+  const income = d.items.filter((it) => it.kind === 'income');
+  const reliefs = d.items.filter((it) => it.kind === 'relief');
+  // Salary alone has nothing to rank: "salary is your whole tax" tells nobody anything.
+  if (!reliefs.length && income.length < 2) return null;
   const other = d.regime === 'old' ? 'new' : 'old';
-  const rows = top.map((it, i) => {
-    // an item that does nothing in the lower regime but would in the other is still a driver worth seeing
+  const size = (it) => Math.max(Math.abs(it.old), Math.abs(it.new));
+  const scale = Math.max(...d.items.map(size), 1);
+  const row = (it) => {
+    // a deduction the lower regime ignores is still worth seeing, marked as the other regime's
     const onlyOther = it.effect === 0 && it[other] !== 0;
-    const eff = onlyOther ? it[other] : it.effect;
-    const adds = eff > 0;
-    const note = !onlyOther && it[other] !== eff && it[other] !== 0 ? `${other} regime: ${it[other] > 0 ? 'adds' : 'cuts'} ${fmt(Math.abs(it[other]))}` : '';
+    const eff = Math.abs(onlyOther ? it[other] : it.effect);
+    const share = it.kind === 'income' && !onlyOther ? ' of tax' : '';
     return el('div', { class: 'driver' + (onlyOther ? ' only-other' : '') }, [
-      el('div', { class: 'driver-head' }, [el('span', { class: 'driver-rank' }, String(i + 1)), el('span', { class: 'driver-label' }, [termify(it.label), el('small', { class: 'muted' }, ` ${fmt(it.amount)}`)]), el('span', { class: 'driver-eff ' + (adds ? 'adds' : 'cuts') }, [`${adds ? 'adds ' : 'cuts '}${fmt(Math.abs(eff))}`, onlyOther ? el('small', {}, ` ${other} regime only`) : null])]),
-      el('div', { class: 'driver-bar' }, el('span', { class: adds ? 'adds' : 'cuts', style: `width:${Math.max(2, Math.round(Math.abs(eff) / scale * 100))}%` })),
-      note ? el('div', { class: 'muted small driver-note' }, note) : null,
+      el('div', { class: 'driver-head' }, [
+        el('span', { class: 'driver-label' }, [termify(it.label), el('small', { class: 'muted' }, ` ${fmt(it.amount)}`)]),
+        el('span', { class: 'driver-eff ' + (it.kind === 'income' ? 'adds' : 'cuts') }, [`${it.kind === 'income' ? '' : 'saves '}${fmt(eff)}`, el('small', {}, onlyOther ? ` ${other} regime only` : share)]),
+      ]),
+      el('div', { class: 'driver-bar' }, el('span', { class: it.kind === 'income' ? 'adds' : 'cuts', style: `width:${Math.max(2, Math.round(eff / scale * 100))}%` })),
     ]);
-  });
+  };
+  const group = (title, items) => items.length ? el('div', { class: 'driver-group' }, [el('h4', {}, title), ...items.slice(0, 5).map(row)]) : null;
   return el('div', { class: 'card drivers' }, [
-    el('h3', { style: 'margin-top:0' }, 'Your biggest tax drivers'),
-    el('p', { class: 'muted small' }, `What each item does to your tax under the ${d.regime} regime, found by taking it out and recomputing. Income adds tax; deductions and exemptions cut it.`),
-    ...rows,
+    el('h3', { style: 'margin-top:0' }, 'What moves your tax'),
+    el('p', { class: 'muted small' }, `Under the ${d.regime} regime: the tax each source of income is responsible for, and what each deduction or exemption saves you. Each figure comes from taking that one item out and recomputing.`),
+    group('What you pay tax on', income),
+    group('What cuts it', reliefs),
   ]);
 }
 
