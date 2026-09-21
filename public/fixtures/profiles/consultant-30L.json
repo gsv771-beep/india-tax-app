@@ -1,0 +1,14 @@
+{
+  "_fixture": "Freelance IT consultant, ₹30L receipts under 44ADA (50% deemed income), no salary, renting in Pune (80GG), ₹2.4L TDS deducted by clients, own NPS ₹1L.",
+  "schemaVersion": 3,
+  "person": {"age": 34, "creditScore": 780, "employment": "self_employed"},
+  "income": { "ctc": 0, "basic": 0, "hra": 0, "otherAllowances": 0, "employerNps": 0, "employerPf": 0, "gratuity": 0, "esop": 0 },
+  "business": { "receipts": 3000000, "kind": "profession", "presumptive": true, "digitalSharePct": 100, "expenses": 0, "tds": 240000 },
+  "tax": { "fy": "FY2026-27", "regime": "new", "s80cUsed": 50000, "s80dUsed": 25000, "nps1bUsed": 50000, "otherDeductions": 0, "ageBand": "below_60" },
+  "location": { "city": "Pune", "metro": false, "rentPaid": 300000, "housing": "rent" },
+  "loans": [],
+  "investments": { "equity": 1200000, "debt": 0, "epf": 0, "ppf": 400000, "nps": 300000, "fd": 500000, "gold": 0 },
+  "cashflow": { "monthlySurplus": 70000, "emergencyFund": 600000 },
+  "household": { "dependents": 1, "childrenAges": [] },
+  "horizon": { "goals": [{ "name": "Retirement", "years": 26, "target": 0 }] }
+}

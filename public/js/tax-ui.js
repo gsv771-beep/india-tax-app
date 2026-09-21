@@ -1,6 +1,7 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
-import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps, taxDrivers } from './tax-insights.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
+import { hasBusiness, businessIncome } from './tax-engine.js';
 import { attachSlider, pctToggle } from './amount-input.js';
 import { emailWorkbookCard } from './email-card.js';
 import { lineChart, waterfallChart, shortINR } from './charts.js';
@@ -40,21 +41,95 @@ export function initTax({ rates, onboarding }) {
   form.addEventListener('input', run);
   form.addEventListener('change', run);
   initTopics(form, run);
+  initIncomeType(form, run);
   document.getElementById('tax-reset').addEventListener('click', () => {
     form.reset();
     try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(TOPICS_KEY); } catch {}
-    syncTopics(form);
+    syncTopics(form); syncIncomeType(form);
     run();
   });
   // Edits made elsewhere (the profile panel, the salary calculator, a fixture) flow into the form.
-  onProfileChange((p) => { applyProfile(form, p); syncTopics(form); render(readForm(form), rates, flags); }, 'tax');
+  onProfileChange((p) => { applyProfile(form, p); syncTopics(form); syncIncomeType(form); render(readForm(form), rates, flags); }, 'tax');
 
   renderProvisionTable(onboarding);
   syncTopics(form);
+  syncIncomeType(form);
   const first = readForm(form);
   render(first, rates, flags);
   // Existing users: a form saved before the shared profile existed seeds it once.
   if (isEmptyProfile(getProfile()) && (first.salary?.gross > 0)) updateProfile((p) => fromTaxInputs(p, first), 'tax');
+}
+
+// ---- the salary / business / both toggle ----
+// Step 1 has three buttons writing to a hidden incomeType input; blocks marked data-for="salary" or
+// data-for="business" show only for the matching type ('both' shows everything). Switching away from a
+// type clears that type's figures so a hidden salary or hidden receipts never shape the result.
+const SALARY_PATHS = ['salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.ltaExempt', 'salary.professionalTax', 'deductions.epfEmployee', 'employer.npsContribution', 'employer.totalRetirementContribution', 'perquisites.other'];
+const BUSINESS_PATHS = ['business.receipts', 'business.expenses', 'business.tdsDeducted'];
+function initIncomeType(form, run) {
+  form.querySelectorAll('[data-income-type]').forEach((b) => b.addEventListener('click', () => {
+    const hidden = form.querySelector('[data-path="incomeType"]');
+    const was = hidden.value, now = b.dataset.incomeType;
+    if (was === now) return;
+    hidden.value = now;
+    const clear = (paths) => { for (const p of paths) { const f = form.querySelector(`[data-path="${p}"]`); if (f && f.type === 'number') f.value = ''; } };
+    if (now === 'business') clear(SALARY_PATHS);
+    if (now === 'salary') clear(BUSINESS_PATHS);
+    syncIncomeType(form);
+    hidden.dispatchEvent(new Event('input', { bubbles: true }));
+    run();
+  }));
+  form.querySelector('[data-path="business.kind"]').addEventListener('change', () => syncIncomeType(form));
+  form.querySelector('[data-path="business.presumptive"]').addEventListener('change', () => syncIncomeType(form));
+}
+/** Reflect the hidden value in the buttons and the blocks. Called after restore, profile apply and reset. */
+function syncIncomeType(form) {
+  const hidden = form.querySelector('[data-path="incomeType"]');
+  const t = ['salary', 'business', 'both'].includes(hidden.value) ? hidden.value : 'salary';
+  hidden.value = t;
+  form.querySelectorAll('[data-income-type]').forEach((b) => { const on = b.dataset.incomeType === t; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+  form.querySelectorAll('[data-for]').forEach((n) => { n.hidden = !(t === 'both' || n.dataset.for === t); });
+  const kind = form.querySelector('[data-path="business.kind"]').value;
+  const presumptive = form.querySelector('[data-path="business.presumptive"]').checked;
+  form.querySelectorAll('[data-for-kind]').forEach((n) => { n.hidden = !(presumptive && n.dataset.forKind === kind); });
+  form.querySelectorAll('[data-for-books]').forEach((n) => { n.hidden = presumptive; });
+  const rentHint = form.querySelector('[data-rent-hint]');
+  if (rentHint) rentHint.textContent = t === 'business' ? '80GG: least of ₹60,000, 25% of income, or rent less 10% of income; old regime only' : 'with HRA the exemption is worked out; without HRA, 80GG gives up to ₹60,000 (old regime)';
+  form.querySelector('#tax-topics label.topic input[value="hra"]').closest('label').querySelector('span').textContent = t === 'business' ? '🏢 I pay rent' : '🏢 I pay rent / get HRA';
+}
+
+/** Business or profession: what is left to pay after TDS, the advance-tax calendar, and GST. */
+function renderBusiness(inputs, cmp, rates, flags) {
+  const box = document.getElementById('tax-business');
+  if (!box) return;
+  if (!hasBusiness(inputs) || (cmp.old.tax.totalIncome === 0 && cmp.new.tax.totalIncome === 0)) { box.replaceChildren(); return; }
+  const regime = cmp.better === 'old' ? 'old' : 'new';
+  const t = cmp[regime].tax;
+  const bz = businessIncome(inputs, rates);
+  const at = advanceTaxSchedule(inputs, rates, flags);
+  const gst = (rates.business_income || {}).gst_registration;
+  const gstLimit = gst ? (inputs.business.kind === 'business' ? gst.goods : gst.services) : 0;
+  const cards = [];
+  cards.push(el('div', { class: 'card biz' }, [
+    el('h3', { style: 'margin-top:0' }, 'Running a business or practice'),
+    el('div', { class: 'stats' }, [
+      el('div', { class: 'stat' }, [el('div', { class: 'k' }, `Tax for the year (${regime} regime)`), el('div', { class: 'v' }, inr(t.total))]),
+      el('div', { class: 'stat' }, [el('div', { class: 'k' }, 'TDS already deducted'), el('div', { class: 'v' }, inr(t.tdsDeducted || 0))]),
+      t.refundDue > 0 ? el('div', { class: 'stat hi' }, [el('div', { class: 'k' }, 'Refund due to you'), el('div', { class: 'v' }, inr(t.refundDue))]) : el('div', { class: 'stat hi' }, [el('div', { class: 'k' }, 'Still to pay'), el('div', { class: 'v' }, inr(t.netPayable))]),
+    ]),
+    bz.presumptive && bz.receipts > 0 ? el('p', { class: 'muted small' }, `Presumptive scheme: income taken as ${inr(bz.income)} on receipts of ${inr(bz.receipts)}. If your real expenses are higher than the deemed ones, books of account would cut the tax; if lower, the scheme is a gift. ${bz.notes.length ? bz.notes.join(' ') : ''}`) : null,
+    at ? el('div', {}, [
+      el('h4', {}, at.presumptive ? 'Advance tax: one payment' : 'Advance tax calendar'),
+      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'By'), el('th', {}, 'Pay'), el('th', {}, 'Cumulative')])),
+        el('tbody', {}, at.rows.map((r) => el('tr', {}, [el('td', {}, r.due), el('td', {}, inr(r.instalment)), el('td', {}, `${inr(r.cumulative)} (${Math.round(r.cumulativePct * 100)}%)`)]))),
+      ])),
+      el('p', { class: 'muted small' }, at.note),
+    ]) : el('p', { class: 'muted small' }, 'No advance tax is due: what is left to pay after TDS is under ₹10,000, or you are a resident senior without business income.'),
+    gstLimit && bz.receipts > 0 ? el('p', { class: 'muted small' }, bz.receipts >= gstLimit ? `GST: receipts of ${inr(bz.receipts)} are above the ${inr(gstLimit)} registration threshold for ${inputs.business.kind === 'business' ? 'goods' : 'services'}, so GST registration and returns apply (separate from income tax).` : `GST: registration becomes compulsory above ${inr(gstLimit)} a year for ${inputs.business.kind === 'business' ? 'goods' : 'services'} (from the first rupee for inter-state goods or e-commerce sales); you are at ${inr(bz.receipts)}.`) : null,
+    !bz.presumptive && bz.receipts > 0 ? el('details', { class: 'fold' }, [el('summary', {}, 'Expenses a practice or business can usually claim'), el('ul', { class: 'levers' }, ['Office or shop rent, electricity, internet and phone (the business share)', 'Staff salaries and contractor fees', 'Materials, stock and software subscriptions', 'Travel and vehicle running for work, with a log', 'Depreciation on laptop, equipment, furniture and vehicles', 'Professional fees: CA, lawyer, GST filing', 'Insurance for the business, bank charges, interest on a business loan', 'Membership and licence fees, books and training'].map((x) => el('li', {}, x))), el('p', { class: 'muted small' }, 'Keep invoices; personal spending is never deductible, and a mixed-use item is claimed in the business share only.')]) : null,
+  ]));
+  setChildren(box, cards);
 }
 
 // ---- progressive disclosure: topics ----
@@ -97,7 +172,7 @@ function showTopics(form) {
 }
 
 // Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
-const PROFILE_PATHS = ['fy', 'ageBand', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.rentPaid', 'salary.city', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf'];
+const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.rentPaid', 'salary.city', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
 
 function applyProfile(form, profile) {
   if (isEmptyProfile(profile)) return;
@@ -151,6 +226,7 @@ function render(inputs, rates, flags) {
   if ((result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) && !document.getElementById('tax').hidden) countEvent('compare');
   renderHeadline(result, inputs, rates, flags);
   renderWarnings(result);
+  renderBusiness(inputs, result, rates, flags);
   renderInsights(inputs, result, rates, flags);
   renderCharts(inputs, result, rates, flags);
   renderTable(result);

@@ -27,7 +27,14 @@ for (const f of files) {
   for (const l of p.loans) ok(`${f}: loan EMI matches outstanding/rate/months`, Math.abs(l.emi - Math.round(l.emi)) < 1 && l.emi > 0);
   const t = toTaxInputs(p);
   ok(`${f}: tax inputs compute without error`, Number.isFinite(computeRegime(t, p.tax.regime, rates).tax.total));
-  ok(`${f}: salary store percentages are sane`, toSalaryStore(p).basicPct > 0 && toSalaryStore(p).basicPct < 100);
+  if (i.ctc > 0) ok(`${f}: salary store percentages are sane`, toSalaryStore(p).basicPct > 0 && toSalaryStore(p).basicPct < 100);
+  else ok(`${f}: no salary, so business receipts carry the profile`, p.business.receipts > 0 && p.person.employment !== 'salaried');
+}
+{
+  const p = migrateProfile(JSON.parse(readFileSync(path.join(dir, 'consultant-30L.json'), 'utf8')));
+  const r = computeRegime(toTaxInputs(p), 'old', rates);
+  ok('consultant fixture: 44ADA income is 15 L and 80GG applies', r.income.lines.find((l) => l.id === 'business').amount === 1500000 && r.income.via.some((v) => v.id === '80gg'));
+  ok('consultant fixture: TDS credit flows to net payable', r.tax.tdsDeducted === 240000 && r.tax.netPayable === Math.max(0, r.tax.total - 240000));
 }
 
 {

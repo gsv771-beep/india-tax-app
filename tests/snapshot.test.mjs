@@ -55,5 +55,20 @@ ok('empty profile -> no snapshot', snapshot(emptyProfile(), { rates, mix, loanPo
   ok('a lower equity share lowers the ten-year figure and the goal SIPs rise', safer.invest.fv < s.invest.fv && safer.goalSip > s.goalSip);
 }
 
+// business and both
+{
+  const p = normaliseProfile({ person: { employment: 'self_employed' }, business: { receipts: 3000000, kind: 'profession', presumptive: true, tds: 240000 }, location: { city: 'Pune', rentPaid: 300000, housing: 'rent' } });
+  const s = snapshot(p, { rates, mix, loanPolicy, equityPct: 60, years: 10 });
+  ok('business: snapshot exists without a salary', s && s.kind === 'business' && s.ctc === 0 && s.business.receipts === 3000000);
+  near('business: presumptive income is half of receipts', s.business.income, 1500000);
+  ok('business: TDS and refund flow to the tax line', s.tax.tds === 240000 && s.tax.refund > 0 && s.tax.netPayable === 0);
+  near('business: left after tax = income less tax, per month', s.takeHome.monthly, (1500000 - s.tax.annual) / 12, 1);
+  ok('business: home budget builds on what is left after tax', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.5 * s.takeHome.monthly) < 1);
+  const both = normaliseProfile({ ...fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), person: { employment: 'both' }, business: { receipts: 1200000, kind: 'profession', presumptive: true } });
+  const b = snapshot(both, { rates, mix, loanPolicy, equityPct: 60, years: 10 });
+  ok('both: salary and receipts in one picture, tax on the combined income', b.kind === 'both' && b.ctc === 1800000 && b.business.income === 600000 && b.tax.annual > snapshot(fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), { rates, mix, loanPolicy }).tax.annual);
+  ok('salary-only profile with business receipts but employment salaried ignores the receipts', snapshot({ ...both, person: { ...both.person, employment: 'salaried' } }, { rates, mix, loanPolicy }).kind === 'salary');
+}
+
 console.log(failures ? `\n${failures} failure(s)` : '\nAll snapshot tests passed');
 process.exit(failures ? 1 : 0);

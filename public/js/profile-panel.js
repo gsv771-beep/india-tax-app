@@ -88,8 +88,16 @@ export function initProfilePanel() {
     const person = group('About you', [
       numField('Age', (d) => d.person.age, (d, v) => { d.person.age = Math.round(v); }, { step: 1, max: 100 }, 'sets how long a lender lets a loan run'),
       numField('Credit score', (d) => d.person.creditScore, (d, v) => { d.person.creditScore = Math.round(v); }, { step: 1, max: 900, placeholder: 'e.g. 760' }, 'CIBIL / Experian, 300 to 900; leave 0 if unknown'),
-      selectField('Employment', [['salaried', 'Salaried'], ['self_employed', 'Self-employed / business']], (d) => d.person.employment, (d, v) => { d.person.employment = v; }),
-    ], 'Only used by the home-buying tool; stays on this device like everything else.');
+      selectField('Income comes from', [['salaried', 'Salary'], ['self_employed', 'Business or profession'], ['both', 'Both']], (d) => d.person.employment, (d, v) => { d.person.employment = v; }, 'switches the tax page between salary and business questions', true),
+    ], 'Stays on this device like everything else.');
+
+    const business = p.person.employment === 'salaried' ? null : group('Business or profession (per year)', [
+      numField('Gross receipts or turnover (₹)', (d) => d.business.receipts, (d, v) => { d.business.receipts = v; }, { step: 50000, placeholder: 'e.g. 3000000' }, 'before expenses'),
+      selectField('This is a', [['profession', 'Profession (44ADA)'], ['business', 'Business or trade (44AD)']], (d) => d.business.kind, (d, v) => { d.business.kind = v; }),
+      selectField('Presumptive scheme', [['yes', 'Yes: deemed profit, no books'], ['no', 'No: receipts less expenses']], (d) => (d.business.presumptive ? 'yes' : 'no'), (d, v) => { d.business.presumptive = v === 'yes'; }),
+      numField('Business expenses, if not presumptive (₹)', (d) => d.business.expenses, (d, v) => { d.business.expenses = v; }, { step: 10000 }),
+      numField('TDS clients already deducted (₹)', (d) => d.business.tds, (d, v) => { d.business.tds = v; }, { step: 1000 }, 'from Form 26AS / AIS'),
+    ]);
 
     const tax = group('Tax', [
       selectField('Regime you are on', [['new', 'New regime'], ['old', 'Old regime']], (d) => d.tax.regime, (d, v) => { d.tax.regime = v; }),
@@ -181,7 +189,7 @@ export function initProfilePanel() {
         el('a', { href: '/about' }, 'How the site handles data'),
       ]),
       isEmptyProfile(p) ? el('p', { class: 'small muted' }, 'Tip: fill in the tax comparison or the in-hand salary calculator and this fills itself in.') : null,
-      el('div', { class: 'profile-grid' }, [income, tax, person, location, loans, investments, cashflow, household]),
+      el('div', { class: 'profile-grid' }, [income, business, tax, person, location, loans, investments, cashflow, household]),
       actions, status, emailBox,
     ]);
   }

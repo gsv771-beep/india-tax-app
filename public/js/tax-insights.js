@@ -2,7 +2,7 @@
  * Break-even, headroom and what-if analysis on top of the tax engine.
  * Pure functions; tested in tests/tax-insights.test.mjs.
  */
-import { computeTax, compareRegimes, mergeInputs, DEFAULT_FLAGS, AGE_BANDS } from './tax-engine.js';
+import { computeTax, compareRegimes, mergeInputs, DEFAULT_FLAGS, AGE_BANDS, hasBusiness, businessIncome } from './tax-engine.js';
 
 /** Old-regime total tax if slab income were `slabIncome`, everything else held. */
 function taxAtSlab(income, slabIncome, rates, flags) {
@@ -145,15 +145,15 @@ export function taxDrivers(inputs, rates, flags = DEFAULT_FLAGS) {
   const without = (mutate) => { const m = mergeInputs(inp); mutate(m); return compareRegimes(m, rates, flags); };
   const cand = [
     { id: 'salary', label: 'Salary', kind: 'income', amount: num(inp.salary.gross), mutate: (m) => { m.salary.gross = 0; m.salary.basicDa = 0; m.salary.hraReceived = 0; m.salary.rentPaid = 0; m.salary.ltaExempt = 0; m.salary.professionalTax = 0; m.deductions.includeEpf = false; m.deductions.epfEmployee = 0; } },
-    { id: 'business', label: 'Business or professional income', kind: 'income', amount: num(inp.business.income), mutate: (m) => { m.business.income = 0; } },
+    { id: 'business', label: inp.business.kind === 'business' ? 'Business turnover' : 'Professional receipts', kind: 'income', amount: num(inp.business.receipts) || num(inp.business.income), mutate: (m) => { m.business.income = 0; m.business.receipts = 0; } },
     { id: 'rent', label: 'Rent from property', kind: 'income', amount: num(inp.houseProperty.letOut.rent), mutate: (m) => { m.houseProperty.letOut = { rent: 0, municipalTax: 0, interest: 0 }; } },
     { id: 'other', label: 'Interest, dividends and other income', kind: 'income', amount: sum(inp.otherIncome.savingsInterest, inp.otherIncome.depositInterest, inp.otherIncome.dividends, inp.otherIncome.other), mutate: (m) => { m.otherIncome = { savingsInterest: 0, depositInterest: 0, dividends: 0, other: 0 }; } },
     { id: 'capgains', label: 'Capital gains', kind: 'income', amount: sum(inp.capitalGains.stcgEquity, inp.capitalGains.ltcgEquity, inp.capitalGains.ltcgOther, inp.capitalGains.lottery), mutate: (m) => { m.capitalGains = { stcgEquity: 0, ltcgEquity: 0, ltcgOther: 0, lottery: 0 }; } },
-    { id: 'hra', label: 'HRA exemption (rent paid)', kind: 'relief', amount: num(inp.salary.rentPaid), mutate: (m) => { m.salary.rentPaid = 0; } },
+    { id: 'hra', label: num(inp.salary.hraReceived) > 0 ? 'HRA exemption (rent paid)' : 'Rent paid (80GG)', kind: 'relief', amount: num(inp.salary.rentPaid), mutate: (m) => { m.salary.rentPaid = 0; } },
     { id: 'homeloan', label: 'Home loan interest, self-occupied (24(b))', kind: 'relief', amount: num(inp.houseProperty.selfOccupiedInterest), mutate: (m) => { m.houseProperty.selfOccupiedInterest = 0; } },
     { id: '80c', label: '80C (EPF, PPF, ELSS, insurance)', kind: 'relief', amount: num(inp.deductions.s80c) + (inp.deductions.includeEpf ? Math.max(num(inp.deductions.epfEmployee), 0.12 * num(inp.salary.basicDa)) : 0), mutate: (m) => { m.deductions.s80c = 0; m.deductions.includeEpf = false; m.deductions.epfEmployee = 0; } },
     { id: 'nps_employer', label: 'Employer NPS (80CCD(2))', kind: 'relief', amount: num(inp.employer.npsContribution), mutate: (m) => { m.employer.npsContribution = 0; } },
-    { id: 'nps_own', label: 'Own NPS (80CCD(1B))', kind: 'relief', amount: num(inp.deductions.nps1b), mutate: (m) => { m.deductions.nps1b = 0; } },
+    { id: 'nps_own', label: 'Own NPS (80CCD(1) and (1B))', kind: 'relief', amount: num(inp.deductions.nps1b) + num(inp.deductions.nps1), mutate: (m) => { m.deductions.nps1b = 0; m.deductions.nps1 = 0; } },
     { id: '80d', label: 'Health insurance (80D)', kind: 'relief', amount: sum(inp.deductions.healthSelf, inp.deductions.healthParents), mutate: (m) => { m.deductions.healthSelf = 0; m.deductions.healthParents = 0; } },
     { id: '80e', label: 'Education loan interest (80E)', kind: 'relief', amount: num(inp.deductions.educationLoanInterest), mutate: (m) => { m.deductions.educationLoanInterest = 0; } },
     { id: '80g', label: 'Donations (80G)', kind: 'relief', amount: num(inp.deductions.donations), mutate: (m) => { m.deductions.donations = 0; } },
@@ -183,3 +183,31 @@ export function whatIf(inputs, extras, rates, flags = DEFAULT_FLAGS) {
   const invested = (extras.s80c || 0) + (extras.nps1b || 0) + (extras.health || 0);
   return { before, after, invested, taxSaved: before.old.tax.total - after.old.tax.total };
 }
+
+/**
+ * Advance tax calendar for the regime that is lower: who owes it, when, and how much. Presumptive
+ * business or profession pays the whole amount by 15 March; everyone else pays 15/45/75/100%
+ * cumulatively on 15 June, September, December and March. Nothing is due under Rs 10,000 of net
+ * liability, and resident seniors without business income are exempt. Returns null when none is due.
+ *   -> { regime, total, tds, net, presumptive, rows: [{ due, cumulativePct, cumulative, instalment }], note }
+ */
+export function advanceTaxSchedule(inputs, rates, flags = DEFAULT_FLAGS) {
+  const inp = mergeInputs(inputs);
+  const cmp = compareRegimes(inp, rates, flags);
+  const regime = cmp.better === 'old' ? 'old' : 'new';
+  const t = cmp[regime].tax;
+  const at = rates.advance_tax;
+  const net = t.netPayable != null ? t.netPayable : t.total;
+  const seniorNoBusiness = inp.resident && inp.ageBand !== AGE_BANDS.below_60 && !hasBusiness(inp);
+  if (net < (at.liability_threshold || 10000) || seniorNoBusiness) return null;
+  const bz = businessIncome(inp, rates);
+  const presumptive = hasBusiness(inp) && bz.presumptive && num(inp.salary.gross) === 0;
+  const rows = presumptive
+    ? [{ due: at.presumptive_taxation.due, cumulativePct: 1, cumulative: net, instalment: net }]
+    : at.instalments.map((i, k, arr) => { const cumulative = Math.round(net * i.cumulative_pct); const prev = k ? Math.round(net * arr[k - 1].cumulative_pct) : 0; return { due: i.due, cumulativePct: i.cumulative_pct, cumulative, instalment: cumulative - prev }; });
+  return {
+    regime, total: t.total, tds: t.tdsDeducted || 0, net, presumptive, rows,
+    note: presumptive ? 'Under the presumptive scheme the whole year’s advance tax is one payment by 15 March; paying later costs 1% a month interest (234B/234C).' : 'Pay each instalment by its date; a shortfall costs 1% a month simple interest (234C), and paying less than 90% by 31 March adds 234B interest from April. Salary TDS counts as paid; add capital gains as they arise.',
+  };
+}
+const num = (v) => (Number.isFinite(+v) ? +v : 0);

@@ -80,7 +80,7 @@ export function renderRetirement({ schemes }) {
     const st2 = { ...st, growBeforePct: g.before.typical, growAfterPct: g.after.typical };
     const r = retirement(st2);
     const epfMonthly = !isEmptyProfile(p) && p.income.basic > 0 ? Math.round(p.income.basic * 0.24 / 12) : 0;
-    const build = buildPlan({ age: +st.age, monthly: (+st.monthlyInvesting || 0) + (r.gap > 0 ? r.gapSip : 0), epfMonthly, regime: p.tax.regime, equityPct: st.equityBeforePct }, planRates);
+    const build = buildPlan({ age: +st.age, monthly: (+st.monthlyInvesting || 0) + (r.gap > 0 ? r.gapSip : 0), epfMonthly, regime: p.tax.regime, equityPct: st.equityBeforePct, selfEmployed: p.person.employment !== 'salaried' }, planRates);
     const drawCorpus = Math.max(r.corpusAtRetirement, r.corpusNeeded);   // plan the drawdown on the pot that actually lasts
     const draw = drawPlan({ corpus: drawCorpus, firstYearSpend: r.firstYearSpend, planUntil: r.planUntil, retireAt: r.retireAt }, planRates);
     const later = retirement({ ...st2, retireAt: +st.retireAt + 2 });

@@ -37,6 +37,14 @@ const fixture = (f) => migrateProfile(JSON.parse(readFileSync(path.join(here, '.
   ok('v1 profile keeps its data', v1.income.ctc === 1500000 && v1.tax.regime === 'old');
   const bad = normaliseProfile({ person: { age: 250, creditScore: 12, employment: 'freelance' } });
   ok('person fields are clamped', bad.person.age === 100 && bad.person.creditScore === 300 && bad.person.employment === 'salaried');
+  const v2 = migrateProfile({ schemaVersion: 2, person: { employment: 'self_employed' }, income: { ctc: 0 } });
+  ok('v2 profile gains an empty business block', v2.schemaVersion === SCHEMA_VERSION && v2.business.receipts === 0 && v2.business.kind === 'profession' && v2.business.presumptive === true);
+  const biz = normaliseProfile({ person: { employment: 'both' }, business: { receipts: 3000000, kind: 'business', presumptive: false, digitalSharePct: 140, expenses: 500000, tds: 20000 } });
+  ok('business block normalises and \'both\' is a valid employment', biz.person.employment === 'both' && biz.business.receipts === 3000000 && biz.business.kind === 'business' && biz.business.presumptive === false && biz.business.digitalSharePct === 100 && biz.business.tds === 20000);
+  const ti = toTaxInputs(biz);
+  ok('toTaxInputs carries the toggle and the business block', ti.incomeType === 'both' && ti.business.receipts === 3000000 && ti.business.kind === 'business' && ti.business.presumptive === false && ti.business.tdsDeducted === 20000);
+  const back = fromTaxInputs(emptyProfile(), { incomeType: 'business', business: { receipts: 1200000, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tdsDeducted: 90000 } });
+  ok('fromTaxInputs writes employment and business back', back.person.employment === 'self_employed' && back.business.receipts === 1200000 && back.business.tds === 90000 && !isEmptyProfile(back));
 }
 
 // ---- import guard ----

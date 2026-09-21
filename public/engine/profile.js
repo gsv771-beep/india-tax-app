@@ -6,7 +6,8 @@
  * PROFILE_KEY; the test fixtures in public/fixtures/profiles/ are plain profiles in this shape.
  *
  * Schema v2 (all amounts annual rupees unless stated):
- *   person:      age (years, 0 = unknown), creditScore (0 = unknown), employment ('salaried' | 'self_employed')
+ *   person:      age (years, 0 = unknown), creditScore (0 = unknown), employment ('salaried' | 'self_employed' | 'both')
+ *   business:    receipts (per year), kind ('profession' | 'business'), presumptive, digitalSharePct, expenses, tds
  *   income:      ctc, basic, hra, otherAllowances, employerNps, employerPf, gratuity (provision inside CTC),
  *                esop (annual perquisite value). ctc = the sum of the rest.
  *   tax:         fy, regime ('old' | 'new'), s80cUsed, s80dUsed, nps1bUsed, otherDeductions, ageBand
@@ -19,7 +20,7 @@
  */
 
 export const PROFILE_KEY = 'taxcompass.profile.v1';
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const LOAN_TYPES = ['home', 'car', 'personal', 'education', 'other'];
 export const PROPERTY_USE = ['self_occupied', 'let_out', 'none'];
@@ -30,6 +31,7 @@ export function emptyProfile() {
     schemaVersion: SCHEMA_VERSION,
     person: { age: 0, creditScore: 0, employment: 'salaried' },
     income: { ctc: 0, basic: 0, hra: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
+    business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0 },
     tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60' },
     location: { city: 'Other', metro: false, rentPaid: 0, housing: 'rent' },
     loans: [],
@@ -48,6 +50,8 @@ export function emptyProfile() {
 const MIGRATIONS = {
   // v1 -> v2: the home-buying tool needs age, credit score and employment type. Older profiles get the defaults.
   1: (p) => ({ ...p, schemaVersion: 2, person: { age: 0, creditScore: 0, employment: 'salaried', ...(p.person || {}) } }),
+  // v2 -> v3: business or profession income (the salary/business/both toggle). Older profiles get an empty block.
+  2: (p) => ({ ...p, schemaVersion: 3, business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0, ...(p.business || {}) } }),
 };
 
 export function migrateProfile(raw) {
@@ -72,6 +76,7 @@ export function normaliseProfile(p) {
     schemaVersion: SCHEMA_VERSION,
     person: pick(base.person, p.person),
     income: pick(base.income, p.income),
+    business: pick(base.business, p.business),
     tax: pick(base.tax, p.tax),
     location: pick(base.location, p.location),
     loans: Array.isArray(p.loans) ? p.loans.map(normaliseLoan) : [],
@@ -81,7 +86,9 @@ export function normaliseProfile(p) {
     horizon: { goals: Array.isArray(p.horizon?.goals) ? p.horizon.goals.map((g) => ({ name: String(g?.name || 'Goal'), years: num(g?.years), target: num(g?.target) })) : [] },
   };
   if (out.tax.regime !== 'old' && out.tax.regime !== 'new') out.tax.regime = 'new';
-  if (out.person.employment !== 'self_employed') out.person.employment = 'salaried';
+  if (!['salaried', 'self_employed', 'both'].includes(out.person.employment)) out.person.employment = 'salaried';
+  if (out.business.kind !== 'business') out.business.kind = 'profession';
+  out.business.digitalSharePct = Math.max(0, Math.min(100, out.business.digitalSharePct));
   out.person.age = Math.max(0, Math.min(100, Math.round(out.person.age)));
   out.person.creditScore = out.person.creditScore ? Math.max(300, Math.min(900, Math.round(out.person.creditScore))) : 0;
   if (out.location.housing !== 'own' && out.location.housing !== 'rent') out.location.housing = 'rent';
@@ -134,7 +141,7 @@ export const CITIES = ['Other', ...METRO_CITIES, 'Bengaluru', 'Hyderabad', 'Pune
 
 /** Nothing entered yet: no pay, no loans, no corpus, no surplus. */
 export function isEmptyProfile(p) {
-  return ctcOf(p.income) === 0 && p.loans.length === 0 && INVESTMENT_BUCKETS.every((b) => !p.investments[b]) && !p.cashflow.monthlySurplus && !p.cashflow.emergencyFund;
+  return ctcOf(p.income) === 0 && !(p.business && p.business.receipts > 0) && p.loans.length === 0 && INVESTMENT_BUCKETS.every((b) => !p.investments[b]) && !p.cashflow.monthlySurplus && !p.cashflow.emergencyFund;
 }
 
 /** One line for the collapsed panel: "₹45,00,000 CTC · old regime · Mumbai · 1 loan · ₹60,000/month free". */
@@ -142,6 +149,7 @@ export function profileSummary(p, fmt = (n) => String(Math.round(n))) {
   if (isEmptyProfile(p)) return 'Nothing saved yet. Fill in any tool, or open the panel, and every tool will use the same figures.';
   const parts = [];
   if (p.income.ctc) parts.push(`${fmt(p.income.ctc)} CTC`);
+  if (p.business && p.business.receipts > 0) parts.push(`${fmt(p.business.receipts)} ${p.business.kind === 'business' ? 'turnover' : 'receipts'}`);
   parts.push(`${p.tax.regime} regime`);
   if (p.location.city !== 'Other') parts.push(p.location.city);
   if (p.loans.length) parts.push(`${p.loans.length} loan${p.loans.length > 1 ? 's' : ''}`);
@@ -166,6 +174,12 @@ export function parseProfileJSON(text) {
   return migrateProfile(raw);
 }
 
+/** The tax form's toggle value for a profile: 'salary' | 'business' | 'both'. */
+export function incomeTypeOf(p) {
+  const e = p.person.employment;
+  return e === 'both' ? 'both' : e === 'self_employed' ? 'business' : 'salary';
+}
+
 /** Shape used by the old-vs-new comparison page (tax-engine.js `emptyInputs`). */
 export function toTaxInputs(p) {
   const home = p.loans.filter((l) => l.type === 'home');
@@ -173,6 +187,8 @@ export function toTaxInputs(p) {
   const letOut = home.filter((l) => l.propertyUse === 'let_out').reduce((s, l) => s + nextYearInterest(l), 0);
   return {
     fy: p.tax.fy, resident: true, ageBand: p.tax.ageBand, hasBusinessIncome: false,
+    incomeType: incomeTypeOf(p),
+    business: { income: 0, receipts: p.business.receipts, kind: p.business.kind, presumptive: p.business.presumptive, digitalSharePct: p.business.digitalSharePct, expenses: p.business.expenses, tdsDeducted: p.business.tds },
     salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: 0 },
     employer: { npsContribution: p.income.employerNps, isGovernment: false, totalRetirementContribution: p.income.employerPf + p.income.employerNps },
     perquisites: { other: 0 },
@@ -212,6 +228,8 @@ export function fromTaxInputs(p, t) {
   out.tax.s80cUsed = num(t.deductions?.s80c);
   out.tax.nps1bUsed = num(t.deductions?.nps1b);
   out.tax.s80dUsed = num(t.deductions?.healthSelf); // parents' cover stays with the tax form
+  if (t.incomeType === 'salary' || t.incomeType === 'business' || t.incomeType === 'both') out.person.employment = t.incomeType === 'salary' ? 'salaried' : t.incomeType === 'business' ? 'self_employed' : 'both';
+  if (t.business) { const b = t.business; out.business = { receipts: num(b.receipts), kind: b.kind === 'business' ? 'business' : 'profession', presumptive: b.presumptive !== false, digitalSharePct: Math.max(0, Math.min(100, num(b.digitalSharePct) || (b.digitalSharePct === undefined ? 100 : 0))), expenses: num(b.expenses), tds: num(b.tdsDeducted) }; }
   if (t.salary?.city) { out.location.city = t.salary.city; out.location.metro = METRO_CITIES.includes(t.salary.city); }
   const rent = num(t.salary?.rentPaid);
   out.location.rentPaid = rent;

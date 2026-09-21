@@ -43,6 +43,7 @@ export function emptyInputs() {
     fy: 'FY2026-27',
     resident: true,
     ageBand: AGE_BANDS.below_60,
+    incomeType: 'salary',    // 'salary' | 'business' | 'both': which income blocks apply
     hasBusinessIncome: false,
     salary: {
       gross: 0,          // gross salary or pension, before any deduction
@@ -65,7 +66,15 @@ export function emptyInputs() {
       selfOccupiedInterest: 0,
       letOut: { rent: 0, municipalTax: 0, interest: 0 },
     },
-    business: { income: 0 },
+    business: {
+      income: 0,             // net income from books, used when receipts are 0 or presumptive is off with no receipts
+      receipts: 0,           // gross receipts / turnover for the year
+      kind: 'profession',    // 'profession' (44ADA) | 'business' (44AD)
+      presumptive: true,     // deemed profit instead of books
+      digitalSharePct: 100,  // 44AD: share of turnover received digitally (6% instead of 8%)
+      expenses: 0,           // books: expenses to set against receipts when presumptive is off
+      tdsDeducted: 0,        // TDS clients already deducted (194J etc.), credited against the tax
+    },
     otherIncome: {
       savingsInterest: 0,
       depositInterest: 0, // FD / RD interest
@@ -82,6 +91,7 @@ export function emptyInputs() {
       includeEpf: true,      // count the employee's EPF share (12% of Basic + DA) in 80C automatically
       epfEmployee: 0,        // actual annual employee EPF/VPF contribution, if known; 0 = compute 12% of Basic + DA
       s80c: 0,               // other 80C items, excluding EPF
+      nps1: 0,               // own NPS under 80CCD(1): 10% of salary for employees, 20% of income for others, within the 1.5L aggregate
       nps1b: 0,
       healthSelf: 0,
       healthParents: 0,
@@ -261,9 +271,11 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
     push('hp_income', 'Income from house property', hp, { subtotal: true });
   }
 
-  // --- 1.3 Business ---
-  const business = num(inp.business.income);
-  if (business !== 0) push('business', 'Business / professional income', business, { subtotal: true });
+  // --- 1.3 Business or profession ---
+  const bz = businessIncome(inp, rates);
+  for (const l of bz.lines) push(l.id, l.label, l.amount, l.extra || {});
+  for (const n of bz.notes) notes.push(n);
+  const business = bz.income;
 
   // --- 1.5 Other sources ---
   const savings = num(inp.otherIncome.savingsInterest);
@@ -307,8 +319,14 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
   // Employee's own EPF share counts within 80C. Employer's share is exempt income, not a deduction.
   const epf = gross > 0 && d.includeEpf !== false ? (num(d.epfEmployee) > 0 ? num(d.epfEmployee) : 0.12 * basicDa) : 0;
   if (!isNew) {
-    const s80c = Math.min(num(d.s80c) + epf, 150000);
-    addVia('80c', epf > 0 ? `80C / s.123 investments incl. EPF ${fmtNum(epf)} (cap Rs 1.5L)` : '80C / s.123 investments (cap Rs 1.5L)', s80c, { epf });
+    // own NPS under 80CCD(1) sits inside the same Rs 1.5L aggregate: 10% of Basic + DA for employees, 20% of gross total income for others
+    const bi = rates.business_income || {};
+    const nps1Cap = gross > 0 ? (bi.own_nps_80ccd1 ? bi.own_nps_80ccd1.cap_pct_of_salary_for_employees : 0.10) * basicDa : (bi.own_nps_80ccd1 ? bi.own_nps_80ccd1.cap_pct_of_gross_total_income_for_others : 0.20) * slabGti;
+    const nps1 = Math.min(num(d.nps1), nps1Cap);
+    if (num(d.nps1) > nps1Cap && nps1Cap >= 0) notes.push(`Own NPS under 80CCD(1) is capped at Rs ${fmtNum(nps1Cap)} (${gross > 0 ? '10% of Basic + DA' : '20% of gross total income'}); the rest is not deductible there.`);
+    const s80c = Math.min(num(d.s80c) + epf + nps1, 150000);
+    const parts = [epf > 0 ? `EPF ${fmtNum(epf)}` : null, nps1 > 0 ? `own NPS ${fmtNum(nps1)}` : null].filter(Boolean);
+    addVia('80c', parts.length ? `80C / s.123 investments incl. ${parts.join(' and ')} (cap Rs 1.5L)` : '80C / s.123 investments (cap Rs 1.5L)', s80c, { epf, nps1 });
     addVia('80ccd1b', '80CCD(1B) / s.124 own NPS (cap Rs 50,000)', Math.min(num(d.nps1b), 50000));
 
     const selfSenior = inp.ageBand !== AGE_BANDS.below_60;
@@ -337,6 +355,15 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
     if (dis === 'self_80') addVia('80u', '80U / s.154 self severe disability', 125000);
     if (dis === 'dependant_40') addVia('80dd', '80DD / s.127 disabled dependant', 75000);
     if (dis === 'dependant_80') addVia('80dd', '80DD / s.127 severely disabled dependant', 125000);
+  }
+
+  // 80GG: rent paid with no HRA, old regime. Least of Rs 60,000; 25% of adjusted total income; rent less 10% of it.
+  if (!isNew && num(inp.salary.rentPaid) > 0 && num(inp.salary.hraReceived) === 0) {
+    const g = (rates.business_income || {}).rent_paid_no_hra || { cap_per_year: 60000, pct_of_adjusted_total_income: 0.25, rent_less_pct_of_adjusted_total_income: 0.10 };
+    const ati = clamp0(slabGti - via.reduce((s, x) => s + x.amount, 0));
+    const rent = num(inp.salary.rentPaid);
+    const ded = Math.max(0, Math.min(g.cap_per_year, g.pct_of_adjusted_total_income * ati, rent - g.rent_less_pct_of_adjusted_total_income * ati));
+    addVia('80gg', '80GG / s.134 rent paid, no HRA (least of three)', Math.round(ded));
   }
 
   // Chapter VI-A can never reduce slab income below zero and never touches special-rate income.
@@ -462,6 +489,10 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
   const taxPlusSurcharge = core.taxBeforeSurcharge + core.surcharge - surchargeRelief;
   const cess = taxPlusSurcharge * rates.cess.rate;
   const total = Math.round(taxPlusSurcharge + cess); // A6
+  // TDS clients or employers already deducted comes off what is left to pay; it never changes the tax itself
+  const tdsDeducted = Math.round(clamp0(num(((income.inputs || {}).business || {}).tdsDeducted)));
+  const netPayable = Math.max(0, total - tdsDeducted);
+  const refundDue = Math.max(0, tdsDeducted - total);
 
   return {
     ...core,
@@ -470,6 +501,9 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
     taxPlusSurcharge,
     cess,
     total,
+    tdsDeducted,
+    netPayable,
+    refundDue,
     effectiveRate: core.totalIncome > 0 ? total / core.totalIncome : 0,
   };
 }
@@ -492,7 +526,7 @@ export function compareRegimes(inputs, rates, flags = DEFAULT_FLAGS) {
   const diff = oldR.tax.total - newR.tax.total;
   const warnings = [];
   const inp = oldR.income.inputs;
-  if (inp.hasBusinessIncome) {
+  if (hasBusiness(inp)) {
     warnings.push('You have business or professional income: you may opt out of the new regime only once, and return to it only once. After that the old regime is permanently unavailable. Form 10-IEA is required by the original due date.');
   }
   if (!inp.resident) {
@@ -505,6 +539,56 @@ export function compareRegimes(inputs, rates, flags = DEFAULT_FLAGS) {
     saving: Math.abs(diff),
     warnings,
   };
+}
+
+// ---------- business or profession ----------
+
+/** Whether the business blocks apply: the toggle, or the older checkbox, or receipts entered. */
+export function hasBusiness(inp) {
+  return inp.incomeType === 'business' || inp.incomeType === 'both' || !!inp.hasBusinessIncome || num((inp.business || {}).receipts) > 0;
+}
+
+/**
+ * Income from business or profession as lines for the computation table.
+ * Presumptive: 44ADA deems 50% of a professional's receipts as income; 44AD deems 8% of turnover
+ * (6% of the digitally received part). Otherwise receipts less expenses, or the net figure typed in.
+ */
+export function businessIncome(inp, rates) {
+  const b = inp.business || {};
+  const bi = (rates && rates.business_income) || {};
+  const receipts = clamp0(num(b.receipts));
+  const lines = [], notes = [];
+  if (receipts <= 0) {
+    const income = num(b.income);
+    if (income !== 0) lines.push({ id: 'business', label: 'Business / professional income', amount: income, extra: { subtotal: true } });
+    return { income, lines, notes, presumptive: false, receipts: 0 };
+  }
+  const presumptive = b.presumptive !== false;
+  const isProfession = b.kind !== 'business';
+  lines.push({ id: 'business_receipts', label: isProfession ? 'Professional receipts' : 'Business turnover', amount: receipts });
+  let income;
+  if (presumptive && isProfession) {
+    const r = bi.presumptive_profession || { deemed_income_rate: 0.5, receipts_limit: 5000000, receipts_limit_if_digital: 7500000, digital_share_for_higher_limit: 0.95 };
+    const digital = clamp0(Math.min(100, num(b.digitalSharePct))) / 100;
+    const limit = digital >= r.digital_share_for_higher_limit ? r.receipts_limit_if_digital : r.receipts_limit;
+    income = receipts * r.deemed_income_rate;
+    lines.push({ id: 'business_deemed', label: `Less: deemed expenses under 44ADA (${Math.round((1 - r.deemed_income_rate) * 100)}% of receipts)`, amount: -(receipts - income) });
+    if (receipts > limit) notes.push(`Receipts of Rs ${fmtNum(receipts)} exceed the 44ADA limit of Rs ${fmtNum(limit)}; the presumptive scheme is not available and books of account (and a tax audit) are needed. The figure here still uses 50%.`);
+  } else if (presumptive) {
+    const r = bi.presumptive_business || { deemed_rate: 0.08, deemed_rate_digital: 0.06, turnover_limit: 20000000, turnover_limit_if_digital: 30000000, digital_share_for_higher_limit: 0.95 };
+    const digital = clamp0(Math.min(100, num(b.digitalSharePct))) / 100;
+    const limit = digital >= r.digital_share_for_higher_limit ? r.turnover_limit_if_digital : r.turnover_limit;
+    income = receipts * (digital * r.deemed_rate_digital + (1 - digital) * r.deemed_rate);
+    lines.push({ id: 'business_deemed', label: `Less: deemed expenses under 44AD (income taken as ${Math.round(r.deemed_rate_digital * 100)}% of digital and ${Math.round(r.deemed_rate * 100)}% of other turnover)`, amount: -(receipts - income) });
+    if (receipts > limit) notes.push(`Turnover of Rs ${fmtNum(receipts)} exceeds the 44AD limit of Rs ${fmtNum(limit)}; the presumptive scheme is not available and books of account (and a tax audit) are needed.`);
+  } else {
+    const expenses = clamp0(num(b.expenses));
+    income = receipts - expenses;
+    if (expenses > 0) lines.push({ id: 'business_expenses', label: 'Less: business expenses', amount: -expenses });
+  }
+  income = Math.round(income);
+  lines.push({ id: 'business', label: isProfession ? 'Income from profession' : 'Income from business', amount: income, extra: { subtotal: true } });
+  return { income, lines, notes, presumptive, receipts };
 }
 
 // ---------- utilities ----------

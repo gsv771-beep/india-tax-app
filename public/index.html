@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="20165fc86b">
+  <meta name="tc-build" content="83b9868715">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: know the number, make the decision</title>
   <meta name="description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
@@ -134,14 +134,40 @@
         <div class="tax-left">
         <form id="tax-form" class="tax-form" autocomplete="off">
           <details open class="stage">
-            <summary><span class="step">1</span> Your salary</summary>
-            <div class="grid">
+            <summary><span class="step">1</span> Your income</summary>
+            <div class="income-type" role="group" aria-label="Your income comes from">
+              <span class="income-type-label">My income comes from</span>
+              <span class="seg-group">
+                <button type="button" class="seg" data-income-type="salary">Salary</button>
+                <button type="button" class="seg" data-income-type="business">Business or profession</button>
+                <button type="button" class="seg" data-income-type="both">Both</button>
+              </span>
+              <input type="hidden" data-path="incomeType" value="salary">
+            </div>
+            <div class="grid" data-for="salary">
               <label>Gross annual salary or pension (₹)
                 <input type="number" min="0" step="1000" data-path="salary.gross" placeholder="e.g. 1500000">
               </label>
               <label>Annual Basic + DA (₹) <small>on your payslip; usually 40-50% of gross</small>
                 <input type="number" min="0" step="1000" data-path="salary.basicDa" placeholder="e.g. 600000">
               </label>
+            </div>
+            <div class="grid" data-for="business" hidden>
+              <label>Gross receipts or turnover for the year (₹) <small>what clients or customers paid you, before any expenses</small>
+                <input type="number" min="0" step="50000" data-path="business.receipts" placeholder="e.g. 3000000">
+              </label>
+              <label>This is a
+                <select data-path="business.kind">
+                  <option value="profession">Profession (doctor, CA, consultant, freelancer, designer, IT)</option>
+                  <option value="business">Business or trade (shop, agency, manufacturing, transport)</option>
+                </select>
+              </label>
+              <label class="check"><input type="checkbox" data-path="business.presumptive" checked> Use the presumptive scheme <small>(44ADA: half of a professional's receipts is income; 44AD: 8% of turnover, 6% if received digitally. No books, no audit. Most small practices and traders use it.)</small></label>
+              <label data-for-kind="business">Share of turnover received digitally or by cheque (%) <small>6% deemed profit on this part, 8% on cash</small><input type="number" min="0" max="100" step="5" data-path="business.digitalSharePct" value="100"></label>
+              <label data-for-books>Business expenses for the year (₹) <small>rent, staff, materials, travel, phone, depreciation: what your books show</small><input type="number" min="0" step="10000" data-path="business.expenses"></label>
+              <label>TDS clients already deducted (₹) <small>from Form 26AS / AIS; usually 10% of professional fees (194J)</small><input type="number" min="0" step="1000" data-path="business.tdsDeducted"></label>
+            </div>
+            <div class="grid">
               <label>Age
                 <select data-path="ageBand">
                   <option value="below_60">Below 60</option>
@@ -174,7 +200,6 @@
               <label class="topic"><input type="checkbox" value="health"> <span>🩺 Health insurance</span></label>
               <label class="topic"><input type="checkbox" value="capgains"> <span>📈 Sold shares, funds or property</span></label>
               <label class="topic"><input type="checkbox" value="other"> <span>💵 Interest, dividends, rent received</span></label>
-              <label class="topic"><input type="checkbox" value="business"> <span>💼 Business or freelance income</span></label>
               <label class="topic"><input type="checkbox" value="more"> <span>➕ Other deductions and perks</span></label>
             </div>
             <div class="topic-actions"><button type="button" class="btn-link" id="tax-topics-all">Show every field</button></div>
@@ -186,8 +211,8 @@
             <fieldset class="topic-group" data-topic="hra">
               <legend>Rent and HRA</legend>
               <div class="grid">
-                <label>HRA received (₹)<input type="number" min="0" step="1000" data-path="salary.hraReceived"></label>
-                <label>Annual rent paid (₹)<input type="number" min="0" step="1000" data-path="salary.rentPaid"></label>
+                <label data-for="salary">HRA received (₹)<input type="number" min="0" step="1000" data-path="salary.hraReceived"></label>
+                <label>Annual rent paid (₹) <small data-rent-hint>with HRA the exemption is worked out; without HRA, 80GG gives up to ₹60,000 (old regime)</small><input type="number" min="0" step="1000" data-path="salary.rentPaid"></label>
                 <label>City
                   <select data-path="salary.city">
                     <option>Other</option><option>Delhi</option><option>Mumbai</option><option>Kolkata</option><option>Chennai</option>
@@ -208,12 +233,13 @@
             <fieldset class="topic-group" data-topic="invest">
               <legend>80C investments and NPS</legend>
               <div class="grid">
-                <label class="check"><input type="checkbox" data-path="deductions.includeEpf" checked> Count my EPF contribution in 80C <small>(your own 12% of Basic + DA; the employer's share is exempt, not a deduction)</small></label>
-                <label>My actual EPF + VPF contribution per year (₹) <small>leave 0 to use 12% of Basic + DA</small><input type="number" min="0" step="1000" data-path="deductions.epfEmployee"></label>
+                <label class="check" data-for="salary"><input type="checkbox" data-path="deductions.includeEpf" checked> Count my EPF contribution in 80C <small>(your own 12% of Basic + DA; the employer's share is exempt, not a deduction)</small></label>
+                <label data-for="salary">My actual EPF + VPF contribution per year (₹) <small>leave 0 to use 12% of Basic + DA</small><input type="number" min="0" step="1000" data-path="deductions.epfEmployee"></label>
                 <label>Other 80C investments, excluding EPF (₹) <small>PPF, ELSS, LIC, NSC, SSY, home loan principal, tuition</small><input type="number" min="0" step="1000" data-path="deductions.s80c"></label>
-                <label>Own NPS contribution, 80CCD(1B) (₹)<input type="number" min="0" step="1000" data-path="deductions.nps1b"></label>
-                <label>Employer NPS contribution (₹) <small>14% cap in new regime for everyone; 10% for private employers in old</small><input type="number" min="0" step="1000" data-path="employer.npsContribution"></label>
-                <label class="check"><input type="checkbox" data-path="employer.isGovernment"> Central or State Government employer</label>
+                <label>Own NPS contribution, 80CCD(1B) (₹) <small>the extra ₹50,000 on top of 80C</small><input type="number" min="0" step="1000" data-path="deductions.nps1b"></label>
+                <label>Own NPS within 80C, 80CCD(1) (₹) <small>up to 10% of Basic + DA for employees, 20% of income for the self-employed, inside the ₹1.5 lakh</small><input type="number" min="0" step="1000" data-path="deductions.nps1"></label>
+                <label data-for="salary">Employer NPS contribution (₹) <small>14% cap in new regime for everyone; 10% for private employers in old</small><input type="number" min="0" step="1000" data-path="employer.npsContribution"></label>
+                <label class="check" data-for="salary"><input type="checkbox" data-path="employer.isGovernment"> Central or State Government employer</label>
               </div>
             </fieldset>
 
@@ -249,19 +275,11 @@
               </div>
             </fieldset>
 
-            <fieldset class="topic-group" data-topic="business">
-              <legend>Business or professional income</legend>
-              <div class="grid">
-                <label>Net business / professional income (₹)<input type="number" step="1000" data-path="business.income" placeholder="0"></label>
-                <label class="check"><input type="checkbox" data-path="hasBusinessIncome"> I have business or professional income (regime switching is restricted)</label>
-              </div>
-            </fieldset>
-
             <fieldset class="topic-group" data-topic="more">
               <legend>Other deductions and perks</legend>
               <div class="grid">
-                <label>LTA exemption claimable (₹) <small>travel fare only</small><input type="number" min="0" step="1000" data-path="salary.ltaExempt"></label>
-                <label>Professional tax paid (₹)<input type="number" min="0" step="100" data-path="salary.professionalTax" placeholder="e.g. 2500"></label>
+                <label data-for="salary">LTA exemption claimable (₹) <small>travel fare only</small><input type="number" min="0" step="1000" data-path="salary.ltaExempt"></label>
+                <label data-for="salary">Professional tax paid (₹)<input type="number" min="0" step="100" data-path="salary.professionalTax" placeholder="e.g. 2500"></label>
                 <label>Education loan interest (₹)<input type="number" min="0" step="1000" data-path="deductions.educationLoanInterest"></label>
                 <label>Donations, 80G (₹)<input type="number" min="0" step="500" data-path="deductions.donations"></label>
                 <label>Donation category
@@ -281,8 +299,8 @@
                     <option value="dependant_80">Dependant, 80% or more</option>
                   </select>
                 </label>
-                <label>Employer PF + superannuation + NPS combined (₹) <small>above ₹7,50,000 is a taxable perquisite</small><input type="number" min="0" step="1000" data-path="employer.totalRetirementContribution"></label>
-                <label>Other taxable perquisites (₹) <small>company car, accommodation, per your Form 16</small><input type="number" min="0" step="1000" data-path="perquisites.other"></label>
+                <label data-for="salary">Employer PF + superannuation + NPS combined (₹) <small>above ₹7,50,000 is a taxable perquisite</small><input type="number" min="0" step="1000" data-path="employer.totalRetirementContribution"></label>
+                <label data-for="salary">Other taxable perquisites (₹) <small>company car, accommodation, per your Form 16</small><input type="number" min="0" step="1000" data-path="perquisites.other"></label>
               </div>
             </fieldset>
           </details>
@@ -297,6 +315,7 @@
         <div class="tax-results">
           <div id="tax-headline" class="headline"></div>
           <div id="tax-warnings"></div>
+          <div id="tax-business"></div>
           <div id="tax-insights"></div>
           <div id="tax-charts"></div>
           <div id="tax-table"></div>

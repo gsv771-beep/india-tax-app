@@ -73,7 +73,8 @@ export function buildPlan(o, rates) {
   const epf = Math.min(left, Math.max(0, num(o.epfMonthly)));
   if (epf > 0) take('epf', 'EPF, already happening from salary', epf, `${rates.epf}% tax-free, and your employer matches it. Nothing to do; it is the floor of the plan.`);
   // NPS: own contribution up to 50,000 a year for 80CCD(1B) in the old regime; in the new regime the employer route is the one that saves tax
-  if (o.regime === 'old') take('nps', 'NPS, your own contribution', 50000 / 12, `Up to ₹50,000 a year is deductible on top of 80C (80CCD(1B)); at 60, 60% comes out tax-free and 40% becomes a pension. Locked till 60, which is the point.`);
+  if (o.selfEmployed && o.regime === 'old') take('nps', 'NPS, your own contribution', Math.min(left * 0.2, 200000 / 12), `Self-employed: up to 20% of your income goes in under 80CCD(1) within the ₹1.5 lakh, plus ₹50,000 under 80CCD(1B); at 60, 60% comes out tax-free and 40% becomes a pension. There is no EPF for you, so this is the floor of the plan.`);
+  else if (o.regime === 'old') take('nps', 'NPS, your own contribution', 50000 / 12, `Up to ₹50,000 a year is deductible on top of 80C (80CCD(1B)); at 60, 60% comes out tax-free and 40% becomes a pension. Locked till 60, which is the point.`);
   else take('nps', 'NPS, through your employer if you can', Math.min(50000 / 12, left * 0.15), `In the new regime your own NPS gets no deduction, but an employer contribution up to 14% of basic does (80CCD(2)). Ask payroll to restructure; if not, a modest own contribution still buys a tax-free 60% at 60.`);
   // equity: the share the person chose (of everything saved), else a rule of thumb by age applied to what is left
   const chosen = o.equityPct != null && Number.isFinite(+o.equityPct);

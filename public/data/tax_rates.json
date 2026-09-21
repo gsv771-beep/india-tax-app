@@ -358,5 +358,75 @@
     "finance_bill_2026": "https://www.indiabudget.gov.in/doc/Finance_Bill.pdf",
     "memorandum_explaining_provisions": "https://www.indiabudget.gov.in/doc/memo.pdf",
     "kpmg_budget_2026_personal_tax": "https://kpmg.com/xx/en/our-insights/gms-flash-alert/2026/flash-alert-2026-037.html"
+  },
+  "business_income": {
+    "_note": "Rules for income from business or profession as the app uses them. Presumptive schemes replace books of account with a deemed profit; both regimes allow them. Section numbers: 1961 Act / 2025 Act.",
+    "presumptive_profession": {
+      "section": {
+        "act_1961": "44ADA",
+        "act_2025": "62"
+      },
+      "deemed_income_rate": 0.5,
+      "receipts_limit": 5000000,
+      "receipts_limit_if_digital": 7500000,
+      "digital_share_for_higher_limit": 0.95,
+      "eligible": "Specified professions: legal, medical, engineering, architecture, accountancy, technical consultancy, interior decoration, film artists, company secretaries, IT and other notified professions; resident individuals and partnership firms (not LLPs).",
+      "rule": "Income is deemed 50% of gross receipts (a higher figure may be declared). No further business expenses; depreciation is deemed allowed. Advance tax in one instalment by 15 March.",
+      "confidence": "verified"
+    },
+    "presumptive_business": {
+      "section": {
+        "act_1961": "44AD",
+        "act_2025": "58"
+      },
+      "deemed_rate": 0.08,
+      "deemed_rate_digital": 0.06,
+      "turnover_limit": 20000000,
+      "turnover_limit_if_digital": 30000000,
+      "digital_share_for_higher_limit": 0.95,
+      "excluded": "Professions covered by 44AA/44ADA, commission or brokerage income, agency business, LLPs, and anyone claiming 10A-10BA or 80H-80RRB deductions.",
+      "rule": "Income is deemed 8% of turnover, 6% of the part received digitally or by cheque by the return due date. Opting out after opting in bars the scheme for five years and requires audit if income exceeds the basic exemption.",
+      "confidence": "verified"
+    },
+    "rent_paid_no_hra": {
+      "section": {
+        "act_1961": "80GG",
+        "act_2025": "134"
+      },
+      "cap_per_year": 60000,
+      "pct_of_adjusted_total_income": 0.25,
+      "rent_less_pct_of_adjusted_total_income": 0.1,
+      "rule": "Old regime only. Least of Rs 60,000; 25% of adjusted total income; rent paid less 10% of adjusted total income. Not available if HRA is received or you, your spouse or minor child own a house where you live or work. Form 10BA.",
+      "confidence": "verified"
+    },
+    "own_nps_80ccd1": {
+      "section": {
+        "act_1961": "80CCD(1)",
+        "act_2025": "124"
+      },
+      "cap_pct_of_salary_for_employees": 0.1,
+      "cap_pct_of_gross_total_income_for_others": 0.2,
+      "within_80c_aggregate": 150000,
+      "rule": "Own NPS contribution within the Rs 1.5 lakh 80C/80CCC/80CCD(1) aggregate: up to 10% of salary (Basic + DA) for employees, 20% of gross total income for everyone else. The extra Rs 50,000 under 80CCD(1B) is on top. Old regime only.",
+      "confidence": "verified"
+    },
+    "tds_on_professional_fees": {
+      "section": {
+        "act_1961": "194J",
+        "act_2025": "393"
+      },
+      "rate_professional": 0.1,
+      "rate_technical_services": 0.02,
+      "threshold_per_payer_per_year": 50000,
+      "rule": "Clients deduct 10% on professional fees (2% on technical services) above Rs 50,000 a year per payer and deposit it against your PAN; it appears in Form 26AS / AIS and is credited against your tax.",
+      "confidence": "verified (rate); corroborated (threshold raised from Rs 30,000 by Finance Act 2025)"
+    },
+    "gst_registration": {
+      "services": 2000000,
+      "goods": 4000000,
+      "special_category_states": 1000000,
+      "rule": "Registration is compulsory once aggregate turnover in a financial year crosses Rs 20 lakh for services or Rs 40 lakh for goods (Rs 10 lakh in special-category states), and from the first rupee for inter-state supply of goods or for selling through e-commerce operators. GST is separate from income tax.",
+      "confidence": "corroborated"
+    }
   }
 }

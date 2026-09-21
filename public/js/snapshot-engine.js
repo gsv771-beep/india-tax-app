@@ -8,7 +8,8 @@
  *   -> null when the profile has no salary, else { pay, tax, takeHome, loans, surplus, invest, home, goals, emergency, assumptions }
  */
 import { salaryBreakdown } from './salary.js';
-import { toSalaryStore, emiFor } from '../engine/profile.js';
+import { toSalaryStore, toTaxInputs, incomeTypeOf } from '../engine/profile.js';
+import { compareRegimes, businessIncome } from './tax-engine.js';
 import { mixReturn } from '../engine/mix.js';
 import { sipFV, lumpsumFV } from './calculators.js';
 import { requiredSip } from '../engine/goal.js';
@@ -16,16 +17,38 @@ import { requiredSip } from '../engine/goal.js';
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 
 export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10 }) {
-  if (!(num(p.income.ctc) > 0)) return null;
-  const pay = salaryBreakdown(toSalaryStore(p), rates);
-  if (pay.error) return null;
-  const other = pay.regime === 'old' ? 'new' : 'old';
-  const otherTax = pay.cmp[other].tax.total;
-  const tax = { regime: pay.regime, annual: pay.tax, monthly: pay.tax / 12, otherRegime: other, otherSaves: Math.max(0, pay.tax - otherTax), effectiveRate: pay.tax / pay.ctc };
-  const takeHome = { monthly: pay.monthly, annual: pay.annual, pctOfCtc: pay.takeHomePct };
+  const type = incomeTypeOf(p);
+  const hasSalary = num(p.income.ctc) > 0 && type !== 'business';
+  const hasBiz = num(p.business && p.business.receipts) > 0 && type !== 'salary';
+  if (!hasSalary && !hasBiz) return null;
+  const kind = hasSalary && hasBiz ? 'both' : hasBiz ? 'business' : 'salary';
+  let pay = null, tax, takeHome, business = null;
+  if (kind === 'salary') {
+    // salary alone: the in-hand calculator's own arithmetic, so the two agree to the rupee
+    pay = salaryBreakdown(toSalaryStore(p), rates);
+    if (pay.error) return null;
+    const other = pay.regime === 'old' ? 'new' : 'old';
+    tax = { regime: pay.regime, annual: pay.tax, monthly: pay.tax / 12, otherRegime: other, otherSaves: Math.max(0, pay.tax - pay.cmp[other].tax.total), effectiveRate: pay.tax / pay.ctc, tds: 0, netPayable: pay.tax, refund: 0 };
+    takeHome = { monthly: pay.monthly, annual: pay.annual, pctOfCtc: pay.takeHomePct };
+  } else {
+    // business, or both: one combined computation through the tax engine
+    const inputs = toTaxInputs(p);
+    const cmp = compareRegimes(inputs, rates);
+    const regime = p.tax.regime === 'old' || p.tax.regime === 'new' ? p.tax.regime : (cmp.better === 'old' ? 'old' : 'new');
+    const other = regime === 'old' ? 'new' : 'old';
+    const t = cmp[regime].tax;
+    const bz = businessIncome(inputs, rates);
+    business = { receipts: bz.receipts, income: bz.income, presumptive: bz.presumptive, kind: p.business.kind };
+    if (hasSalary) pay = salaryBreakdown(toSalaryStore(p), rates);
+    const salaryNet = pay && !pay.error ? pay.grossSalary - pay.employeePf - pay.professionalTax : 0;
+    const grossIncome = (pay && !pay.error ? pay.ctc : 0) + bz.income;
+    const annual = salaryNet + bz.income - t.total;
+    tax = { regime, annual: t.total, monthly: t.total / 12, otherRegime: other, otherSaves: Math.max(0, t.total - cmp[other].tax.total), effectiveRate: grossIncome > 0 ? t.total / grossIncome : 0, tds: t.tdsDeducted || 0, netPayable: t.netPayable, refund: t.refundDue || 0 };
+    takeHome = { monthly: annual / 12, annual, pctOfCtc: grossIncome > 0 ? annual / grossIncome : 0 };
+  }
 
   const emis = p.loans.reduce((s, l) => s + num(l.emi), 0);
-  const loans = { count: p.loans.length, emi: emis, afterEmi: pay.monthly - emis, list: p.loans.map((l) => ({ type: l.type, outstanding: num(l.outstanding), emi: num(l.emi), yearsLeft: Math.round(num(l.remainingMonths) / 12) })) };
+  const loans = { count: p.loans.length, emi: emis, afterEmi: takeHome.monthly - emis, list: p.loans.map((l) => ({ type: l.type, outstanding: num(l.outstanding), emi: num(l.emi), yearsLeft: Math.round(num(l.remainingMonths) / 12) })) };
 
   // free money: what the budget tool says if it has been used, else take-home after EMIs (before expenses)
   const fromBudget = num(p.cashflow.monthlySurplus) > 0;
@@ -45,7 +68,7 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
   let home;
   if (existingHome) home = { kind: 'have', outstanding: num(existingHome.outstanding), emi: num(existingHome.emi), yearsLeft: Math.round(num(existingHome.remainingMonths) / 12), ratePct: num(existingHome.rate) };
   else {
-    const maxEmi = Math.max(0, 0.5 * pay.monthly - emis);
+    const maxEmi = Math.max(0, 0.5 * takeHome.monthly - emis);
     const months = 240, r = ratePct / 1200;
     const loan = maxEmi > 0 ? maxEmi * (Math.pow(1 + r, months) - 1) / (r * Math.pow(1 + r, months)) : 0;
     const price = loan / 0.8;
@@ -55,12 +78,12 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
   const goals = (p.horizon.goals || []).filter((g) => num(g.years) > 0 && num(g.target) > 0).map((g) => ({ name: g.name, years: num(g.years), target: num(g.target), sip: requiredSip(num(g.target), m.typical, num(g.years)) }));
   const goalSip = goals.reduce((s, g) => s + g.sip, 0);
 
-  const monthsCovered = num(p.cashflow.emergencyFund) > 0 && pay.monthly > 0 ? num(p.cashflow.emergencyFund) / pay.monthly : 0;
+  const monthsCovered = num(p.cashflow.emergencyFund) > 0 && takeHome.monthly > 0 ? num(p.cashflow.emergencyFund) / takeHome.monthly : 0;
   const emergency = { fund: num(p.cashflow.emergencyFund), monthsCovered };
 
   return {
-    ctc: pay.ctc, pay, tax, takeHome, loans, surplus, invest, home, goals, goalSip, emergency,
-    assumptions: `Tax under the ${pay.regime} regime with your profile’s deductions; ${equityPct}% equity mix earning about ${m.typical.toFixed(1)}% a year (equity ${mix.equity}%, safe ${mix.safe}%); home budget at ${ratePct}% for 20 years with 20% down.`,
+    kind, ctc: pay && !pay.error ? pay.ctc : 0, business, pay, tax, takeHome, loans, surplus, invest, home, goals, goalSip, emergency,
+    assumptions: `Tax under the ${tax.regime} regime with your profile’s deductions; ${equityPct}% equity mix earning about ${m.typical.toFixed(1)}% a year (equity ${mix.equity}%, safe ${mix.safe}%); home budget at ${ratePct}% for 20 years with 20% down.`,
   };
 }
 

@@ -4,6 +4,7 @@
     { "file": "new-regime-15L.json", "label": "₹15L CTC · new regime · no loan" },
     { "file": "old-regime-45L-homeloan.json", "label": "₹45L CTC · old regime · ₹60L home loan" },
     { "file": "1cr-esop.json", "label": "₹1cr CTC · ESOP component" },
-    { "file": "rebate-boundary.json", "label": "Exactly on the 87A rebate cliff" }
+    { "file": "rebate-boundary.json", "label": "Exactly on the 87A rebate cliff" },
+    { "file": "consultant-30L.json", "label": "₹30L consultant · 44ADA · no salary" }
   ]
 }
