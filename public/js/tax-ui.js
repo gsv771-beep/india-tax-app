@@ -28,7 +28,8 @@ export function initTax({ rates, onboarding }) {
   { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
     attachSlider(gross, { max: 10000000, step: 50000 });
     pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary', defaultMode: 'pct' });
-    pctToggle({ input: empNps, baseInput: basic, defaultPct: 10, name: 'tax.employerNps', hint: 'Basic + DA', max: 30, defaultMode: 'pct' }); }
+    // employer NPS starts at 0%: most people have none, and a default of 10% silently handed everyone a deduction (the old saved key is retired for that reason)
+    pctToggle({ input: empNps, baseInput: basic, defaultPct: 0, name: 'tax.employerNps.v2', hint: 'Basic + DA', max: 30, defaultMode: 'pct' }); }
   document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
     title: 'Email me this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
@@ -147,6 +148,8 @@ function initTopics(form, run) {
     const box = e.target; if (!box.value) return;
     if (!box.checked) {
       for (const f of form.querySelectorAll(`[data-topic="${box.value}"] [data-path]`)) { if (isCheck(f)) f.checked = f.defaultChecked; else if (f.tagName === 'SELECT') f.selectedIndex = 0; else f.value = ''; }
+      // a field in % mode would re-derive itself from its base; zero the percentage too
+      for (const pctIn of form.querySelectorAll(`[data-topic="${box.value}"] .pct-input`)) { pctIn.value = 0; pctIn.dispatchEvent(new Event('input', { bubbles: false })); }
       run();
     }
     showTopics(form);
