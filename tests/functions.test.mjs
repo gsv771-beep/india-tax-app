@@ -59,7 +59,7 @@ const post = (fn, body, env = {}) => fn({ request: new Request('http://x/api', {
   await post(counterPost, { event: 'calc:emi' }, env); await post(counterPost, { event: 'calc:emi' }, env); await post(counterPost, { event: 'calc:sip' }, env);
   const j = await (await counterGet({ env })).json();
   ok('counter: counts visits and comparisons', j.available && j.counts.visits === 2 && j.counts.comparisons === 1 && j.counts.workbooks === 0, JSON.stringify(j.counts));
-  ok('counter: calculations total and per calculator', j.counts.calculations === 3 && j.calculators.emi === 2 && j.calculators.sip === 1, JSON.stringify(j.calculators));
+  ok('counter: calculations total includes the comparison, per calculator kept', j.counts.calculations === 4 && j.calculators.emi === 2 && j.calculators.sip === 1, JSON.stringify(j.calculators));
 }
 
 // send-workbook: the profile source takes a .json file; workbooks still need .xlsx. Brevo is stubbed.

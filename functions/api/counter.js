@@ -1,5 +1,5 @@
 /**
- * GET  /api/counter                -> { available, counts: { visits, comparisons, workbooks, calculations }, calculators: { emi: n, ... } }
+ * GET  /api/counter                -> { available, counts: { visits, comparisons, workbooks, calculations (comparisons included) }, calculators: { emi: n, ... } }
  * POST /api/counter { event }      -> increments one of: visit | compare | workbook | calc:<calculator>
  * Backed by D1 (binding `DB`). Without the binding, GET reports available:false and POST is a no-op.
  */
@@ -20,6 +20,7 @@ export async function onRequestGet({ env }) {
       if (r.name in counts) counts[r.name] = r.value;
       else if (r.name.startsWith('calc:')) { calculators[r.name.slice(5)] = r.value; counts.calculations += r.value; }
     }
+    counts.calculations += counts.comparisons;   // one public number: a tax comparison is a calculation like any other
     return json({ available: true, counts, calculators });
   } catch (e) {
     return json({ available: false, error: 'counter unavailable' });
