@@ -76,11 +76,12 @@ export async function initCounter() {
     if (!data.available) return;
     counts = data;
     const c = data.counts;
-    // Two public numbers: visits, and calculations (the tax comparison counts as one of them).
-    const visits = `${n(c.visits)} visits so far`;
+    // Two public numbers: reach (Cloudflare's request count since launch when the mirror is on, else our own
+    // visit count) and calculations (the tax comparison counts as one of them).
+    const reach = data.cf && data.cf.requests > 0 ? `${n(data.cf.requests)} requests served since ${new Date(data.cf.since).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : `${n(c.visits)} visits so far`;
     const calcs = `${n(c.calculations)} calculations run so far`;
-    document.querySelectorAll('[data-counter], [data-counter-calcs]').forEach((node) => { node.textContent = c.calculations >= 20 ? calcs : visits; node.hidden = false; });
-    document.querySelectorAll('[data-counter-all]').forEach((node) => { node.textContent = c.calculations >= 20 ? `${visits} · ${n(c.calculations)} calculations` : visits; node.hidden = false; });
+    document.querySelectorAll('[data-counter], [data-counter-calcs]').forEach((node) => { node.textContent = c.calculations >= 20 ? calcs : reach; node.hidden = false; });
+    document.querySelectorAll('[data-counter-all]').forEach((node) => { node.textContent = c.calculations >= 20 ? `${reach} · ${n(c.calculations)} calculations` : reach; node.hidden = false; });
     window.dispatchEvent(new CustomEvent('counts', { detail: data }));
   } catch { /* counter is decorative */ }
 }

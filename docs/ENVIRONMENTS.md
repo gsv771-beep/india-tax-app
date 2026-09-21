@@ -45,6 +45,12 @@ Workers & Pages → `india-tax-app`:
    under *Preview*. Leaving them unset is fine: the email button reports it is switched off.
    Add `FEEDBACK_ADMIN_TOKEN` (any 16+ character secret) to Production to use the feedback moderation
    page at `https://taxcompass.org/api/feedback-admin`; paste the token there once per browser session.
+   To show Cloudflare's own traffic figures in the footer, add two more Production secrets and retry the
+   deployment: `CF_ZONE_ID` (dashboard → taxcompass.org → Overview, right-hand column, "Zone ID") and
+   `CF_API_TOKEN` (My Profile → API Tokens → Create Token → Custom token → Permissions: Zone · Analytics ·
+   Read; Zone Resources: Include · Specific zone · taxcompass.org). `functions/_cf-analytics.js` fetches
+   the daily request and page-view counts once a day and keeps a running total in D1 (`cf_daily`);
+   the token never reaches the browser. Without the secrets the footer shows the site's own visit count.
 
 ## One-time GitHub setup (repository settings; cannot be done from the repo)
 

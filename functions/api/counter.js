@@ -1,9 +1,10 @@
 /**
- * GET  /api/counter                -> { available, counts: { visits, comparisons, workbooks, calculations (comparisons included) }, calculators: { emi: n, ... } }
+ * GET  /api/counter                -> { available, counts: { visits, comparisons, workbooks, calculations (comparisons included) }, calculators: { emi: n, ... }, cf: { requests, pageViews, since } | null }
  * POST /api/counter { event }      -> increments one of: visit | compare | workbook | calc:<calculator>
  * Backed by D1 (binding `DB`). Without the binding, GET reports available:false and POST is a no-op.
  */
 import { json, ensureSchema, bump } from '../_lib.js';
+import { cfTotals } from '../_cf-analytics.js';
 
 const EVENTS = { visit: 'visits', compare: 'comparisons', workbook: 'workbooks' };
 const CALCS = ['salary', 'budget', 'emi', 'sip', 'home', 'compare', 'capital-gains', 'retirement', 'goal'];
@@ -21,7 +22,8 @@ export async function onRequestGet({ env }) {
       else if (r.name.startsWith('calc:')) { calculators[r.name.slice(5)] = r.value; counts.calculations += r.value; }
     }
     counts.calculations += counts.comparisons;   // one public number: a tax comparison is a calculation like any other
-    return json({ available: true, counts, calculators });
+    const cf = await cfTotals(env, env.DB);        // Cloudflare's own figures, mirrored daily; null until the secrets are set
+    return json({ available: true, counts, calculators, cf });
   } catch (e) {
     return json({ available: false, error: 'counter unavailable' });
   }
