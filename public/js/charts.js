@@ -1,5 +1,5 @@
 /**
- * Small inline-SVG chart library: line chart with hover crosshair, horizontal waterfall, stacked columns.
+ * Small inline-SVG chart library: line chart with hover crosshair and stacked columns.
  * Charts are drawn at the real pixel width of their container and redrawn when it changes, so text
  * stays readable instead of being scaled down with the picture. Colours for text and grid come from
  * CSS variables so dark mode just works.
@@ -137,41 +137,6 @@ function buildLine(o, W) {
   hit.addEventListener('touchmove', (e) => { const t = e.touches[0]; move(t.clientX, t.clientY); }, { passive: true });
   hit.addEventListener('mouseleave', hide);
   return [legend, holder];
-}
-
-/**
- * Horizontal waterfall: steps = [{ label, value, kind: 'start' | 'minus' | 'total' | 'tax' }], scale shared with `max`.
- */
-export function waterfallChart(o) {
-  return responsive((W) => buildWaterfall(o, W));
-}
-
-function buildWaterfall({ steps, max, color, taxColor = 'var(--danger)', title }, W) {
-  const rowH = 30, labelW = Math.round(Math.min(230, Math.max(120, W * 0.36))), valW = 84, m = 4;
-  const H = steps.length * rowH + 8;
-  const pw = W - labelW - valW - m;
-  const scale = (v) => (pw * Math.max(0, v)) / (max || 1);
-  const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': title || 'waterfall', class: 'viz' });
-  const maxChars = Math.floor(labelW / 6.4);
-  const clip = (s) => (s.length > maxChars ? s.slice(0, maxChars - 1) + '…' : s);
-  let running = 0;
-  steps.forEach((s, i) => {
-    const y = i * rowH + 4, h = rowH - 12;
-    let x0, x1, fill, opacity = 1;
-    if (s.kind === 'start') { x0 = 0; x1 = s.value; running = s.value; fill = 'var(--line-strong)'; }
-    else if (s.kind === 'minus') { x1 = running; running = Math.max(0, running - s.value); x0 = running; fill = color; opacity = 0.45; }
-    else if (s.kind === 'total') { x0 = 0; x1 = s.value; running = s.value; fill = color; }
-    else { x0 = 0; x1 = s.value; fill = taxColor; }
-    const g = svg('g');
-    g.append(svg('title', {}, `${s.label}: ${fullINR(s.value)}`));
-    g.append(svg('text', { x: labelW - 10, y: y + h / 2 + 4, 'text-anchor': 'end', 'font-size': 12, 'font-weight': s.kind === 'minus' ? 400 : 600, style: TEXT }, clip(s.label)));
-    g.append(svg('rect', { x: labelW + scale(x0), y, width: Math.max(2, scale(x1) - scale(x0)), height: h, rx: 4, fill, opacity }));
-    if (s.kind === 'minus' && i > 0) g.append(svg('line', { x1: labelW + scale(x1), x2: labelW + scale(x1), y1: y - 6, y2: y, style: 'stroke:var(--muted)', 'stroke-dasharray': '2 2' }));
-    const vx = labelW + scale(Math.max(x0, x1)) + 8;
-    g.append(svg('text', { x: Math.min(vx, W - 4), y: y + h / 2 + 4, 'text-anchor': vx > W - valW ? 'end' : 'start', 'font-size': 12, style: s.kind === 'minus' ? MUTED : TEXT, 'font-weight': s.kind === 'minus' ? 400 : 700 }, (s.kind === 'minus' ? '−' : '') + shortINR(s.value)));
-    root.append(g);
-  });
-  return [title ? el('div', { class: 'viz-title' }, title) : null, root];
 }
 
 /**

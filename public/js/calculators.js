@@ -147,16 +147,17 @@ export function initCalculators(data) {
   appData = data;
   // A change to the shared profile made anywhere else rebuilds the calculator on screen so it pre-fills afresh.
   onProfileChange(debounce((p, source) => {
-    if (currentCalc && source !== 'calc:' + currentCalc) mount(currentCalc);
+    if (currentCalc && currentCalc !== 'index' && source !== 'calc:' + currentCalc) mount(currentCalc);
   }, 200));
 }
 
-/** Called by the router for /calculators/<name>. */
+/** Called by the router for /calculators[/<name>]. No name: the decision index. */
 export function showCalc(name) {
-  const key = VIEWS[name] ? name : 'emi';
+  const key = name == null ? 'index' : VIEWS[name] ? name : 'emi';
   if (key === currentCalc) return;
   currentCalc = key;
   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
+  document.getElementById('calculators').classList.toggle('on-index', key === 'index');
   mount(key);
 }
 /** Render a view into the calculator body; the heavier views load their module on first use. */
@@ -168,7 +169,7 @@ function mount(key) {
     view.then((node) => { if (currentCalc === key) body.replaceChildren(withReset(key, node)); }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
   } else body.replaceChildren(withReset(key, view));
   // a calculation counts once per session per calculator, on the first edit
-  body.addEventListener('input', () => countEvent(`calc:${key}`), { once: true });
+  if (key !== 'index') body.addEventListener('input', () => countEvent(`calc:${key}`), { once: true });
 }
 
 // What each calculator remembers in the browser. Reset clears only that; the shared profile is untouched,
@@ -195,6 +196,7 @@ function resetCalc(key) {
 }
 /** Append a Reset button to the calculator's inputs card (or the view itself if it has none). */
 function withReset(key, view) {
+  if (key === 'index') return view;
   const target = view.querySelector('.card.inputs') || view;
   target.append(el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => resetCalc(key) }, 'Reset')));
   return view;
@@ -260,6 +262,7 @@ function stepUpControl(labelNoun) {
 
 const VIEWS = {
   // Loaded on first use: each of these pulls in its own module (and the Excel helpers) only when opened.
+  index: () => import('./calc-index.js').then((m) => m.renderCalcIndex(appData)),
   budget: () => import('./budget.js').then((m) => m.renderBudget(appData)),
   'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData)),
   salary: () => import('./salary.js').then((m) => m.renderSalary(appData)),

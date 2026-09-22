@@ -1,8 +1,8 @@
 {
   "_fixture": "₹1cr CTC of which ₹25L is ESOP vesting each year (taxed as a perquisite on exercise). Employer NPS at 10% of basic. New regime, renting.",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "person": {"age": 36, "creditScore": 745, "employment": "salaried"},
-  "income": { "ctc": 10000000, "basic": 3000000, "hra": 1500000, "otherAllowances": 2340000, "employerNps": 300000, "employerPf": 360000, "esop": 2500000 },
+  "income": { "ctc": 10000000, "basic": 3000000, "conveyance": 0, "variablePay": 0, "hra": 1500000, "otherAllowances": 2340000, "employerNps": 300000, "employerPf": 360000, "esop": 2500000 },
   "business": { "receipts": 0, "kind": "profession", "presumptive": true, "digitalSharePct": 100, "expenses": 0, "tds": 0 },
   "tax": { "fy": "FY2026-27", "regime": "new", "s80cUsed": 150000, "s80dUsed": 50000, "nps1bUsed": 50000, "otherDeductions": 0, "ageBand": "below_60" },
   "location": { "city": "Other", "metro": false, "rentPaid": 600000, "housing": "rent" },

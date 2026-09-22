@@ -64,7 +64,7 @@ function route() {
   // The rest needs the data files; until they arrive the section heading and static form are already on screen.
   if (!appData) return;
   if (LAZY[tab] && !started.has(tab)) { started.add(tab); LAZY[tab](appData).catch((e) => console.error(e)); }
-  if (tab === 'calculators') showCalc(sub || 'emi');
+  if (tab === 'calculators') showCalc(sub);
   window.dispatchEvent(new CustomEvent('routechange', { detail: { tab, sub } }));
 }
 

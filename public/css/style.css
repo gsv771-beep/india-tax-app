@@ -295,6 +295,9 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .decide .ico { grid-row: 1 / span 2; font-size: 1.6rem; line-height: 1.2; }
 .decide strong { font-size: 1.02rem; }
 .decide span:not(.ico) { font-size: .88rem; color: var(--muted); }
+.calc-index .decide-title { margin: 22px 0 10px; }
+.calc-index .decide-block:first-of-type .decide-title { margin-top: 8px; }
+.decide-yours { grid-column: 2; font-size: .86rem !important; color: var(--accent-2) !important; font-weight: 600; }
 .decide-more { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 16px 0 26px; font-size: .92rem; }
 .decide-more span { color: var(--muted); }
 .why-trust { padding: 16px 18px; border: 1px dashed var(--line-strong); border-radius: var(--radius); margin-bottom: 8px; }

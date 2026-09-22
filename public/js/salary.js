@@ -4,7 +4,6 @@
  */
 import { inr, pct, el, setChildren, disclaimer, animateNumber, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { compareRegimes } from './tax-engine.js';
-import { waterfallChart } from './charts.js';
 import { setHandoff } from './handoff.js';
 import { calcExportCard } from './calc-export-card.js';
 import { getProfile, updateProfile } from './profile-store.js';
@@ -14,8 +13,15 @@ import { attachSlider } from './amount-input.js';
 const SOURCE = 'calc:salary';
 
 /**
- * p: { ctc, basicPct (of CTC), hraPct (of basic), includeEmployerPf, includeGratuity, employerNpsPct (of basic),
+ * p: { ctc, basicPct (of CTC), hraPct (of basic), conveyance (per year), variablePct (of CTC),
+ *      variableMonthly, includeEmployerPf, includeGratuity, employerNpsPct (of basic),
  *      professionalTax, city, rentPaid, other80c, nps1b, healthSelf, ageBand, regime: 'best'|'old'|'new', fy }
+ *
+ * Special allowance is the balancing figure: everything in the CTC that the other components do not
+ * account for. Conveyance allowance and variable pay are ordinary taxable salary (the old Rs 1,600 a
+ * month conveyance exemption went when the standard deduction came back), so they change the break-up,
+ * not the tax. Variable pay paid once a year is kept out of the monthly figure, with the tax split in
+ * proportion to pay, because that is what lands in the bank each month.
  */
 export function salaryBreakdown(p, rates) {
   const ctc = Math.max(0, +p.ctc || 0);
@@ -24,9 +30,11 @@ export function salaryBreakdown(p, rates) {
   const employerPf = p.includeEmployerPf === false ? 0 : 0.12 * basic;
   const gratuity = p.includeGratuity === false ? 0 : 0.0481 * basic;
   const employerNps = basic * ((+p.employerNpsPct || 0) / 100);
-  const special = ctc - basic - hra - employerPf - gratuity - employerNps;
-  if (special < 0) return { error: 'These percentages add up to more than the CTC. Reduce Basic, HRA or the employer contributions.' };
-  const grossSalary = basic + hra + special; // what is paid to you through the year, before deductions
+  const conveyance = Math.max(0, +p.conveyance || 0);
+  const variable = ctc * ((+p.variablePct || 0) / 100);
+  const special = ctc - basic - hra - conveyance - variable - employerPf - gratuity - employerNps;
+  if (special < 0) return { error: 'The components add up to more than the CTC. Reduce Basic, HRA, conveyance, variable pay or the employer contributions.' };
+  const grossSalary = basic + hra + conveyance + variable + special; // what is paid to you through the year, before deductions
   const employeePf = 0.12 * basic;
   const professionalTax = Math.max(0, +p.professionalTax || 0);
 
@@ -42,9 +50,14 @@ export function salaryBreakdown(p, rates) {
   const inHandFor = (r) => grossSalary - employeePf - professionalTax - taxFor(r);
   const tax = taxFor(regime);
   const annual = inHandFor(regime);
+  // variable pay paid once a year: keep it out of the monthly figure, and split the tax by share of pay
+  const variableApart = variable > 0 && p.variableMonthly !== true;
+  const variableTax = variableApart && grossSalary > 0 ? tax * (variable / grossSalary) : 0;
+  const fixedAnnual = annual - (variableApart ? variable - variableTax : 0);
   return {
-    ctc, basic, hra, special, employerPf, gratuity, employerNps, grossSalary, employeePf, professionalTax,
-    regime, tax, cmp, annual, monthly: annual / 12,
+    ctc, basic, hra, conveyance, variable, variableApart, variableTax, variableNet: variable - variableTax,
+    special, employerPf, gratuity, employerNps, grossSalary, employeePf, professionalTax,
+    regime, tax, cmp, annual, monthly: fixedAnnual / 12, fixedAnnual,
     inHandOld: inHandFor('old'), inHandNew: inHandFor('new'),
     takeHomePct: ctc ? annual / ctc : 0,
     inputs,
@@ -59,7 +72,7 @@ export function renderSalary(data) {
   // The shared profile wins over this calculator's own memory whenever it has anything in it.
   const profile = getProfile();
   const fromProfile = isEmptyProfile(profile) || isBlankAfterReset('salary') ? {} : toSalaryStore(profile);
-  const st = { ctc: '', basicPct: 40, hraPct: 50, includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
+  const st = { ctc: '', basicPct: 40, hraPct: 50, conveyance: 0, variablePct: 0, variableMonthly: false, includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
   const save = () => {
     clearBlankAfterReset('salary');
     try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {}
@@ -80,10 +93,12 @@ export function renderSalary(data) {
   let last = null;
   const exportCard = calcExportCard('salary', () => last);
   const ctcField = field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'cost to company, as on your offer letter');
-  attachSlider(ctcField.querySelector('input'), { max: 10000000, step: 50000 });
+  attachSlider(ctcField.querySelector('input'), { max: 100000000, step: 50000 });
   const inputs = el('div', { class: 'card inputs' }, [
     ctcField,
     el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, 'usually 35 to 50%'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
+    el('div', { class: 'two' }, [field('conveyance', 'Conveyance allowance per year (₹)', { step: 1000 }, 'taxable since 2018; it only changes the break-up'), field('variablePct', 'Variable pay as % of CTC', { step: 1 }, 'bonus or performance pay; 0 if none')]),
+    field('variableMonthly', 'Variable pay is paid every month', { type: 'checkbox' }),
     el('div', { class: 'opts' }, [
       el('div', { class: 'opt-title' }, 'Inside the CTC'),
       field('includeEmployerPf', 'Employer PF at 12% of Basic is part of my CTC', { type: 'checkbox' }),
@@ -106,38 +121,27 @@ export function renderSalary(data) {
     if (r.error) { setChildren(out, [el('div', { class: 'notice warn' }, r.error)]); return; }
     last = { st: { ...st }, r };
     const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'salary:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };
-    const steps = [
-      { label: 'Cost to company', value: r.ctc, kind: 'start' },
-      r.employerPf ? { label: 'Employer PF', value: r.employerPf, kind: 'minus' } : null,
-      r.gratuity ? { label: 'Gratuity provision', value: r.gratuity, kind: 'minus' } : null,
-      r.employerNps ? { label: 'Employer NPS', value: r.employerNps, kind: 'minus' } : null,
-      { label: 'Gross salary paid to you', value: r.grossSalary, kind: 'total' },
-      { label: 'Your PF contribution', value: r.employeePf, kind: 'minus' },
-      r.professionalTax ? { label: 'Professional tax', value: r.professionalTax, kind: 'minus' } : null,
-      { label: `Income tax (${r.regime} regime)`, value: r.tax, kind: 'minus' },
-      { label: 'In hand for the year', value: r.annual, kind: 'total' },
-    ].filter(Boolean);
     const otherRegime = r.regime === 'old' ? 'new' : 'old';
     const otherInHand = r.regime === 'old' ? r.inHandNew : r.inHandOld;
     setChildren(out, [
       el('div', { class: 'stats' }, [
-        stat('Monthly in hand', inr(r.monthly), 'hi'),
+        stat(r.variableApart ? 'Monthly in hand, fixed pay' : 'Monthly in hand', inr(r.monthly), 'hi'),
         stat('Yearly in hand', inr(r.annual)),
         stat(`Income tax, ${r.regime} regime`, inr(r.tax)),
         stat('Take-home as % of CTC', pct(r.takeHomePct, 0)),
       ]),
       el('p', { class: 'explain' }, `Of a ${inr(r.ctc)} CTC, ${inr(r.grossSalary)} is paid to you as salary; the rest goes to your PF and gratuity. After your own PF, professional tax and ${inr(r.tax)} of income tax under the ${r.regime} regime, you take home about ${inr(r.monthly)} a month.${Math.abs(otherInHand - r.annual) > 1 ? ` Under the ${otherRegime} regime it would be ${inr(otherInHand / 12)} a month.` : ''}`),
-      el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [el('div', { class: 'viz-title' }, 'From CTC to in-hand'), waterfallChart({ steps, max: r.ctc, color: '#1d6b3d' })]),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'Component'), el('th', {}, 'Per year'), el('th', {}, 'Per month')])),
         el('tbody', {}, [
-          ['Basic', r.basic], ['HRA', r.hra], ['Special allowance', r.special], r.employerNps ? ['Employer NPS (in salary, deducted under 80CCD(2))', r.employerNps] : null,
+          ['Basic', r.basic], ['HRA', r.hra], r.conveyance ? ['Conveyance allowance', r.conveyance] : null, r.variable ? ['Variable pay', r.variable] : null, ['Special allowance (the balance)', r.special], r.employerNps ? ['Employer NPS (in salary, deducted under 80CCD(2))', r.employerNps] : null,
           ['Gross salary', r.grossSalary, 'subtotal'],
           ['Less: your PF (12% of Basic)', -r.employeePf], r.professionalTax ? ['Less: professional tax', -r.professionalTax] : null, [`Less: income tax, ${r.regime} regime (TDS)`, -r.tax],
           ['In hand', r.annual, 'total'],
         ].filter(Boolean).map(([label, v, cls]) => el('tr', { class: cls || '' }, [el('td', {}, label), el('td', { class: v < 0 ? 'neg' : '' }, inr(v)), el('td', { class: v < 0 ? 'neg' : '' }, inr(v / 12))]))),
       ])),
-      el('p', { class: 'muted small' }, `Employer PF ${inr(r.employerPf)} and gratuity ${inr(r.gratuity)} are yours but not paid monthly. HRA exemption${r.inputs.salary.rentPaid ? ' has been applied from the rent you entered' : ' needs the rent you pay; enter it above'}. Bonuses, variable pay, meal cards and other perquisites are not modelled; add them to CTC if they are paid in cash.`),
+      r.variableApart ? el('p', { class: 'explain' }, `Variable pay of ${inr(r.variable)} is kept out of the monthly figure because it is paid separately: about ${inr(r.variableNet)} of it reaches you after tax, whenever it is paid and to the extent targets are met. The tax is split in proportion to pay.`) : null,
+      el('p', { class: 'muted small' }, `Employer PF ${inr(r.employerPf)} and gratuity ${inr(r.gratuity)} are yours but not paid monthly. Conveyance allowance is fully taxable (the ₹1,600 a month exemption ended in 2018, except for employees with a disability). HRA exemption${r.inputs.salary.rentPaid ? ' has been applied from the rent you entered' : ' needs the rent you pay; enter it above'}. Bonuses, variable pay, meal cards and other perquisites are not modelled; add them to CTC if they are paid in cash.`),
       el('div', { class: 'btn-row' }, [
         el('a', { class: 'btn', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(r.monthly) }, 'salary') }, `Plan a monthly budget with ${inr(r.monthly)}`),
         el('button', { type: 'button', class: 'btn secondary', onclick: () => openInTaxComparison(r) }, 'Open the full tax comparison with these figures'),

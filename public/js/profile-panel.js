@@ -4,6 +4,7 @@
  * Also carries the privacy indicator, export / import, one-click reset and one-click wipe.
  */
 import { el, setChildren, inr } from './util.js';
+import { attachSlider } from './amount-input.js';
 import { emailWorkbookCard } from './email-card.js';
 import { getProfile, updateProfile, resetProfile, wipeEverything, exportSnapshotJSON, importProfileJSON, onProfileChange } from './profile-store.js';
 import { profileSummary, isEmptyProfile, ctcOf, emiFor, CITIES, METRO_CITIES, LOAN_TYPES, PROPERTY_USE, INVESTMENT_BUCKETS } from '../engine/profile.js';
@@ -58,7 +59,9 @@ export function initProfilePanel() {
       const input = el('input', { type: 'number', min: 0, step: attrs.step || 1, value: get(p) || '', placeholder: attrs.placeholder || '0', ...(attrs.max ? { max: attrs.max } : {}) });
       input.addEventListener('input', () => set((d) => put(d, +input.value || 0)));
       if (attrs.derived) derived.push({ input, get: attrs.derived });
-      return el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
+      const node = el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
+      if (attrs.slider) attachSlider(input, { max: attrs.slider, step: attrs.step || 1 });   // drag for the big amounts; typing still wins
+      return node;
     };
     const selectField = (label, options, get, put, hint, rebuild = false) => {
       const input = el('select', {}, options.map(([v, t]) => el('option', { value: v, selected: String(v) === String(get(p)) }, t)));
@@ -73,12 +76,14 @@ export function initProfilePanel() {
     const group = (title, children, note) => el('fieldset', { class: 'profile-group' }, [el('legend', {}, title), note ? el('p', { class: 'small muted' }, note) : null, el('div', { class: 'grid' }, children)]);
 
     // Income: components add up to the CTC. Editing the CTC balances "other allowances"; editing a component moves the CTC.
-    const comp = (key, label, hint) => numField(label, (d) => d.income[key], (d, v) => { d.income[key] = v; d.income.ctc = ctcOf(d.income); }, { step: 1000 }, hint);
+    const comp = (key, label, hint) => numField(label, (d) => d.income[key], (d, v) => { d.income[key] = v; d.income.ctc = ctcOf(d.income); }, { step: 1000, slider: key === 'basic' || key === 'variablePay' ? 20000000 : 0 }, hint);
     const income = group('Income (per year)', [
-      numField('Cost to company (₹)', (d) => d.income.ctc, (d, v) => { const i = d.income; i.ctc = v; i.otherAllowances = Math.max(0, v - i.basic - i.hra - i.employerNps - i.employerPf - i.gratuity - i.esop); }, { step: 10000, derived: (d) => d.income.ctc }, 'other allowances absorb the difference'),
+      numField('Cost to company (₹)', (d) => d.income.ctc, (d, v) => { const i = d.income; i.ctc = v; i.otherAllowances = Math.max(0, v - i.basic - i.hra - i.conveyance - i.variablePay - i.employerNps - i.employerPf - i.gratuity - i.esop); }, { step: 50000, slider: 100000000, derived: (d) => d.income.ctc }, 'drag or type, up to ₹10 crore; special allowance absorbs the difference'),
       comp('basic', 'Basic + DA (₹)', 'drives HRA, PF, NPS caps'),
       comp('hra', 'HRA received (₹)'),
-      comp('otherAllowances', 'Other allowances (₹)', 'special allowance, LTA, bonus'),
+      comp('conveyance', 'Conveyance allowance (₹)', 'taxable since 2018'),
+      comp('variablePay', 'Variable pay / bonus (₹)', 'target amount for the year'),
+      comp('otherAllowances', 'Special allowance (₹)', 'the balancing figure: LTA, meal card, anything else'),
       comp('employerPf', 'Employer PF (₹)', 'usually 12% of basic'),
       comp('employerNps', 'Employer NPS, 80CCD(2) (₹)', 'employer contribution, not your own'),
       comp('gratuity', 'Gratuity provision (₹)', '4.81% of basic if in your CTC'),
@@ -92,7 +97,7 @@ export function initProfilePanel() {
     ], 'Stays on this device like everything else.');
 
     const business = p.person.employment === 'salaried' ? null : group('Business or profession (per year)', [
-      numField('Gross receipts or turnover (₹)', (d) => d.business.receipts, (d, v) => { d.business.receipts = v; }, { step: 50000, placeholder: 'e.g. 3000000' }, 'before expenses'),
+      numField('Gross receipts or turnover (₹)', (d) => d.business.receipts, (d, v) => { d.business.receipts = v; }, { step: 50000, slider: 100000000, placeholder: 'e.g. 3000000' }, 'before expenses; drag or type, up to ₹10 crore'),
       selectField('This is a', [['profession', 'Profession (44ADA)'], ['business', 'Business or trade (44AD)']], (d) => d.business.kind, (d, v) => { d.business.kind = v; }),
       selectField('Presumptive scheme', [['yes', 'Yes: deemed profit, no books'], ['no', 'No: receipts less expenses']], (d) => (d.business.presumptive ? 'yes' : 'no'), (d, v) => { d.business.presumptive = v === 'yes'; }),
       numField('Business expenses, if not presumptive (₹)', (d) => d.business.expenses, (d, v) => { d.business.expenses = v; }, { step: 10000 }),
@@ -119,7 +124,7 @@ export function initProfilePanel() {
     // Loans: a list. EMI is recomputed from the other three unless typed in directly.
     const loanRows = p.loans.map((l, idx) => el('div', { class: 'profile-row' }, [
       selectField('Type', LOAN_TYPES.map((t) => [t, LOAN_LABELS[t]]), () => l.type, (d, v) => { d.loans[idx].type = v; }, null, true),
-      numField('Outstanding (₹)', () => l.outstanding, (d, v) => { const x = d.loans[idx]; x.outstanding = v; x.emi = emiFor(x.outstanding, x.rate, x.remainingMonths); }, { step: 10000 }),
+      numField('Outstanding (₹)', () => l.outstanding, (d, v) => { const x = d.loans[idx]; x.outstanding = v; x.emi = emiFor(x.outstanding, x.rate, x.remainingMonths); }, { step: 50000, slider: 50000000 }),
       numField('Rate (% p.a.)', () => l.rate, (d, v) => { const x = d.loans[idx]; x.rate = v; x.emi = emiFor(x.outstanding, x.rate, x.remainingMonths); }, { step: 0.05 }),
       numField('Months left', () => l.remainingMonths, (d, v) => { const x = d.loans[idx]; x.remainingMonths = Math.round(v); x.emi = emiFor(x.outstanding, x.rate, x.remainingMonths); }, { step: 1 }),
       numField('EMI (₹/month)', () => Math.round(l.emi), (d, v) => { d.loans[idx].emi = v; }, { step: 100, derived: (d) => Math.round(d.loans[idx]?.emi || 0) }, 'worked out from the rest; overwrite if yours differs'),
@@ -132,11 +137,11 @@ export function initProfilePanel() {
       el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => set((d) => { d.loans.push({ type: 'home', outstanding: 0, rate: 8.5, remainingMonths: 240, emi: 0, propertyUse: d.location.housing === 'own' ? 'self_occupied' : 'none' }); }, true) }, '+ Add a loan'),
     ]);
 
-    const investments = group('What you hold today', INVESTMENT_BUCKETS.map((b) => numField(`${BUCKET_LABELS[b]} (₹)`, (d) => d.investments[b], (d, v) => { d.investments[b] = v; }, { step: 10000 })), 'Current value of each bucket. Used for allocation and post-tax projections.');
+    const investments = group('What you hold today', INVESTMENT_BUCKETS.map((b) => numField(`${BUCKET_LABELS[b]} (₹)`, (d) => d.investments[b], (d, v) => { d.investments[b] = v; }, { step: 25000, slider: 50000000 })), 'Current value of each bucket. Used for allocation and post-tax projections.');
 
     const cashflow = group('Cash flow (per month)', [
-      numField('Free to invest or prepay (₹/month)', (d) => d.cashflow.monthlySurplus, (d, v) => { d.cashflow.monthlySurplus = v; }, { step: 1000 }, 'income less expenses'),
-      numField('Emergency fund held (₹)', (d) => d.cashflow.emergencyFund, (d, v) => { d.cashflow.emergencyFund = v; }, { step: 10000 }),
+      numField('Free to invest or prepay (₹/month)', (d) => d.cashflow.monthlySurplus, (d, v) => { d.cashflow.monthlySurplus = v; }, { step: 2500, slider: 1000000 }, 'income less expenses'),
+      numField('Emergency fund held (₹)', (d) => d.cashflow.emergencyFund, (d, v) => { d.cashflow.emergencyFund = v; }, { step: 25000, slider: 10000000 }),
     ]);
 
     const agesInput = el('input', { type: 'text', value: p.household.childrenAges.join(', '), placeholder: 'e.g. 4, 9', inputmode: 'numeric' });

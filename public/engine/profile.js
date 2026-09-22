@@ -19,8 +19,10 @@
  *   horizon:     goals [{ name, years, target (rupees needed, optional) }]
  */
 
+const num = (v) => (Number.isFinite(+v) ? +v : 0);
+
 export const PROFILE_KEY = 'taxcompass.profile.v1';
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const LOAN_TYPES = ['home', 'car', 'personal', 'education', 'other'];
 export const PROPERTY_USE = ['self_occupied', 'let_out', 'none'];
@@ -30,7 +32,7 @@ export function emptyProfile() {
   return {
     schemaVersion: SCHEMA_VERSION,
     person: { age: 0, creditScore: 0, employment: 'salaried' },
-    income: { ctc: 0, basic: 0, hra: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
+    income: { ctc: 0, basic: 0, hra: 0, conveyance: 0, variablePay: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
     business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0 },
     tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60' },
     location: { city: 'Other', metro: false, rentPaid: 0, housing: 'rent' },
@@ -52,6 +54,8 @@ const MIGRATIONS = {
   1: (p) => ({ ...p, schemaVersion: 2, person: { age: 0, creditScore: 0, employment: 'salaried', ...(p.person || {}) } }),
   // v2 -> v3: business or profession income (the salary/business/both toggle). Older profiles get an empty block.
   2: (p) => ({ ...p, schemaVersion: 3, business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0, ...(p.business || {}) } }),
+  // v3 -> v4: conveyance allowance and variable pay are their own components; both were inside otherAllowances before.
+  3: (p) => ({ ...p, schemaVersion: 4, income: { conveyance: 0, variablePay: 0, ...(p.income || {}) } }),
 };
 
 export function migrateProfile(raw) {
@@ -127,13 +131,13 @@ export function nextYearInterest(loan) {
 /** Gross salary as the tax engine sees it: everything paid or taxed as salary, employer PF and gratuity excluded. */
 export function grossSalaryOf(p) {
   const i = p.income;
-  return i.basic + i.hra + i.otherAllowances + i.employerNps + i.esop;
+  return i.basic + i.hra + num(i.conveyance) + num(i.variablePay) + i.otherAllowances + i.employerNps + i.esop;
 }
 
 /** What the employer spends in total: the sum every income component must add up to. */
 export function ctcOf(income) {
   const i = income;
-  return i.basic + i.hra + i.otherAllowances + i.employerNps + i.employerPf + i.gratuity + i.esop;
+  return i.basic + i.hra + num(i.conveyance) + num(i.variablePay) + i.otherAllowances + i.employerNps + i.employerPf + i.gratuity + i.esop;
 }
 
 export const METRO_CITIES = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai'];
@@ -202,6 +206,7 @@ export function toSalaryStore(p) {
   const i = p.income;
   return {
     ctc: i.ctc, basicPct: i.ctc ? +(100 * i.basic / i.ctc).toFixed(4) : 40, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
+    conveyance: num(i.conveyance), variablePct: i.ctc ? +(100 * num(i.variablePay) / i.ctc).toFixed(4) : 0,
     includeEmployerPf: i.employerPf > 0, includeGratuity: i.gratuity > 0, employerNpsPct: i.basic ? +(100 * i.employerNps / i.basic).toFixed(4) : 0,
     city: p.location.city, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0,
     other80c: p.tax.s80cUsed, nps1b: p.tax.nps1bUsed, healthSelf: p.tax.s80dUsed, ageBand: p.tax.ageBand, regime: p.tax.regime,
@@ -242,7 +247,7 @@ export function fromSalaryStore(p, st, r) {
   const num = (v) => (Number.isFinite(+v) ? +v : 0);
   const out = migrateProfile(p);
   out.income = {
-    ctc: num(r.ctc), basic: num(r.basic), hra: num(r.hra), otherAllowances: num(r.special),
+    ctc: num(r.ctc), basic: num(r.basic), hra: num(r.hra), conveyance: num(r.conveyance), variablePay: num(r.variable), otherAllowances: num(r.special),
     employerNps: num(r.employerNps), employerPf: num(r.employerPf), gratuity: num(r.gratuity), esop: out.income.esop,
   };
   out.income.otherAllowances = Math.max(0, out.income.otherAllowances - out.income.esop);

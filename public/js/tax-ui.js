@@ -1,10 +1,10 @@
 import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
-import { breakEven, headroom, whatIf, breakEvenCurve, waterfallSteps, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
 import { hasBusiness, businessIncome } from './tax-engine.js';
 import { attachSlider, pctToggle } from './amount-input.js';
 import { emailWorkbookCard } from './email-card.js';
-import { lineChart, waterfallChart, shortINR } from './charts.js';
+import { lineChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
 import { termify } from './tooltips.js';
 import { countEvent } from './feedback.js';
@@ -26,7 +26,7 @@ export function initTax({ rates, onboarding }) {
   applyProfile(form, getProfile());
   // a drag line under the salary, and ₹ | % switches for the two figures people know as a share
   { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
-    attachSlider(gross, { max: 10000000, step: 50000 });
+    attachSlider(gross, { max: 100000000, step: 50000 });
     pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary', defaultMode: 'pct' });
     // employer NPS starts at 0%: most people have none, and a default of 10% silently handed everyone a deduction (the old saved key is retired for that reason)
     pctToggle({ input: empNps, baseInput: basic, defaultPct: 0, name: 'tax.employerNps.v2', hint: 'Basic + DA', max: 30, defaultMode: 'pct' }); }
@@ -372,16 +372,6 @@ function renderCharts(inputs, cmp, rates, flags) {
       }),
     ]));
   }
-  const wo = waterfallSteps(cmp.old), wn = waterfallSteps(cmp.new);
-  const max = Math.max(wo.gross, wn.gross, 1);
-  parts.push(el('div', { class: 'card chart-card' }, [
-    el('h3', { style: 'margin-top:0' }, 'From gross income to tax, in each regime'),
-    el('p', { class: 'muted small' }, 'Same starting income; the two regimes remove different amounts on the way to taxable income.'),
-    el('div', { class: 'two-charts' }, [
-      waterfallChart({ title: 'Old regime', steps: wo.steps, max, color: OLD_COLOR }),
-      waterfallChart({ title: 'New regime', steps: wn.steps, max, color: NEW_COLOR }),
-    ]),
-  ]));
   setChildren(box, parts);
 }
 

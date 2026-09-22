@@ -110,25 +110,6 @@ export function breakEvenCurve(inputs, rates, flags = DEFAULT_FLAGS, samples = 6
   return { points, newTax, current: { x: claimed, y: cmp.old.tax.total }, crossing, xMax, kind: be.kind };
 }
 
-/** Steps for the income-to-tax waterfall of one regime. */
-export function waterfallSteps(regimeResult) {
-  const { income, tax } = regimeResult;
-  const L = Object.fromEntries(income.lines.map((l) => [l.id, l.amount]));
-  const grossSalary = (L.gross_salary || 0) + (L.perq_employer_excess || 0) + (L.perq_other || 0);
-  const netSalary = L.net_salary || 0;
-  const hpNav = L.hp_nav || 0, hpIncome = L.hp_income ?? 0;
-  const other = (L.other_sources || 0) + (L.business || 0);
-  const gross = grossSalary + hpNav + other;
-  const steps = [{ label: 'Gross income', value: gross, kind: 'start' }];
-  if (grossSalary - netSalary > 0) steps.push({ label: 'Salary exemptions and deductions', value: grossSalary - netSalary, kind: 'minus' });
-  if (hpNav - hpIncome > 0) steps.push({ label: 'House property deductions', value: hpNav - hpIncome, kind: 'minus' });
-  if (income.viaTotal > 0) steps.push({ label: 'Chapter VI-A deductions', value: income.viaTotal, kind: 'minus' });
-  steps.push({ label: 'Taxable slab income', value: tax.slabIncome, kind: 'total' });
-  steps.push({ label: 'Tax payable (incl. cess)', value: tax.total, kind: 'tax' });
-  return { steps, gross };
-}
-
-/** Re-run the comparison with extra old-regime deductions the user is considering. */
 /**
  * What moves your tax most: each income source and each deduction or exemption, measured by
  * removing it and recomputing, under both regimes. `effect` is the rupees of tax the item is
