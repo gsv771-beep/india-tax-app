@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="f817b17a94">
+  <meta name="tc-build" content="9b85123ddf">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: know the number, make the decision</title>
   <meta name="description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
@@ -150,6 +150,15 @@
               </label>
               <label>Annual Basic + DA (₹) <small>on your payslip; usually 40-50% of gross</small>
                 <input type="number" min="0" step="1000" data-path="salary.basicDa" placeholder="e.g. 600000">
+              </label>
+              <label>Conveyance allowance (₹) <small>fully taxable since 2018; part of the gross above</small>
+                <input type="number" min="0" step="1000" data-path="salary.conveyance">
+              </label>
+              <label>Variable pay or bonus (₹) <small>inside the gross above; enter it here to see the break-up</small>
+                <input type="number" min="0" step="10000" data-path="salary.variablePay">
+              </label>
+              <label>Special allowance (₹) <small>the balance of the gross, worked out for you</small>
+                <input type="number" data-salary-balance readonly tabindex="-1">
               </label>
             </div>
             <div class="grid" data-for="business" hidden>

@@ -321,6 +321,10 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
    ============================================================ */
 label { display: flex; flex-direction: column; gap: 5px; font-size: .9rem; font-weight: 500; }
 /* drag line under a number, and the ₹ | % switch */
+input[data-salary-balance] { background: var(--accent-soft); color: var(--muted); }
+input[data-salary-balance].neg { color: #9b1c1c; background: #fbe9e9; }
+.amount-echo { font-size: .82rem; color: var(--accent-2); font-weight: 600; font-variant-numeric: tabular-nums; min-height: 1em; margin-top: -1px; }
+.amount-echo:empty { display: none; }
 input[type=range].drag { width: 100%; margin: 0; accent-color: var(--accent); height: 18px; }
 .pct-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 400; }
 .seg-group { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; }

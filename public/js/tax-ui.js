@@ -2,7 +2,7 @@ import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
 import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
 import { hasBusiness, businessIncome } from './tax-engine.js';
-import { attachSlider, pctToggle } from './amount-input.js';
+import { attachSlider, pctToggle, enhanceMoneyInputs } from './amount-input.js';
 import { emailWorkbookCard } from './email-card.js';
 import { lineChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
@@ -28,8 +28,11 @@ export function initTax({ rates, onboarding }) {
   { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
     attachSlider(gross, { max: 100000000, step: 50000 });
     pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary', defaultMode: 'pct' });
-    // employer NPS starts at 0%: most people have none, and a default of 10% silently handed everyone a deduction (the old saved key is retired for that reason)
-    pctToggle({ input: empNps, baseInput: basic, defaultPct: 0, name: 'tax.employerNps.v2', hint: 'Basic + DA', max: 30, defaultMode: 'pct' }); }
+    // employer NPS: rupees by default and zero, because most people have none; % is there for those who do
+    pctToggle({ input: empNps, baseInput: basic, defaultPct: 0, name: 'tax.employerNps.v3', hint: 'Basic + DA', max: 30, defaultMode: 'inr' }); }
+  enhanceMoneyInputs(form);
+  syncSalaryBalance(form);
+  form.addEventListener('input', () => syncSalaryBalance(form));
   document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
     title: 'Email me this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
@@ -65,7 +68,7 @@ export function initTax({ rates, onboarding }) {
 // Step 1 has three buttons writing to a hidden incomeType input; blocks marked data-for="salary" or
 // data-for="business" show only for the matching type ('both' shows everything). Switching away from a
 // type clears that type's figures so a hidden salary or hidden receipts never shape the result.
-const SALARY_PATHS = ['salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.ltaExempt', 'salary.professionalTax', 'deductions.epfEmployee', 'employer.npsContribution', 'employer.totalRetirementContribution', 'perquisites.other'];
+const SALARY_PATHS = ['salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.ltaExempt', 'salary.professionalTax', 'deductions.epfEmployee', 'employer.npsContribution', 'employer.totalRetirementContribution', 'perquisites.other'];
 const BUSINESS_PATHS = ['business.receipts', 'business.expenses', 'business.tdsDeducted'];
 function initIncomeType(form, run) {
   form.querySelectorAll('[data-income-type]').forEach((b) => b.addEventListener('click', () => {
@@ -157,6 +160,20 @@ function initTopics(form, run) {
   form.querySelector('#tax-topics-all').addEventListener('click', () => { for (const box of topicBoxes(form)) box.checked = true; showTopics(form); });
 }
 /** Tick every topic whose fields carry a value, then show/hide. Called after restore, profile apply and reset. */
+/** Special allowance = gross less the named components; shown, never typed. */
+function syncSalaryBalance(form) {
+  const out = form.querySelector('[data-salary-balance]');
+  if (!out) return;
+  const v = (p) => +(form.querySelector(`[data-path="${p}"]`) || {}).value || 0;
+  const rest = v('salary.basicDa') + v('salary.hraReceived') + v('salary.conveyance') + v('salary.variablePay');
+  const gross = v('salary.gross');
+  const bal = gross - rest;
+  out.value = gross > 0 ? Math.round(bal) : '';
+  out.classList.toggle('neg', bal < 0);
+  const echo = out.nextElementSibling;
+  if (echo && echo.classList.contains('amount-echo')) echo.textContent = gross > 0 ? (bal < 0 ? 'components exceed the gross by ' : '') + inr(Math.abs(Math.round(bal))) : '';
+}
+
 function syncTopics(form) {
   for (const box of topicBoxes(form)) {
     const fields = [...form.querySelectorAll(`[data-topic="${box.value}"] [data-path]`)];
@@ -175,7 +192,7 @@ function showTopics(form) {
 }
 
 // Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
-const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.rentPaid', 'salary.city', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
+const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.rentPaid', 'salary.city', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
 
 function applyProfile(form, profile) {
   if (isEmptyProfile(profile)) return;

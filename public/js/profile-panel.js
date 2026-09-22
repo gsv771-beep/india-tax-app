@@ -4,7 +4,7 @@
  * Also carries the privacy indicator, export / import, one-click reset and one-click wipe.
  */
 import { el, setChildren, inr } from './util.js';
-import { attachSlider } from './amount-input.js';
+import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { emailWorkbookCard } from './email-card.js';
 import { getProfile, updateProfile, resetProfile, wipeEverything, exportSnapshotJSON, importProfileJSON, onProfileChange } from './profile-store.js';
 import { profileSummary, isEmptyProfile, ctcOf, emiFor, CITIES, METRO_CITIES, LOAN_TYPES, PROPERTY_USE, INVESTMENT_BUCKETS } from '../engine/profile.js';
@@ -197,6 +197,7 @@ export function initProfilePanel() {
       el('div', { class: 'profile-grid' }, [income, business, tax, person, location, loans, investments, cashflow, household]),
       actions, status, emailBox,
     ]);
+    enhanceMoneyInputs(body);
   }
 
 }

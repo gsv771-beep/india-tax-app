@@ -8,7 +8,35 @@
  *                                             as % of Basic) and follows the base as it changes.
  * Both drive the original input and fire its 'input' event, so the page's own handlers run unchanged.
  */
-import { el } from './util.js';
+import { el, formatIndian } from './util.js';
+
+/**
+ * A live, comma-grouped echo of what is typed: number inputs cannot show 12,00,000 themselves, and a
+ * bare 1200000 is easy to mistype by a zero. The echo sits under the field and reads the Indian way.
+ * Attached automatically by attachSlider, and by enhanceMoneyInputs for every other rupee field.
+ */
+export function attachAmountEcho(input, { prefix = '₹' } = {}) {
+  if (input.dataset.echo) return null;
+  input.dataset.echo = '1';
+  const echo = el('div', { class: 'amount-echo', 'aria-hidden': 'true' });
+  const paint = () => { const v = input.value; echo.textContent = v === '' || !Number.isFinite(+v) ? '' : prefix + formatIndian(Math.round(+v)); };
+  input.addEventListener('input', paint);
+  input.addEventListener('change', paint);
+  paint();
+  input.after(echo);
+  return echo;
+}
+
+/** Every rupee field under `root` gets the echo: a number input whose own label mentions the rupee sign. */
+export function enhanceMoneyInputs(root) {
+  if (!root) return;
+  for (const input of root.querySelectorAll('input[type=number]:not([data-echo]):not(.pct-input)')) {
+    const label = input.closest('label');
+    const text = label ? label.textContent : '';
+    // a rupee field is one whose own label says so; the percentage box that may sit beside it is not one
+    if (/₹/.test(text)) attachAmountEcho(input);
+  }
+}
 
 const nice = (v) => { const p = Math.pow(10, Math.floor(Math.log10(Math.max(1, v)))); return Math.ceil((v * 1.25) / p) * p; };
 
@@ -24,6 +52,7 @@ export function attachSlider(input, { min = 0, max, step }) {
   input.addEventListener('change', sync);
   sync();
   input.after(range);
+  attachAmountEcho(input);
   return range;
 }
 

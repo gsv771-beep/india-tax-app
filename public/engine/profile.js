@@ -193,7 +193,7 @@ export function toTaxInputs(p) {
     fy: p.tax.fy, resident: true, ageBand: p.tax.ageBand, hasBusinessIncome: false,
     incomeType: incomeTypeOf(p),
     business: { income: 0, receipts: p.business.receipts, kind: p.business.kind, presumptive: p.business.presumptive, digitalSharePct: p.business.digitalSharePct, expenses: p.business.expenses, tdsDeducted: p.business.tds },
-    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: 0 },
+    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: 0 },
     employer: { npsContribution: p.income.employerNps, isGovernment: false, totalRetirementContribution: p.income.employerPf + p.income.employerNps },
     perquisites: { other: 0 },
     houseProperty: { selfOccupiedInterest: Math.round(sop), letOut: { rent: 0, municipalTax: 0, interest: Math.round(letOut) } },
@@ -206,7 +206,7 @@ export function toSalaryStore(p) {
   const i = p.income;
   return {
     ctc: i.ctc, basicPct: i.ctc ? +(100 * i.basic / i.ctc).toFixed(4) : 40, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
-    conveyance: num(i.conveyance), variablePct: i.ctc ? +(100 * num(i.variablePay) / i.ctc).toFixed(4) : 0,
+    conveyance: num(i.conveyance), variable: num(i.variablePay), variableInCtc: 'ctc',
     includeEmployerPf: i.employerPf > 0, includeGratuity: i.gratuity > 0, employerNpsPct: i.basic ? +(100 * i.employerNps / i.basic).toFixed(4) : 0,
     city: p.location.city, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0,
     other80c: p.tax.s80cUsed, nps1b: p.tax.nps1bUsed, healthSelf: p.tax.s80dUsed, ageBand: p.tax.ageBand, regime: p.tax.regime,
@@ -224,8 +224,10 @@ export function fromTaxInputs(p, t) {
   const i = out.income;
   i.basic = num(t.salary?.basicDa);
   i.hra = num(t.salary?.hraReceived);
+  i.conveyance = num(t.salary?.conveyance);
+  i.variablePay = num(t.salary?.variablePay);
   i.employerNps = num(t.employer?.npsContribution);
-  i.otherAllowances = Math.max(0, num(t.salary?.gross) - i.basic - i.hra - i.employerNps - i.esop);
+  i.otherAllowances = Math.max(0, num(t.salary?.gross) - i.basic - i.hra - i.conveyance - i.variablePay - i.employerNps - i.esop);
   i.employerPf = Math.max(0, num(t.employer?.totalRetirementContribution) - i.employerNps);
   i.ctc = ctcOf(i);
   out.tax.fy = t.fy || out.tax.fy;

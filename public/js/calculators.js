@@ -5,7 +5,7 @@ import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
-import { attachSlider } from './amount-input.js';
+import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { countEvent } from './feedback.js';
 
 let appData = null;
@@ -166,8 +166,9 @@ function mount(key) {
   const view = VIEWS[key]();
   if (typeof view.then === 'function') {
     body.replaceChildren(el('div', { class: 'skeleton calc-skeleton', 'aria-busy': 'true' }));
-    view.then((node) => { if (currentCalc === key) body.replaceChildren(withReset(key, node)); }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
+    view.then((node) => { if (currentCalc === key) { body.replaceChildren(withReset(key, node)); enhanceMoneyInputs(body); } }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
   } else body.replaceChildren(withReset(key, view));
+  enhanceMoneyInputs(body);
   // a calculation counts once per session per calculator, on the first edit
   if (key !== 'index') body.addEventListener('input', () => countEvent(`calc:${key}`), { once: true });
 }
