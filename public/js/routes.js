@@ -25,6 +25,8 @@ export const CALCS = {
   'capital-gains': { title: 'Capital gains tax calculator', desc: 'Tax on selling listed equity, equity and debt funds, property and other assets, with the ₹1.25 lakh exemption, grandfathering and the 12.5% or 20%-with-indexation choice for property.' },
   compare: { title: 'Where should this money go? PPF, FD, funds and NPS compared after tax', desc: 'The same rupee in every common instrument, after tax, over your horizon and at your slab: what you keep, the after-tax return and the pre-tax equivalent. Answers whether PPF is worth it under the new regime, FD versus debt fund, and where to park money for six months.' },
   retirement: { title: 'Retirement planner: will the money last?', desc: 'Your age, when you want to retire, what you spend, what you have saved and what you add each month: will the money last, and how much more a month closes the gap. Plain assumptions you can change.' },
+  insurance: { title: 'How much life and health cover do you need?', desc: 'The cover your family would actually need if your income stopped, what term insurance costs at your age, how much health cover to hold, and whether to keep, pause or surrender an endowment or money-back policy you already have.' },
+  debt: { title: 'Which loan to clear first, and what it really costs', desc: 'Credit cards and loans in one place: the order that clears them fastest, the real annual cost of each, the months and interest it saves, and whether the next spare rupee should prepay a loan or be invested.' },
   goal: { title: 'Goal planner', desc: 'A child’s education or wedding, a house, a car: what it costs today, what it will cost when it arrives, and the SIP that gets there at the equity share you choose.' },
 };
 

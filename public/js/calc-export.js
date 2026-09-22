@@ -138,6 +138,40 @@ export const SPECS = {
     };
   },
 
+  insurance(x) {
+    const { life, health, policy } = x;
+    const sheets = [
+      { name: 'Cover needed', headline: life.need > 0 ? `Life cover of \u20b9${fmtINR(life.need)}, about \u20b9${fmtINR(life.premium)} a year` : 'No further life cover needed on these figures', columns: [{ header: 'Item', width: 56 }, { header: 'Amount', width: 20, fmt: X.inr }],
+        rows: [...life.parts.map((p) => [p.label, p.sign * p.amount]), bold(['Life cover to buy', life.need]), ['Term premium a year, about', life.premium], ['Premium range', life.premiumRange[0]], ['to', life.premiumRange[1]]] },
+      { name: 'Health', headline: `\u20b9${fmtINR(health.base)} base plus \u20b9${fmtINR(health.topUp)} super top-up`, columns: [{ header: 'Item', width: 56 }, { header: 'Amount', width: 20, fmt: X.inr }],
+        rows: [['Base policy', health.base], ['Super top-up', health.topUp], bold(['Total cover', health.total]), ['Base premium a year', health.basePremium], ['Top-up premium a year', health.topUpPremium], bold(['Premium a year', health.premium])], note: health.rules.join(' ') },
+    ];
+    if (policy) sheets.push({ name: 'Your policy', headline: `Best on these figures: ${policy.options.find((o) => o.id === policy.best).label}`, columns: [{ header: 'Option', width: 30 }, { header: 'Worth at maturity', fmt: X.inr }, { header: 'What it means', width: 90 }],
+      rows: policy.options.map((o) => [o.label, o.atMaturity, o.why]), note: [policy.taxNote, ...policy.rules].filter(Boolean).join(' ') });
+    return {
+      title: 'TaxCompass India: cover and policies',
+      sheets,
+      inputs: [['Income a year', +x.st.annualIncome || 0], ['Age', +x.st.age || 0, '0'], ['Household spending a month', +x.st.monthlySpendOfFamily || 0], ['Cover until age', +x.st.retireAt, '0'], ['Loans outstanding', +x.st.loans || 0], ['Goals still to fund', +x.st.goalsTotal || 0], ['Savings', +x.st.savings || 0], ['Cover already held', +x.st.existingCover || 0], ['Smoker', x.st.smoker ? 'Yes' : 'No'], ['Adults', +x.st.adults, '0'], ['Children', +x.st.children, '0'], ['Metro', x.st.metro ? 'Yes' : 'No']],
+      notes: ['Premiums are indicative ranges for a healthy person buying online, not quotes. Life cover is the present value of the household spending to be replaced, plus loans and goals, less savings and existing cover.', 'Money already paid into a policy is sunk: the three options are valued at the policy maturity date on the premiums still to be paid.'],
+    };
+  },
+
+  debt(x) {
+    const { debts, cmp, chosen, pv, total } = x;
+    return {
+      title: 'TaxCompass India: debt plan',
+      sheets: [
+        { name: 'Your debts', headline: chosen.impossible ? 'The minimums do not cover the interest' : `\u20b9${fmtINR(total)} cleared in ${chosen.years} years, \u20b9${fmtINR(chosen.totalInterest)} of interest`, columns: [{ header: 'Debt', width: 26 }, { header: 'Outstanding', fmt: X.inr }, { header: 'Rate (%)', fmt: '0.00' }, { header: 'Really costs (% a year)', fmt: '0.00' }, { header: 'Minimum a month', fmt: X.inr }, { header: 'Cleared in month', fmt: '0' }],
+          rows: debts.map((d) => [d.name, d.balance, d.ratePct, (Math.pow(1 + d.ratePct / 1200, 12) - 1) * 100, d.minPayment, (chosen.freedAt.find((f) => f.name === d.name) || {}).month || '']) },
+        { name: 'Two orders', columns: [{ header: 'Order', width: 30 }, { header: 'Months', fmt: '0' }, { header: 'Interest', fmt: X.inr }, { header: 'First target', width: 26 }],
+          rows: [['Highest rate first', cmp.avalanche.months, cmp.avalanche.totalInterest, cmp.firstAvalanche || ''], ['Smallest balance first', cmp.snowball.months, cmp.snowball.totalInterest, cmp.firstSnowball || '']], note: `Highest-rate-first saves \u20b9${fmtINR(Math.max(0, cmp.saving))} of interest.` },
+        { name: 'Month by month', columns: [{ header: 'Month', fmt: '0' }, { header: 'Outstanding', fmt: X.inr }, { header: 'Interest so far', fmt: X.inr }], rows: chosen.schedule.map((r) => [r.month, r.outstanding, r.interestSoFar]) },
+      ],
+      inputs: [['Spare a month', +x.st.extra || 0], ['Order', x.st.method], ['Investing would earn (%)', +x.st.investReturnPct, '0.00'], ['Slab', `${Math.round(+x.st.slabRate * 100)}%`]],
+      notes: [pv.why, 'Interest is charged monthly on the outstanding balance. Minimum payments are paid first, then everything spare goes to one debt until it clears, and its payment rolls into the next.'],
+    };
+  },
+
   capgains(x) {
     const { st, r, relief } = x;
     const rel = relief && relief.items && relief.items.length ? relief : null;

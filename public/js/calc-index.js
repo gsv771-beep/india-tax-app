@@ -24,6 +24,7 @@ const GROUPS = [
     items: [
       { href: '/calculators/home', icon: '🏠', q: 'Should I buy this home?', d: 'Stamp duty, registration, GST and builder charges by city, then the loan, down payment and the stage-wise payment plan.', line: (s) => (s && s.home.kind === 'budget' && s.home.price > 0 ? `A rule of thumb says about ${inr(Math.round(s.home.price / 100000) * 100000)} is within reach.` : null) },
       { href: '/calculators/emi', icon: '🏦', q: 'Can I carry this EMI?', d: 'EMI, total interest, and what a step-up or a prepayment saves; the loan can come from price and down payment.', line: (s) => (s && s.loans.count ? `You pay ${inr(s.loans.emi)} a month in EMIs today.` : null) },
+      { href: '/calculators/debt', icon: '🧯', q: 'Which loan do I clear first?', d: 'Cards and loans in one place: the fastest order, what each really costs a year, and whether to prepay or invest.', line: (s) => (s && s.loans.count ? `${s.loans.count} loan${s.loans.count > 1 ? 's' : ''} in your profile, ${inr(s.loans.emi)} a month.` : null) },
       { href: '/calculators/capital-gains', icon: '📑', q: 'What will I owe if I sell?', d: 'Shares, funds or property: the gain, the exemptions, and the reliefs that cut the tax if you reinvest.', line: () => null },
     ],
   },
@@ -33,6 +34,13 @@ const GROUPS = [
       { href: '/calculators/compare', icon: '📈', q: 'Where should this money go?', d: 'PPF, FD, debt and equity funds, gold and NPS compared after tax, at your slab and your horizon.', line: (s) => (s && s.surplus.monthly > 0 ? `You have about ${inr(s.surplus.monthly)} a month to place.` : null) },
       { href: '/calculators/sip', icon: '📊', q: 'What will my SIP grow into?', d: 'A monthly SIP with step-ups and lump sums, against what fund categories have actually returned.', line: () => null },
       { href: '/nps', icon: '🏛️', q: 'Is NPS worth it for me?', d: 'How it works, the corpus and pension at 60, and the one deduction the new regime still allows.', line: () => null },
+    ],
+  },
+  {
+    title: 'If things go wrong',
+    items: [
+      { href: '/calculators/insurance', icon: '🛡️', q: 'Is my family covered?', d: 'The life cover they would need if your income stopped, what it costs at your age, and how much health cover to hold.', line: (s) => (s && s.takeHome.monthly > 0 ? `Your household runs on about ${inr(s.takeHome.monthly)} a month.` : null) },
+      { href: '/calculators/insurance', icon: '📜', q: 'Should I keep this LIC policy?', d: 'Keep paying, stop paying, or surrender: all three valued at the policy\u2019s maturity, with the money already paid treated as sunk.', line: () => null },
     ],
   },
   {

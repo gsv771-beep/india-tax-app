@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "file": "insurance.json",
+    "purpose": "Indicative premiums and rules of thumb for the protection tools: how much life cover, how much health cover, and whether to keep a traditional policy.",
+    "compiled_on": "2026-09-22",
+    "currency": "INR",
+    "health_warning": "Premiums here are indicative ranges for a healthy non-smoker buying online, not quotes. Your own premium depends on medicals, occupation, smoking, city and insurer, and is fixed for the whole term at the age you buy.",
+    "confidence_key": {
+      "verified": "Statutory or regulator-published.",
+      "corroborated": "Several insurer and aggregator tables agree on the range.",
+      "indicative": "A representative middle of published ranges; treat as an order of magnitude."
+    }
+  },
+  "term_life": {
+    "_note": "Annual premium per Rs 1 crore of cover, level term to age 60-65, healthy non-smoker buying online. Male rates; women typically pay 10-15% less. Rates rise steeply with age, which is the whole argument for buying early.",
+    "per_crore_by_age": [
+      { "age_from": 21, "age_to": 25, "annual_premium": 9000, "range": [7500, 11000] },
+      { "age_from": 26, "age_to": 30, "annual_premium": 11500, "range": [9500, 14000] },
+      { "age_from": 31, "age_to": 35, "annual_premium": 15000, "range": [12000, 19000] },
+      { "age_from": 36, "age_to": 40, "annual_premium": 22000, "range": [18000, 28000] },
+      { "age_from": 41, "age_to": 45, "annual_premium": 33000, "range": [27000, 42000] },
+      { "age_from": 46, "age_to": 50, "annual_premium": 50000, "range": [40000, 65000] },
+      { "age_from": 51, "age_to": 55, "annual_premium": 78000, "range": [62000, 98000] },
+      { "age_from": 56, "age_to": 60, "annual_premium": 120000, "range": [95000, 150000] }
+    ],
+    "smoker_loading": 0.6,
+    "rules": [
+      "Cover should run until the year your dependants stop needing your income: usually your retirement age, not longer.",
+      "Buy plain term. Return-of-premium versions cost roughly twice as much for the same cover; the difference invested does better.",
+      "Declare every illness, every prescription and every claim honestly. Non-disclosure is the main reason claims are rejected, and section 45 protects the policy only after three years.",
+      "One insurer or two, it does not matter; what matters is that the nominee knows the policy exists."
+    ],
+    "confidence": "indicative"
+  },
+  "health": {
+    "_note": "Family floater premiums, indicative, for a healthy family buying online in a metro. A super top-up sits above a deductible and is far cheaper per rupee of cover than raising the base.",
+    "base_floater_per_lakh_by_age": [
+      { "age_from": 18, "age_to": 35, "annual_premium_per_lakh": 1500 },
+      { "age_from": 36, "age_to": 45, "annual_premium_per_lakh": 2100 },
+      { "age_from": 46, "age_to": 55, "annual_premium_per_lakh": 3200 },
+      { "age_from": 56, "age_to": 65, "annual_premium_per_lakh": 5200 },
+      { "age_from": 66, "age_to": 99, "annual_premium_per_lakh": 8000 }
+    ],
+    "super_topup_per_lakh_factor": 0.35,
+    "extra_per_additional_member": 0.4,
+    "metro_loading": 0.15,
+    "suggested_base_lakh": { "metro": 10, "other": 7 },
+    "suggested_total_lakh": { "metro": 50, "other": 30 },
+    "rules": [
+      "Employer cover ends the day the job does, and it rarely follows you into your fifties when you need it. Hold your own policy alongside it.",
+      "A base policy plus a super top-up costs much less than one large policy for the same total cover.",
+      "Buy before the first diagnosis: waiting periods for pre-existing conditions run two to four years, and a new condition can make you uninsurable.",
+      "Check room-rent limits, co-pay, and the day-care and restoration clauses before the premium.",
+      "Parents are cheaper to cover on a separate policy than on your floater, and the 80D limit for senior-citizen parents is separate."
+    ],
+    "confidence": "indicative"
+  },
+  "traditional_policy": {
+    "_note": "Endowment, money-back and similar participating policies. Bonus rates are the simple reversionary bonus per Rs 1,000 of sum assured a year, as declared by large insurers in recent years; the final additional bonus is paid only at maturity on long policies.",
+    "typical_simple_reversionary_bonus_per_1000": 44,
+    "typical_final_additional_bonus_per_1000": 60,
+    "final_bonus_min_years": 15,
+    "paid_up_rule": "Stop paying and the sum assured falls to sum assured x premiums paid / premiums payable; bonuses already attached stay, no new bonus accrues, and the reduced amount is paid at maturity.",
+    "surrender_rule": "Guaranteed surrender value is a percentage of premiums paid that rises with policy year; most insurers pay a higher special surrender value which also includes part of the attached bonuses. IRDAI's 2024 rules raised early-year values.",
+    "guaranteed_surrender_value_pct_by_year": [
+      { "year": 1, "pct": 0.0 },
+      { "year": 2, "pct": 0.3 },
+      { "year": 3, "pct": 0.35 },
+      { "year": 4, "pct": 0.5 },
+      { "year": 5, "pct": 0.5 },
+      { "year": 8, "pct": 0.55 },
+      { "year": 12, "pct": 0.65 },
+      { "year": 15, "pct": 0.75 },
+      { "year": 20, "pct": 0.9 }
+    ],
+    "maturity_tax": "Proceeds are exempt under section 10(10D) only if the annual premium never exceeds 10% of the sum assured (20% for policies issued before 1 April 2012). Since 1 April 2023, proceeds from policies with aggregate annual premium above Rs 5 lakh are taxable as other income.",
+    "rules": [
+      "A traditional policy is a savings product with a small amount of insurance attached. Judge it on its return, and buy the insurance separately.",
+      "Money already paid is gone either way; the only question is what the future premiums do next.",
+      "Never surrender term cover you may not be able to replace: check you are insurable before you give up a policy.",
+      "Surrendering within two years usually returns nothing at all."
+    ],
+    "confidence": "corroborated"
+  },
+  "sources": [
+    { "what": "Section 10(10D) and the Rs 5 lakh premium rule", "where": "Income-tax Act; Finance Act 2023", "confidence": "verified" },
+    { "what": "Surrender value and paid-up rules", "where": "IRDAI (Insurance Products) Regulations 2024", "confidence": "verified" },
+    { "what": "Term and health premium ranges", "where": "Published online premium tables of large Indian insurers and aggregators, September 2026", "confidence": "indicative" },
+    { "what": "Bonus rates", "where": "Recent bonus declarations of large participating insurers", "confidence": "corroborated" }
+  ]
+}

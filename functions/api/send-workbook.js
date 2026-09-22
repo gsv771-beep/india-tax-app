@@ -27,6 +27,8 @@ const SOURCES = {
   goal: { subject: 'Your TaxCompass goal plan', what: 'goal plan' },
   capgains: { subject: 'Your TaxCompass capital gains working', what: 'capital gains working' },
   home: { subject: 'Your TaxCompass home-buying plan', what: 'home-buying cost and loan plan' },
+  insurance: { subject: 'Your TaxCompass cover plan', what: 'life and health cover plan' },
+  debt: { subject: 'Your TaxCompass debt plan', what: 'debt payoff plan' },
   profile: { subject: 'Your TaxCompass profile', what: 'profile file', json: true },
 };
 

@@ -295,6 +295,10 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .decide .ico { grid-row: 1 / span 2; font-size: 1.6rem; line-height: 1.2; }
 .decide strong { font-size: 1.02rem; }
 .decide span:not(.ico) { font-size: .88rem; color: var(--muted); }
+.debt-row { display: grid; grid-template-columns: 1.2fr 1fr .7fr 1fr auto; gap: 8px; align-items: end; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.debt-row .small-btn { margin-bottom: 2px; }
+@media (max-width: 720px) { .debt-row { grid-template-columns: 1fr 1fr; } }
+.policy-fields[hidden] { display: none; }
 .calc-index .decide-title { margin: 22px 0 10px; }
 .calc-index .decide-block:first-of-type .decide-title { margin-top: 8px; }
 .decide-yours { grid-column: 2; font-size: .86rem !important; color: var(--accent-2) !important; font-weight: 600; }
