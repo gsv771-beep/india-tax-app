@@ -7,7 +7,7 @@ import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
 import { initHome } from './home.js';
 import { initSnapshot } from './snapshot.js';
-import { ensureFresh } from './fresh.js';
+import { ensureFresh, checkLiveBuild } from './fresh.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
 
@@ -116,6 +116,8 @@ async function boot() {
     initCounter();
     initFeedbackBadge();
     document.body.classList.add('ready');
+    // and, once the page is usable, check whether a whole stale copy (page and scripts together) is being served
+    setTimeout(() => { checkLiveBuild().catch(() => {}); }, 1200);
     route();
     // Fixture loader and other dev-only controls: never on taxcompass.org.
     if (!isProduction()) import('./devtools.js').then((m) => m.initDevtools()).catch(() => {});
