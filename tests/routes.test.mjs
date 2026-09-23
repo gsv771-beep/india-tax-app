@@ -12,6 +12,7 @@ ok('home-buying description mentions the cities', /Mumbai/.test(metaFor('/calcul
 ok('unknown calculator falls back to EMI', metaFor('/calculators/nonsense').url === 'https://taxcompass.org/calculators/emi');
 ok('removed lumpsum route resolves to SIP', metaFor('/calculators/lumpsum').url === 'https://taxcompass.org/calculators/sip');
 ok('removed advance-tax route resolves to tax', metaFor('/calculators/advance-tax').url === 'https://taxcompass.org/tax');
+ok('retired insurance tool resolves to the money-tools index', metaFor('/calculators/insurance').url === 'https://taxcompass.org/calculators');
 ok('schemes alias resolves to NPS', metaFor('/schemes').tab === 'nps');
 ok('trailing slash ignored', metaFor('/nps/').url === 'https://taxcompass.org/nps');
 ok('every title carries the site name', Object.keys(PAGES).filter((t) => t !== 'home').every((t) => /· TaxCompass India$/.test(metaFor('/' + t).title)) && /TaxCompass India/.test(metaFor('/').title) && Object.keys(CALCS).every((c) => /· TaxCompass India$/.test(metaFor('/calculators/' + c).title)));

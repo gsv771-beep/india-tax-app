@@ -19,7 +19,7 @@
  *      total income, treating the incremental income as slab income.
  *  A5. Employer contribution above the Rs 7.5L cap is added as a perquisite; the accretion
  *      on that excess (Rule 3B) is not modelled.
- *  A6. Final tax is rounded to the nearest rupee, not to the nearest Rs 10 (s.288B).
+ *  A6. Final tax is rounded to the nearest Rs 10 under s.288B.
  */
 
 export const AGE_BANDS = {
@@ -499,7 +499,7 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
 
   const taxPlusSurcharge = core.taxBeforeSurcharge + core.surcharge - surchargeRelief;
   const cess = taxPlusSurcharge * rates.cess.rate;
-  const total = Math.round(taxPlusSurcharge + cess); // A6
+  const total = Math.round((taxPlusSurcharge + cess) / 10) * 10; // A6
   // TDS clients or employers already deducted comes off what is left to pay; it never changes the tax itself
   const tdsDeducted = Math.round(clamp0(num(((income.inputs || {}).business || {}).tdsDeducted)));
   const netPayable = Math.max(0, total - tdsDeducted);

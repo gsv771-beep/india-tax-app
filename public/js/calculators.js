@@ -7,6 +7,7 @@ import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { countEvent } from './feedback.js';
+import { CALCS } from './routes.js';
 
 let appData = null;
 let currentCalc = null;
@@ -158,6 +159,18 @@ export function showCalc(name) {
   currentCalc = key;
   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
   document.getElementById('calculators').classList.toggle('on-index', key === 'index');
+  const title = document.getElementById('calc-title');
+  const intro = document.getElementById('calc-intro');
+  const eyebrow = document.getElementById('calc-eyebrow');
+  if (key === 'index') {
+    eyebrow.textContent = 'Money tools';
+    title.textContent = 'What do you want to work out?';
+    intro.textContent = 'Choose a practical question. Your figures carry between tools and stay in this browser.';
+  } else {
+    eyebrow.textContent = 'Calculator';
+    title.textContent = CALCS[key].title;
+    intro.textContent = CALCS[key].desc;
+  }
   mount(key);
 }
 /** Render a view into the calculator body; the heavier views load their module on first use. */
@@ -178,7 +191,7 @@ function mount(key) {
 const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
-  insurance: { keys: ['taxcompass.insurance.v1'] }, debt: { keys: ['taxcompass.debt.v1'] },
+  debt: { keys: ['taxcompass.debt.v1'] },
   'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
 function resetCalc(key) {
@@ -272,7 +285,6 @@ const VIEWS = {
   compare: () => import('./compare.js').then((m) => m.renderCompare(appData)),
   retirement: () => import('./retirement.js').then((m) => m.renderRetirement(appData)),
   goal: () => import('./goal.js').then((m) => m.renderGoal(appData)),
-  insurance: () => import('./insurance.js').then((m) => m.renderInsurance(appData)),
   debt: () => import('./debt.js').then((m) => m.renderDebt(appData)),
 
   emi() {

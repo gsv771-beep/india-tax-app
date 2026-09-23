@@ -25,7 +25,7 @@ export function initAbout({ rates, schemes, capgains }) {
         'For residents, unused basic exemption is set against short-term equity gains first, then long-term equity gains, then other long-term gains.',
         'The 15% surcharge cap on dividend income is approximated in proportion to the dividend share of slab income; this only matters above ₹2 crore.',
         'Employer contributions above ₹7.5 lakh are treated as a perquisite; the accretion on the excess is not modelled.',
-        'Tax is rounded to the nearest rupee rather than the nearest ten.',
+        'Final tax payable is rounded to the nearest ₹10 under section 288B.',
         'Two items ship switched off pending confirmation against the notified Rules: the eight-city metro list for HRA from FY 2026-27, and marginal relief on the old-regime rebate.',
       ].map((t) => el('li', {}, t))),
       el('p', {}, 'The engine is covered by regression tests that lock in the ten reference cases published with the data, plus break-even, calculator, capital gains and workbook tests. No build is deployed unless all of them pass.'),
@@ -45,10 +45,10 @@ export function initAbout({ rates, schemes, capgains }) {
     ]),
     section('Privacy', [
       el('ul', {}, [
-        'Everything you type into the tax comparison and the calculators stays in your own browser, in its local storage. It is never sent anywhere, and the site has no user accounts.',
+        'Calculator entries stay in your own browser, in its local storage. They leave the device only when you deliberately email a workbook, email your profile or send feedback. The site has no user accounts.',
         'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Email it to yourself as a small file to move it to another browser, restore it there, or wipe it with one click. It is sent to you only, through our email provider, and TaxCompass keeps no copy.',
         'If you ask for an Excel workbook by email, your name, email address and the workbook are sent once to our email provider (Brevo) for delivery. With your consent on that form, we keep your name and email to ask for feedback about the app. We do not sell or share them, and you can ask to be removed by replying to any email.',
-        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. Feedback appears under "What people say" only if you ticked the box allowing it, and then with your first name and an initial. Ratings are averaged across everyone who gave one. A simple counter records how many visits and comparisons happen; it stores numbers, not people.',
+        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. Feedback may appear under "What people say" only if you ticked the box allowing it, and then with your first name and an initial. Ratings are averaged across everyone who gave one. A simple counter records aggregate usage; it stores numbers, not people.',
         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',
       ].map((t) => el('li', {}, t))),
     ]),

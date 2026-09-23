@@ -62,13 +62,14 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
   const fvHeld = held > 0 ? lumpsumFV(held, m.typical, years).fv : 0;
   const invest = { monthly: investing, assumedShare: fromBudget ? 0 : 0.3, held, years, equityPct, ratePct: m.typical, badPct: m.bad, fvSip, fvHeld, fv: fvSip + fvHeld, fvBad: (investing > 0 ? sipFV(investing, m.bad, years).fv : 0) + (held > 0 ? lumpsumFV(held, m.bad, years).fv : 0) };
 
-  // home: a rule of thumb, not eligibility: EMI at half of take-home after other EMIs, 20 years, 20% down
+  // home: a conservative first-pass affordability screen, not lender eligibility:
+  // keep all EMIs within 35% of take-home, use 20 years and 20% down.
   const ratePct = num(loanPolicy && loanPolicy.rate && loanPolicy.rate.default_pct) || 8;
   const existingHome = p.loans.find((l) => l.type === 'home' && num(l.outstanding) > 0);
   let home;
   if (existingHome) home = { kind: 'have', outstanding: num(existingHome.outstanding), emi: num(existingHome.emi), yearsLeft: Math.round(num(existingHome.remainingMonths) / 12), ratePct: num(existingHome.rate) };
   else {
-    const maxEmi = Math.max(0, 0.5 * takeHome.monthly - emis);
+    const maxEmi = Math.max(0, 0.35 * takeHome.monthly - emis);
     const months = 240, r = ratePct / 1200;
     const loan = maxEmi > 0 ? maxEmi * (Math.pow(1 + r, months) - 1) / (r * Math.pow(1 + r, months)) : 0;
     const price = loan / 0.8;
@@ -83,7 +84,7 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
 
   return {
     kind, ctc: pay && !pay.error ? pay.ctc : 0, business, pay, tax, takeHome, loans, surplus, invest, home, goals, goalSip, emergency,
-    assumptions: `Tax under the ${tax.regime} regime with your profile’s deductions; ${equityPct}% equity mix earning about ${m.typical.toFixed(1)}% a year (equity ${mix.equity}%, safe ${mix.safe}%); home budget at ${ratePct}% for 20 years with 20% down.`,
+    assumptions: `Tax under the ${tax.regime} regime with your profile’s deductions; the investment line is an illustration using a ${equityPct}% equity mix and about ${m.typical.toFixed(1)}% a year (equity ${mix.equity}%, safe ${mix.safe}%); the home range keeps total EMIs within 35% of take-home at ${ratePct}% for 20 years with 20% down.`,
   };
 }
 
