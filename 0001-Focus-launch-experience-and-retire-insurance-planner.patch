@@ -1,0 +1,449 @@
+From ff76bab4a505bc2db27d0c9b89f394a8319618ad Mon Sep 17 00:00:00 2001
+From: Codex <codex@openai.com>
+Date: Wed, 23 Sep 2026 10:30:30 -0500
+Subject: [PATCH] Focus launch experience and retire insurance planner
+
+---
+ README.md                    |  6 +++---
+ public/_redirects            |  1 +
+ public/index.html            | 19 ++++++++-----------
+ public/js/about.js           |  6 +++---
+ public/js/app.js             |  5 ++---
+ public/js/calc-index.js      |  7 -------
+ public/js/calculators.js     | 16 ++++++++++++++--
+ public/js/feedback-wall.js   |  6 ++++--
+ public/js/manifest.json      |  2 +-
+ public/js/routes.js          |  7 +++----
+ public/js/snapshot-engine.js |  7 ++++---
+ public/js/snapshot.js        |  2 +-
+ public/js/tax-engine.js      |  4 ++--
+ public/js/version.js         |  2 +-
+ public/sitemap.xml           |  1 -
+ tests/routes.test.mjs        |  1 +
+ tests/snapshot.test.mjs      |  4 ++--
+ 17 files changed, 50 insertions(+), 46 deletions(-)
+
+diff --git a/README.md b/README.md
+index 7b78280..fb311fd 100644
+--- a/README.md
++++ b/README.md
+@@ -21,7 +21,7 @@ A static web app for Indian individual taxpayers. No backend, no build step, no
+   - Capital gains from a broker statement: upload a Zerodha Console Tax P&L workbook and the browser reads it (never uploaded; name, client ID and PAN skipped, only totals kept locally). Out come the heads for the year (short-term and long-term equity, intraday and F&O as business income, debt funds at slab), the set-offs, the tax, losses to carry forward, and what is worth doing before 31 March, with a one-click push into the tax comparison. Parser in `public/engine/brokers/zerodha.js`, tax layer in `public/engine/trading-tax.js`; `public/fixtures/zerodha-taxpnl-sample.xlsx` is a synthetic file in the same layout for testing. Other brokers: send a sample.
+   - Compare investments: the same rupee in a savings account, liquid fund, FD, arbitrage fund, debt funds, NSC, PPF, EPF, SSY, NPS, balanced-advantage and aggressive-hybrid funds, ELSS, index, large-, flexi-, mid- and small-cap funds and gold, filtered by a risk profile (riskier options stay visible below the line), after tax, over your horizon and at your slab (the marginal rate from your profile). Shows what you keep, the after-tax return, the pre-tax equivalent (PPF's 7.1% is 10.3% to a 30% payer), tax saved on the way in under 80C in the old regime, and which instruments are locked or too volatile for the horizon. Guaranteed rates come from the quarterly small-savings notification in `data/schemes.json`; fund figures are the median rolling return of the category from AMFI history with the worst window shown; every rate is editable. Engine `public/engine/post-tax.js`.
+   - In-hand salary: CTC split into Basic, HRA, conveyance allowance, variable pay (an amount or a % of CTC, part of the CTC or paid on top of it, once a year or every month) and special allowance as the balancing figure, then PF, professional tax and income tax. Variable pay paid once a year is kept out of the monthly figure, with the tax split in proportion to pay, so the monthly number is what actually lands.
+-  - Insurance: how much life cover the family would need if your income stopped (household spending to retirement discounted at a real return, plus loans and goals, less savings and existing cover), what term cover costs at your age from published premium bands, how much health cover to hold as a base plus a super top-up, and what to do with an endowment, money-back or ULIP policy already running: keep paying, stop paying (paid-up), or surrender, all three valued at the policy's maturity with the premiums already paid treated as sunk. Rates in `data/insurance.json`, engine `public/engine/insurance.js`.
++  - The standalone insurance planner is retired for the focused launch; its engine and data remain in the repository for possible later restoration. Tax-related life-insurance and health-insurance deductions remain in the tax tools.
+   - Debt triage: every card and loan in one place, cleared highest-rate-first or smallest-balance-first month by month, with the real annual cost of each (a card at 42% charged monthly is 51%), what the slower order costs, a warning when the minimums do not even cover the interest, and whether the next spare rupee should prepay or be invested (a home loan in the old regime really costs the rate less your slab). Engine `public/engine/debt.js`.
+   - Retirement: five figures (age, retire at, monthly spending, saved so far, saving per month) and one sentence back: the money lasts past 85, or runs out at age X and this much more a month closes the gap. Risk is chosen in percent terms, not as a return: two sliders (equity share until retirement, equity share after), and the growth rate follows from the mix using two labelled rates (Large Cap funds' median 5-year rolling return from the AMFI history, and the notified PPF rate), with the equity category's worst 5-year window shown as a bad stretch. Year-by-year chart, three sensitivities (retire two years later, inflation a point higher, equity repeats its worst stretch), "how to build it" at the chosen equity share, and the three-bucket plan at retirement. Deliberately simple: no withdrawal tax; says so. Engines `public/engine/retirement.js`, `public/engine/mix.js`.
+   - Goal planner: pick what the money is for (child's education or wedding, house down payment, car, anything, or a fixed sum), give today's cost, and get the cost when it arrives (education inflation 10%, wedding 7%, property 6%, editable), the SIP or one-time amount, the SIP if equity repeats its worst 5-year stretch, and where the money goes (SSY for a daughter under 10, index fund, PPF or short debt by horizon) with the glide rule as the date nears. Child goals date themselves from the child's age; every child in the profile gets a row. The same percent-terms risk slider as retirement, capped by horizon (0% under 3 years, 30% under 5, 50% under 7). Engine `public/engine/goal.js`.
+@@ -33,7 +33,7 @@ A static web app for Indian individual taxpayers. No backend, no build step, no
+ - **Charts**, all inline SVG with hover tooltips (`public/js/charts.js`): the break-even curve on the tax page (old-regime tax against deductions claimed, with your position and the crossing point), an income-to-tax waterfall for each regime, loan balance and per-year principal/interest on the EMI page, growth curves on SIP, lumpsum and NPS. Text and grid colours come from CSS variables so they follow dark mode.
+ - **Shareable result card**: a 1080×1080 image of the regime verdict drawn on a canvas, with native share on phones and download elsewhere; the user chooses whether amounts appear.
+ - **Glossary tooltips** on terms in the comparison table and headroom list (`public/js/tooltips.js`), **animated numbers** when results change, **dark mode** following the device setting, a **trust line** under the verdict, and reduced-motion support.
+-- **Feedback button** on every page (name and message required, email optional, 1 to 5 stars, a "you may show this on the site" tick box) posting to `functions/api/feedback.js`, which stores rows in Cloudflare D1 (binding `DB`) and emails them to you via Brevo; either alone is enough. **What people say**: the feedback you approve appears on the About page (first name plus an initial, stars, the page it was about) with the average rating across everyone who rated, and a `★ 4.6/5 from 23 people` badge in the footer once five people have rated. You approve entries at `/api/feedback-admin` (a small page served by `functions/api/feedback-admin.js`), protected by the `FEEDBACK_ADMIN_TOKEN` secret (16+ characters) set in Cloudflare Pages -> Settings -> Variables and Secrets. The public read is `GET /api/feedback`, cached five minutes; emails never leave the database. **Usage counter** (`functions/api/counter.js`, same D1) shown on the tax page and footer once the database is bound; it counts visits, tax comparisons (only while on the tax page), emailed workbooks and calculator runs (`calc:<name>`, on the first edit of a calculator, once per session each), and stores numbers only. Two public numbers: reach (Cloudflare's requests since launch, mirrored daily into D1 by `functions/_cf-analytics.js` when `CF_ZONE_ID` and `CF_API_TOKEN` are set; else the site's own visit count) and calculations (a tax comparison counts as one); the tax and calculators pages show calculations once past 20, else visits, and the footer shows both on every page. Setup is in `docs/GO-LIVE.md` section 5a.
++- **Feedback button** on every page (name and message required, email optional, 1 to 5 stars, a "you may show this on the site" tick box) posting to `functions/api/feedback.js`, which stores rows in Cloudflare D1 (binding `DB`) and emails them to you via Brevo; either alone is enough. **What people say**: approved feedback appears on the About page only after there are at least three substantive public comments or five ratings, so launch/test data never looks like social proof. You approve entries at `/api/feedback-admin` (a small page served by `functions/api/feedback-admin.js`), protected by the `FEEDBACK_ADMIN_TOKEN` secret (16+ characters) set in Cloudflare Pages -> Settings -> Variables and Secrets. The public read is `GET /api/feedback`, cached five minutes; emails never leave the database. **Usage counter** (`functions/api/counter.js`, same D1) still records visits, tax comparisons, emailed workbooks and calculator runs for internal measurement, but launch-stage totals are not displayed publicly. Setup is in `docs/GO-LIVE.md` section 5a.
+ - **Installable on phones** as a web app: `public/manifest.webmanifest` plus icons generated by `tools/make-icons.mjs` (no image library needed). Chrome on Android and Safari on iOS offer "Add to Home Screen"; it opens full-screen with its own icon. There is deliberately no service worker, so users always get the latest code.
+ - **Real URLs** per section (`/tax`, `/calculators/emi`, `/nps`, `/glossary`, `/about`) with a title and description each (the route table is `public/js/routes.js`; `functions/_middleware.js` rewrites the `<title>`, description and Open Graph tags at the edge so shared links unfurl as the right page), `sitemap.xml`, `robots.txt` and a favicon. `public/_redirects` makes Cloudflare Pages serve `index.html` for every path; `tools/static-server.mjs` does the same locally.
+ - **NPS**: what the National Pension System is, a corpus and pension projector (contributions, step-up, return, annuity share and rate, with the taxable slice above 60% flagged), tax treatment in both regimes, investment choices, exit and withdrawal rules, and historical returns. Other government schemes were removed by decision; their data remains in `public/data/schemes.json` if ever wanted again.
+@@ -200,7 +200,7 @@ Documented at the top of `public/js/tax-engine.js`. The ones worth knowing:
+ 2. For residents, unused basic exemption is set against STCG on equity first, then LTCG on equity, then other LTCG.
+ 3. The 15% surcharge cap on dividend income is approximated in proportion to the dividend share of slab income. Only relevant above Rs 2 crore of income.
+ 4. Employer contributions above Rs 7.5 lakh are added as a perquisite; the accretion on the excess is not modelled.
+-5. Tax is rounded to the nearest rupee, not the nearest ten.
++5. Final tax payable is rounded to the nearest Rs 10 under section 288B.
+ 
+ ## Before launch
+ 
+diff --git a/public/_redirects b/public/_redirects
+index 2648b85..39ee635 100644
+--- a/public/_redirects
++++ b/public/_redirects
+@@ -1,6 +1,7 @@
+ # Removed pages: permanent redirects to the nearest live page.
+ /calculators/lumpsum /calculators/sip 301
+ /calculators/advance-tax /tax 301
++/calculators/insurance /calculators 301
+ 
+ # Friendly aliases for the decisions page.
+ /decide /calculators 301
+diff --git a/public/index.html b/public/index.html
+index ce107a4..677eab4 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -2,7 +2,7 @@
+ <html lang="en">
+ <head>
+   <meta charset="utf-8">
+-  <meta name="tc-build" content="b5e95cd064">
++  <meta name="tc-build" content="c7ef13f50c">
+   <meta name="viewport" content="width=device-width, initial-scale=1">
+   <title>TaxCompass India: know the number, make the decision</title>
+   <meta name="description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
+@@ -65,7 +65,7 @@
+     <div class="wrap header-inner">
+       <a href="/" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span><span class="brand-tag">Know the number. Make the decision.</span></a>
+       <nav class="tabs" aria-label="Sections">
+-        <a href="/calculators" data-tab="calculators">Decisions</a>
++        <a href="/calculators" data-tab="calculators">Money tools</a>
+         <a href="/tax" data-tab="tax">Tax comparison</a>
+         <a href="/nps" data-tab="nps">NPS</a>
+         <a href="/glossary" data-tab="glossary">Glossary</a>
+@@ -83,7 +83,7 @@
+       <div class="hero">
+         <span class="eyebrow">TaxCompass India</span>
+         <h1>Know the number.<br>Make the decision.</h1>
+-        <p>Tax, salary, loans, investing, home buying and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.</p>
++        <p>Tax, salary, loans, investing, home buying and retirement, worked out for your situation in about two minutes. Free and independent. Calculator entries stay on this device unless you choose to email a workbook or send feedback.</p>
+       </div>
+       <div id="home-snapshot" hidden></div>
+       <h2 class="decide-title">What are you trying to decide?</h2>
+@@ -111,7 +111,7 @@
+           <span>Income-tax Act, Finance Act 2026, CBDT</span>
+           <span>NPS: PFRDA · Funds: AMFI · Small savings: Ministry of Finance</span>
+           <span>Every assumption shown and editable</span>
+-          <span>No account, no ads, nothing uploaded</span>
++          <span>No account or ads · calculator entries stay on this device</span>
+         </div>
+         <a class="trust-link" href="/about">How each number is calculated →</a>
+       </div>
+@@ -127,7 +127,6 @@
+           <span>FY 2025-26 and FY 2026-27</span>
+           <span>Every deduction and exemption, both regimes</span>
+           <span>Shows how far you are from the other regime winning</span>
+-          <span data-counter hidden></span>
+         </div>
+       </div>
+ 
+@@ -343,10 +342,9 @@
+     <!-- ============ CALCULATORS ============ -->
+     <section id="calculators" class="panel" hidden>
+       <div class="panel-head">
+-        <span class="eyebrow">Decision engine</span>
+-        <h1>What are you working out?</h1>
+-        <p>Illustrative projections. Returns are not guaranteed. Mutual fund investments are subject to market risk. Where a calculator shows fund categories and funds, they are historical returns from AMFI NAV data to help you sanity-check the return you assumed, not a recommendation to invest.</p>
+-        <div class="facts"><span data-counter-calcs hidden></span></div>
++        <span class="eyebrow" id="calc-eyebrow">Money tools</span>
++        <h1 id="calc-title">What do you want to work out?</h1>
++        <p id="calc-intro">Choose a practical question. Your figures carry between tools and stay in this browser.</p>
+       </div>
+       <nav class="subtabs" id="calc-tabs" aria-label="Calculators">
+         <a href="/calculators" data-calc="index">All</a>
+@@ -355,7 +353,6 @@
+         <a href="/calculators/emi" data-calc="emi">EMI</a>
+         <a href="/calculators/sip" data-calc="sip">SIP</a>
+         <a href="/calculators/home" data-calc="home">Home buying</a>
+-        <a href="/calculators/insurance" data-calc="insurance">Insurance</a>
+         <a href="/calculators/debt" data-calc="debt">Debt</a>
+         <a href="/calculators/compare" data-calc="compare">Compare investments</a>
+         <a href="/calculators/capital-gains" data-calc="capital-gains">Capital gains</a>
+@@ -418,7 +415,7 @@
+         </div>
+       </div>
+       <div class="footer-bottom">
+-        <span>© 2026 TaxCompass India · <a href="/about">About &amp; sources</a> · Built by <a href="https://www.linkedin.com/in/gauravsv/" target="_blank" rel="noopener">Gaurav</a> · <span data-counter-all hidden></span> <span data-feedback-badge hidden></span></span>
++        <span>© 2026 TaxCompass India · <a href="/about">About &amp; sources</a> · Built by <a href="https://www.linkedin.com/in/gauravsv/" target="_blank" rel="noopener">Gaurav</a> · <span data-feedback-badge hidden></span></span>
+         <span>Your entries stay in your browser. Only the emailed workbook leaves it, with your consent.</span>
+       </div>
+     </div>
+diff --git a/public/js/about.js b/public/js/about.js
+index b0b4210..771925f 100644
+--- a/public/js/about.js
++++ b/public/js/about.js
+@@ -25,7 +25,7 @@ export function initAbout({ rates, schemes, capgains }) {
+         'For residents, unused basic exemption is set against short-term equity gains first, then long-term equity gains, then other long-term gains.',
+         'The 15% surcharge cap on dividend income is approximated in proportion to the dividend share of slab income; this only matters above ₹2 crore.',
+         'Employer contributions above ₹7.5 lakh are treated as a perquisite; the accretion on the excess is not modelled.',
+-        'Tax is rounded to the nearest rupee rather than the nearest ten.',
++        'Final tax payable is rounded to the nearest ₹10 under section 288B.',
+         'Two items ship switched off pending confirmation against the notified Rules: the eight-city metro list for HRA from FY 2026-27, and marginal relief on the old-regime rebate.',
+       ].map((t) => el('li', {}, t))),
+       el('p', {}, 'The engine is covered by regression tests that lock in the ten reference cases published with the data, plus break-even, calculator, capital gains and workbook tests. No build is deployed unless all of them pass.'),
+@@ -45,10 +45,10 @@ export function initAbout({ rates, schemes, capgains }) {
+     ]),
+     section('Privacy', [
+       el('ul', {}, [
+-        'Everything you type into the tax comparison and the calculators stays in your own browser, in its local storage. It is never sent anywhere, and the site has no user accounts.',
++        'Calculator entries stay in your own browser, in its local storage. They leave the device only when you deliberately email a workbook, email your profile or send feedback. The site has no user accounts.',
+         'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Email it to yourself as a small file to move it to another browser, restore it there, or wipe it with one click. It is sent to you only, through our email provider, and TaxCompass keeps no copy.',
+         'If you ask for an Excel workbook by email, your name, email address and the workbook are sent once to our email provider (Brevo) for delivery. With your consent on that form, we keep your name and email to ask for feedback about the app. We do not sell or share them, and you can ask to be removed by replying to any email.',
+-        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. Feedback appears under "What people say" only if you ticked the box allowing it, and then with your first name and an initial. Ratings are averaged across everyone who gave one. A simple counter records how many visits and comparisons happen; it stores numbers, not people.',
++        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. Feedback may appear under "What people say" only if you ticked the box allowing it, and then with your first name and an initial. Ratings are averaged across everyone who gave one. A simple counter records aggregate usage; it stores numbers, not people.',
+         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',
+       ].map((t) => el('li', {}, t))),
+     ]),
+diff --git a/public/js/app.js b/public/js/app.js
+index 82b4505..ec8368b 100644
+--- a/public/js/app.js
++++ b/public/js/app.js
+@@ -92,7 +92,7 @@ async function boot() {
+   // Show the right section at once; results fill in when the data arrives (a few tens of milliseconds on a warm cache).
+   route();
+   try {
+-    const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy, insurance] = await Promise.all([
++    const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy] = await Promise.all([
+       loadJSON('/data/tax_rates.json'),
+       loadJSON('/data/deductions.json'),
+       loadJSON('/data/onboarding_and_comparison.json'),
+@@ -102,9 +102,8 @@ async function boot() {
+       loadJSON('/data/capital_gains.json'),
+       loadJSON('/data/property_charges.json'),
+       loadJSON('/data/loan_policy.json'),
+-      loadJSON('/data/insurance.json'),
+     ]);
+-    appData = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy, insurance };
++    appData = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy };
+ 
+     initGlossaryTooltips(glossary);
+     initProfilePanel();
+diff --git a/public/js/calc-index.js b/public/js/calc-index.js
+index e6e777b..d740444 100644
+--- a/public/js/calc-index.js
++++ b/public/js/calc-index.js
+@@ -36,13 +36,6 @@ const GROUPS = [
+       { href: '/nps', icon: '🏛️', q: 'Is NPS worth it for me?', d: 'How it works, the corpus and pension at 60, and the one deduction the new regime still allows.', line: () => null },
+     ],
+   },
+-  {
+-    title: 'If things go wrong',
+-    items: [
+-      { href: '/calculators/insurance', icon: '🛡️', q: 'Is my family covered?', d: 'The life cover they would need if your income stopped, what it costs at your age, and how much health cover to hold.', line: (s) => (s && s.takeHome.monthly > 0 ? `Your household runs on about ${inr(s.takeHome.monthly)} a month.` : null) },
+-      { href: '/calculators/insurance', icon: '📜', q: 'Should I keep this LIC policy?', d: 'Keep paying, stop paying, or surrender: all three valued at the policy\u2019s maturity, with the money already paid treated as sunk.', line: () => null },
+-    ],
+-  },
+   {
+     title: 'Where it all has to end up',
+     items: [
+diff --git a/public/js/calculators.js b/public/js/calculators.js
+index 5dd5c08..547635c 100644
+--- a/public/js/calculators.js
++++ b/public/js/calculators.js
+@@ -7,6 +7,7 @@ import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
+ import { fromLoanInputs } from '../engine/profile.js';
+ import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
+ import { countEvent } from './feedback.js';
++import { CALCS } from './routes.js';
+ 
+ let appData = null;
+ let currentCalc = null;
+@@ -158,6 +159,18 @@ export function showCalc(name) {
+   currentCalc = key;
+   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
+   document.getElementById('calculators').classList.toggle('on-index', key === 'index');
++  const title = document.getElementById('calc-title');
++  const intro = document.getElementById('calc-intro');
++  const eyebrow = document.getElementById('calc-eyebrow');
++  if (key === 'index') {
++    eyebrow.textContent = 'Money tools';
++    title.textContent = 'What do you want to work out?';
++    intro.textContent = 'Choose a practical question. Your figures carry between tools and stay in this browser.';
++  } else {
++    eyebrow.textContent = 'Calculator';
++    title.textContent = CALCS[key].title;
++    intro.textContent = CALCS[key].desc;
++  }
+   mount(key);
+ }
+ /** Render a view into the calculator body; the heavier views load their module on first use. */
+@@ -178,7 +191,7 @@ function mount(key) {
+ const CALC_KEYS = {
+   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
+   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
+-  insurance: { keys: ['taxcompass.insurance.v1'] }, debt: { keys: ['taxcompass.debt.v1'] },
++  debt: { keys: ['taxcompass.debt.v1'] },
+   'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
+ };
+ function resetCalc(key) {
+@@ -272,7 +285,6 @@ const VIEWS = {
+   compare: () => import('./compare.js').then((m) => m.renderCompare(appData)),
+   retirement: () => import('./retirement.js').then((m) => m.renderRetirement(appData)),
+   goal: () => import('./goal.js').then((m) => m.renderGoal(appData)),
+-  insurance: () => import('./insurance.js').then((m) => m.renderInsurance(appData)),
+   debt: () => import('./debt.js').then((m) => m.renderDebt(appData)),
+ 
+   emi() {
+diff --git a/public/js/feedback-wall.js b/public/js/feedback-wall.js
+index 0498635..1185500 100644
+--- a/public/js/feedback-wall.js
++++ b/public/js/feedback-wall.js
+@@ -23,11 +23,13 @@ function pageLabel(path) {
+ /** A card for the About page. Resolves to null when there is nothing to show. */
+ export async function feedbackWallCard() {
+   const d = await loadWall();
+-  if (!d.available || (!d.items.length && !(d.rating.count >= 5))) return null;
++  if (!d.available) return null;
++  const publicItems = d.items.filter((it) => String(it.message || '').trim().length >= 20);
++  if (publicItems.length < 3 && !(d.rating.count >= 5)) return null;
+   const head = d.rating.average != null && d.rating.count >= 5
+     ? el('p', { class: 'wall-rating' }, [stars(Math.round(d.rating.average)), ` ${d.rating.average} out of 5 from ${d.rating.count} people who rated the site`])
+     : null;
+-  const items = d.items.map((it) => el('blockquote', { class: 'wall-item' }, [
++  const items = publicItems.map((it) => el('blockquote', { class: 'wall-item' }, [
+     el('p', {}, it.message),
+     el('footer', {}, [el('strong', {}, it.name), it.rating ? [' · ', stars(it.rating)] : null, pageLabel(it.page) ? ` · on ${pageLabel(it.page)}` : '', ` · ${new Date(it.ts).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`]),
+   ]));
+diff --git a/public/js/manifest.json b/public/js/manifest.json
+index 22f7112..bce1354 100644
+--- a/public/js/manifest.json
++++ b/public/js/manifest.json
+@@ -1 +1 @@
+-{"build":"b5e95cd064","files":["/css/style.css","/engine/brokers/zerodha.js","/engine/debt.js","/engine/goal.js","/engine/insurance.js","/engine/loan-eligibility.js","/engine/mix.js","/engine/payment-plan.js","/engine/post-tax.js","/engine/profile.js","/engine/property.js","/engine/retirement.js","/engine/trading-tax.js","/js/about.js","/js/amount-input.js","/js/app.js","/js/broker-import.js","/js/budget.js","/js/calc-export-card.js","/js/calc-export.js","/js/calc-index.js","/js/calculators.js","/js/capgains.js","/js/charts.js","/js/compare.js","/js/debt.js","/js/devtools.js","/js/email-card.js","/js/env.js","/js/feedback-wall.js","/js/feedback.js","/js/fresh.js","/js/funds.js","/js/glossary.js","/js/goal.js","/js/handoff.js","/js/home-buy.js","/js/home.js","/js/insurance.js","/js/mix-control.js","/js/mix-rates.js","/js/nps.js","/js/profile-panel.js","/js/profile-store.js","/js/retirement.js","/js/routes.js","/js/salary.js","/js/share-card.js","/js/snapshot-engine.js","/js/snapshot.js","/js/tax-engine.js","/js/tax-export.js","/js/tax-insights.js","/js/tax-ui.js","/js/tooltips.js","/js/util.js","/js/xlsx-style.js"]}
++{"build":"c7ef13f50c","files":["/css/style.css","/engine/brokers/zerodha.js","/engine/debt.js","/engine/goal.js","/engine/insurance.js","/engine/loan-eligibility.js","/engine/mix.js","/engine/payment-plan.js","/engine/post-tax.js","/engine/profile.js","/engine/property.js","/engine/retirement.js","/engine/trading-tax.js","/js/about.js","/js/amount-input.js","/js/app.js","/js/broker-import.js","/js/budget.js","/js/calc-export-card.js","/js/calc-export.js","/js/calc-index.js","/js/calculators.js","/js/capgains.js","/js/charts.js","/js/compare.js","/js/debt.js","/js/devtools.js","/js/email-card.js","/js/env.js","/js/feedback-wall.js","/js/feedback.js","/js/fresh.js","/js/funds.js","/js/glossary.js","/js/goal.js","/js/handoff.js","/js/home-buy.js","/js/home.js","/js/insurance.js","/js/mix-control.js","/js/mix-rates.js","/js/nps.js","/js/profile-panel.js","/js/profile-store.js","/js/retirement.js","/js/routes.js","/js/salary.js","/js/share-card.js","/js/snapshot-engine.js","/js/snapshot.js","/js/tax-engine.js","/js/tax-export.js","/js/tax-insights.js","/js/tax-ui.js","/js/tooltips.js","/js/util.js","/js/xlsx-style.js"]}
+diff --git a/public/js/routes.js b/public/js/routes.js
+index 0ebc8a9..cf19388 100644
+--- a/public/js/routes.js
++++ b/public/js/routes.js
+@@ -10,7 +10,7 @@ export const ORIGIN = 'https://taxcompass.org';
+ export const PAGES = {
+   home: { title: 'TaxCompass India: know the number, make the decision', desc: 'Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.' },
+   tax: { title: 'Old vs new tax regime calculator', desc: 'Compare the old and new income tax regimes line by line for FY 2025-26 and FY 2026-27, see how far you are from the other regime winning, and what unused deductions would save.' },
+-  calculators: { title: 'Money decisions: salary, loans, investing, goals and retirement', desc: 'In-hand salary, expenses and savings, EMI with step-up and prepayment, SIP with lump sums, home loan eligibility with the true cost of buying, capital gains and a goal planner, with historical mutual fund returns for context.' },
++  calculators: { title: 'Money tools: tax, salary, loans, investing and goals', desc: 'Practical calculators for salary, expenses, EMI, SIP, home buying, capital gains, debt, retirement and goals, connected by one private profile in your browser.' },
+   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
+   glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
+   about: { title: 'About, sources and methodology', desc: 'How TaxCompass India computes its numbers, where the data comes from, how fresh it is, and what stays private.' },
+@@ -25,14 +25,13 @@ export const CALCS = {
+   'capital-gains': { title: 'Capital gains tax calculator', desc: 'Tax on selling listed equity, equity and debt funds, property and other assets, with the ₹1.25 lakh exemption, grandfathering and the 12.5% or 20%-with-indexation choice for property.' },
+   compare: { title: 'Where should this money go? PPF, FD, funds and NPS compared after tax', desc: 'The same rupee in every common instrument, after tax, over your horizon and at your slab: what you keep, the after-tax return and the pre-tax equivalent. Answers whether PPF is worth it under the new regime, FD versus debt fund, and where to park money for six months.' },
+   retirement: { title: 'Retirement planner: will the money last?', desc: 'Your age, when you want to retire, what you spend, what you have saved and what you add each month: will the money last, and how much more a month closes the gap. Plain assumptions you can change.' },
+-  insurance: { title: 'How much life and health cover do you need?', desc: 'The cover your family would actually need if your income stopped, what term insurance costs at your age, how much health cover to hold, and whether to keep, pause or surrender an endowment or money-back policy you already have.' },
+   debt: { title: 'Which loan to clear first, and what it really costs', desc: 'Credit cards and loans in one place: the order that clears them fastest, the real annual cost of each, the months and interest it saves, and whether the next spare rupee should prepay a loan or be invested.' },
+   goal: { title: 'Goal planner', desc: 'A child’s education or wedding, a house, a car: what it costs today, what it will cost when it arrives, and the SIP that gets there at the equity share you choose.' },
+ };
+ 
+ export const ALIASES = { schemes: 'nps', decide: 'calculators', decisions: 'calculators' };
+ /** Removed pages and where they went; public/_redirects carries the same map for the edge. */
+-export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/tax' };
++export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/tax', '/calculators/insurance': '/calculators' };
+ 
+ export function parsePath(pathname) {
+   const parts = String(pathname || '/').replace(/\/+$/, '').split('/').filter(Boolean);
+@@ -47,6 +46,6 @@ export function metaFor(pathname) {
+   const target = REMOVED[clean] || (clean === '/index.html' ? '/' : clean);
+   const { tab, sub } = parsePath(target);
+   const page = tab === 'calculators' && CALCS[sub] ? CALCS[sub] : PAGES[tab];
+-  const path = tab === 'home' ? '/' : tab === 'calculators' ? `/calculators/${CALCS[sub] ? sub : 'emi'}` : `/${tab}`;
++  const path = tab === 'home' ? '/' : tab === 'calculators' ? (CALCS[sub] ? `/calculators/${sub}` : sub ? '/calculators/emi' : '/calculators') : `/${tab}`;
+   return { title: tab === 'home' ? page.title : `${page.title} · ${SITE}`, desc: page.desc, url: ORIGIN + path, tab, sub };
+ }
+diff --git a/public/js/snapshot-engine.js b/public/js/snapshot-engine.js
+index 935b746..bb1cac0 100644
+--- a/public/js/snapshot-engine.js
++++ b/public/js/snapshot-engine.js
+@@ -62,13 +62,14 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
+   const fvHeld = held > 0 ? lumpsumFV(held, m.typical, years).fv : 0;
+   const invest = { monthly: investing, assumedShare: fromBudget ? 0 : 0.3, held, years, equityPct, ratePct: m.typical, badPct: m.bad, fvSip, fvHeld, fv: fvSip + fvHeld, fvBad: (investing > 0 ? sipFV(investing, m.bad, years).fv : 0) + (held > 0 ? lumpsumFV(held, m.bad, years).fv : 0) };
+ 
+-  // home: a rule of thumb, not eligibility: EMI at half of take-home after other EMIs, 20 years, 20% down
++  // home: a conservative first-pass affordability screen, not lender eligibility:
++  // keep all EMIs within 35% of take-home, use 20 years and 20% down.
+   const ratePct = num(loanPolicy && loanPolicy.rate && loanPolicy.rate.default_pct) || 8;
+   const existingHome = p.loans.find((l) => l.type === 'home' && num(l.outstanding) > 0);
+   let home;
+   if (existingHome) home = { kind: 'have', outstanding: num(existingHome.outstanding), emi: num(existingHome.emi), yearsLeft: Math.round(num(existingHome.remainingMonths) / 12), ratePct: num(existingHome.rate) };
+   else {
+-    const maxEmi = Math.max(0, 0.5 * takeHome.monthly - emis);
++    const maxEmi = Math.max(0, 0.35 * takeHome.monthly - emis);
+     const months = 240, r = ratePct / 1200;
+     const loan = maxEmi > 0 ? maxEmi * (Math.pow(1 + r, months) - 1) / (r * Math.pow(1 + r, months)) : 0;
+     const price = loan / 0.8;
+@@ -83,7 +84,7 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
+ 
+   return {
+     kind, ctc: pay && !pay.error ? pay.ctc : 0, business, pay, tax, takeHome, loans, surplus, invest, home, goals, goalSip, emergency,
+-    assumptions: `Tax under the ${tax.regime} regime with your profile’s deductions; ${equityPct}% equity mix earning about ${m.typical.toFixed(1)}% a year (equity ${mix.equity}%, safe ${mix.safe}%); home budget at ${ratePct}% for 20 years with 20% down.`,
++    assumptions: `Tax under the ${tax.regime} regime with your profile’s deductions; the investment line is an illustration using a ${equityPct}% equity mix and about ${m.typical.toFixed(1)}% a year (equity ${mix.equity}%, safe ${mix.safe}%); the home range keeps total EMIs within 35% of take-home at ${ratePct}% for 20 years with 20% down.`,
+   };
+ }
+ 
+diff --git a/public/js/snapshot.js b/public/js/snapshot.js
+index 6fa7b71..ea0cec6 100644
+--- a/public/js/snapshot.js
++++ b/public/js/snapshot.js
+@@ -76,7 +76,7 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
+       inv.monthly > 0 || inv.held > 0 ? row(`In ${inv.years} years`, inr(inv.fv), `${inv.monthly > 0 ? (inv.assumedShare ? `If you invested ${Math.round(inv.assumedShare * 100)}% of it, ${inr(inv.monthly)} a month,` : `Investing ${inr(inv.monthly)} a month`) : ''}${inv.monthly > 0 && inv.held > 0 ? ' plus ' : ''}${inv.held > 0 ? `the ${inr(inv.held)} you hold` : ''} at a ${inv.equityPct}% equity mix (about ${inv.ratePct.toFixed(1)}% a year); ${inr(inv.fvBad)} in a bad stretch.`, '/calculators/compare', 'Where to put it →') : null,
+       h.kind === 'have'
+         ? row('Home loan', `${inr(h.outstanding)} left`, `EMI ${inr(h.emi)} a month, about ${h.yearsLeft} years to go at ${h.ratePct}%.`, '/calculators/emi', 'What prepaying does →')
+-        : h.price > 0 ? row('Home you could carry', `about ${inr(Math.round(h.price / 100000) * 100000)}`, `A rule of thumb: EMI ${inr(h.emi)} (half your take-home) at ${h.ratePct}% for 20 years, with ${inr(h.down)} down. Stamp duty and GST come on top.`, '/calculators/home', 'True cost →') : null,
++        : h.price > 0 ? row('Rough home-price range', `about ${inr(Math.round(h.price / 100000) * 100000)}`, `A conservative first screen: total EMIs within 35% of take-home, at ${h.ratePct}% for 20 years, with ${inr(h.down)} down. Existing expenses, lender rules, stamp duty and GST can lower this.`, '/calculators/home', 'Check the true cost →') : null,
+       s.goals.length
+         ? row('Goals', `${inr(s.goalSip)} a month`, s.goals.map((g) => `${g.name}: ${inr(g.target)} in ${g.years} years needs ${inr(g.sip)} a month`).join('; ') + '.', '/calculators/goal', 'Plan a goal →')
+         : row('Goals', 'none yet', 'A child’s education, a house, retirement: say what and when, and see the SIP.', '/calculators/goal', 'Add one →'),
+diff --git a/public/js/tax-engine.js b/public/js/tax-engine.js
+index 2236b47..aa3365d 100644
+--- a/public/js/tax-engine.js
++++ b/public/js/tax-engine.js
+@@ -19,7 +19,7 @@
+  *      total income, treating the incremental income as slab income.
+  *  A5. Employer contribution above the Rs 7.5L cap is added as a perquisite; the accretion
+  *      on that excess (Rule 3B) is not modelled.
+- *  A6. Final tax is rounded to the nearest rupee, not to the nearest Rs 10 (s.288B).
++ *  A6. Final tax is rounded to the nearest Rs 10 under s.288B.
+  */
+ 
+ export const AGE_BANDS = {
+@@ -499,7 +499,7 @@ export function computeTax(income, rates, flags = DEFAULT_FLAGS) {
+ 
+   const taxPlusSurcharge = core.taxBeforeSurcharge + core.surcharge - surchargeRelief;
+   const cess = taxPlusSurcharge * rates.cess.rate;
+-  const total = Math.round(taxPlusSurcharge + cess); // A6
++  const total = Math.round((taxPlusSurcharge + cess) / 10) * 10; // A6
+   // TDS clients or employers already deducted comes off what is left to pay; it never changes the tax itself
+   const tdsDeducted = Math.round(clamp0(num(((income.inputs || {}).business || {}).tdsDeducted)));
+   const netPayable = Math.max(0, total - tdsDeducted);
+diff --git a/public/js/version.js b/public/js/version.js
+index 83aa83a..a35083b 100644
+--- a/public/js/version.js
++++ b/public/js/version.js
+@@ -1,2 +1,2 @@
+ // Written by tools/stamp.mjs; do not edit. Must equal <meta name="tc-build"> in index.html.
+-export const BUILD = 'b5e95cd064';
++export const BUILD = 'c7ef13f50c';
+diff --git a/public/sitemap.xml b/public/sitemap.xml
+index aa65d49..42a6e8a 100644
+--- a/public/sitemap.xml
++++ b/public/sitemap.xml
+@@ -10,7 +10,6 @@
+   <url><loc>https://taxcompass.org/calculators/sip</loc><lastmod>2026-09-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+   <url><loc>https://taxcompass.org/calculators/capital-gains</loc><lastmod>2026-09-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+   <url><loc>https://taxcompass.org/calculators/budget</loc><lastmod>2026-09-13</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+-  <url><loc>https://taxcompass.org/calculators/insurance</loc><lastmod>2026-09-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+   <url><loc>https://taxcompass.org/calculators/debt</loc><lastmod>2026-09-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+   <url><loc>https://taxcompass.org/calculators/goal</loc><lastmod>2026-09-13</lastmod><changefreq>monthly</changefreq><priority>0.5</priority></url>
+   <url><loc>https://taxcompass.org/nps</loc><lastmod>2026-09-13</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+diff --git a/tests/routes.test.mjs b/tests/routes.test.mjs
+index e958b9c..8dfa86c 100644
+--- a/tests/routes.test.mjs
++++ b/tests/routes.test.mjs
+@@ -12,6 +12,7 @@ ok('home-buying description mentions the cities', /Mumbai/.test(metaFor('/calcul
+ ok('unknown calculator falls back to EMI', metaFor('/calculators/nonsense').url === 'https://taxcompass.org/calculators/emi');
+ ok('removed lumpsum route resolves to SIP', metaFor('/calculators/lumpsum').url === 'https://taxcompass.org/calculators/sip');
+ ok('removed advance-tax route resolves to tax', metaFor('/calculators/advance-tax').url === 'https://taxcompass.org/tax');
++ok('retired insurance tool resolves to the money-tools index', metaFor('/calculators/insurance').url === 'https://taxcompass.org/calculators');
+ ok('schemes alias resolves to NPS', metaFor('/schemes').tab === 'nps');
+ ok('trailing slash ignored', metaFor('/nps/').url === 'https://taxcompass.org/nps');
+ ok('every title carries the site name', Object.keys(PAGES).filter((t) => t !== 'home').every((t) => /· TaxCompass India$/.test(metaFor('/' + t).title)) && /TaxCompass India/.test(metaFor('/').title) && Object.keys(CALCS).every((c) => /· TaxCompass India$/.test(metaFor('/calculators/' + c).title)));
+diff --git a/tests/snapshot.test.mjs b/tests/snapshot.test.mjs
+index 61bad6d..579ad52 100644
+--- a/tests/snapshot.test.mjs
++++ b/tests/snapshot.test.mjs
+@@ -30,7 +30,7 @@ ok('empty profile -> no snapshot', snapshot(emptyProfile(), { rates, mix, loanPo
+   ok('no loans: free money is take-home', s.loans.count === 0 && s.surplus.monthly === s.takeHome.monthly && !s.surplus.fromBudget);
+   ok('no budget: the ten-year line assumes 30% of take-home is invested', s.invest.assumedShare === 0.3 && Math.abs(s.invest.monthly - Math.round(0.3 * pay.monthly)) <= 1);
+   ok('ten-year line grows that at the mix rate', s.invest.fv > s.invest.monthly * 120 && s.invest.fvBad < s.invest.fv);
+-  ok('home budget: EMI is half of take-home, price = loan / 0.8', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.5 * pay.monthly) < 1 && Math.abs(s.home.price * 0.8 - s.home.loan) < 1);
++  ok('home budget: total EMI stays within 35% of take-home, price = loan / 0.8', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.35 * pay.monthly) < 1 && Math.abs(s.home.price * 0.8 - s.home.loan) < 1);
+   ok('home budget uses the policy rate', s.home.ratePct === loanPolicy.rate.default_pct);
+   ok('no goals yet', s.goals.length === 0 && s.goalSip === 0);
+ }
+@@ -63,7 +63,7 @@ ok('empty profile -> no snapshot', snapshot(emptyProfile(), { rates, mix, loanPo
+   near('business: presumptive income is half of receipts', s.business.income, 1500000);
+   ok('business: TDS and refund flow to the tax line', s.tax.tds === 240000 && s.tax.refund > 0 && s.tax.netPayable === 0);
+   near('business: left after tax = income less tax, per month', s.takeHome.monthly, (1500000 - s.tax.annual) / 12, 1);
+-  ok('business: home budget builds on what is left after tax', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.5 * s.takeHome.monthly) < 1);
++  ok('business: home budget builds conservatively on what is left after tax', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.35 * s.takeHome.monthly) < 1);
+   const both = normaliseProfile({ ...fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), person: { employment: 'both' }, business: { receipts: 1200000, kind: 'profession', presumptive: true } });
+   const b = snapshot(both, { rates, mix, loanPolicy, equityPct: 60, years: 10 });
+   ok('both: salary and receipts in one picture, tax on the combined income', b.kind === 'both' && b.ctc === 1800000 && b.business.income === 600000 && b.tax.annual > snapshot(fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), { rates, mix, loanPolicy }).tax.annual);
+-- 
+2.51.1
+
