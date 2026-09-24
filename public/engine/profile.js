@@ -227,7 +227,9 @@ export function fromTaxInputs(p, t) {
   i.conveyance = num(t.salary?.conveyance);
   i.variablePay = num(t.salary?.variablePay);
   i.employerNps = num(t.employer?.npsContribution);
-  i.otherAllowances = Math.max(0, num(t.salary?.gross) - i.basic - i.hra - i.conveyance - i.variablePay - i.employerNps - i.esop);
+  // the profile always stores the whole package, so a bonus paid on top of the gross adds to it rather than coming out of the special allowance
+  const onTop = !!t.salary?.variableOnTop;
+  i.otherAllowances = Math.max(0, num(t.salary?.gross) - i.basic - i.hra - i.conveyance - (onTop ? 0 : i.variablePay) - i.employerNps - i.esop);
   i.employerPf = Math.max(0, num(t.employer?.totalRetirementContribution) - i.employerNps);
   i.ctc = ctcOf(i);
   out.tax.fy = t.fy || out.tax.fy;

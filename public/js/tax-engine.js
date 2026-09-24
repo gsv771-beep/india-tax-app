@@ -53,7 +53,8 @@ export function emptyInputs() {
       city: 'Other',
       ltaExempt: 0,      // LTA exemption actually claimable (fare, 2 in 4 years)
       conveyance: 0,     // conveyance allowance: fully taxable since 2018, part of gross; kept for the break-up
-      variablePay: 0,    // bonus or performance pay inside gross; kept for the break-up
+      variablePay: 0,    // bonus or performance pay; part of gross, or on top of it (variableOnTop)
+      variableOnTop: false,  // true when the bonus is paid over and above the gross figure entered
       professionalTax: 0,
     },
     employer: {
@@ -176,7 +177,9 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
   const push = (id, label, amount, extra = {}) => lines.push({ id, label, amount, ...extra });
 
   // --- 1.1 Salary ---
-  const gross = num(inp.salary.gross);
+  // a bonus paid over and above the salary figure adds to what is taxed; one carved out of it does not
+  const variableOnTop = !!inp.salary.variableOnTop;
+  const gross = num(inp.salary.gross) + (variableOnTop ? num(inp.salary.variablePay) : 0);
   let salary = 0;
   if (gross > 0) {
     push('gross_salary', 'Gross salary / pension', gross);
@@ -237,7 +240,7 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
       const named = basicForBreakup + num(inp.salary.hraReceived) + conveyance + variablePay;
       const parts = [basicForBreakup > 0 ? `Basic + DA ${fmtNum(basicForBreakup)}` : null, num(inp.salary.hraReceived) > 0 ? `HRA ${fmtNum(num(inp.salary.hraReceived))}` : null, conveyance > 0 ? `conveyance ${fmtNum(conveyance)}` : null, variablePay > 0 ? `variable pay ${fmtNum(variablePay)}` : null, gross - named > 0 ? `special allowance ${fmtNum(gross - named)}` : null].filter(Boolean);
       push('salary_breakup', `Of which: ${parts.join(', ')}`, 0, { info: true });
-      if (named > gross) notes.push(`The salary components add up to Rs ${fmtNum(named)}, more than the gross salary of Rs ${fmtNum(gross)}. Raise the gross or reduce a component.`);
+      if (named > gross) notes.push(`The salary components add up to Rs ${fmtNum(named)}, more than the gross salary of Rs ${fmtNum(gross)}. Raise the gross, reduce a component, or mark the bonus as paid on top of the gross.`);
     }
     push('net_salary', 'Income from salary', salary, { subtotal: true });
   }
