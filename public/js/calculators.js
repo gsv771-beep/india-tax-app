@@ -1,4 +1,4 @@
-import { inr, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { inr, inrShort, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { lineChart, columnChart, shortINR } from './charts.js';
 import { renderFundPanel } from './funds.js';
 import { calcExportCard } from './calc-export-card.js';
@@ -159,6 +159,9 @@ export function showCalc(name) {
   if (key === currentCalc) return;
   currentCalc = key;
   document.querySelectorAll('#calc-tabs [data-calc]').forEach((b) => b.classList.toggle('active', b.dataset.calc === key));
+  // on a phone the tabs are one swipeable row: bring the chosen one into view without moving the page
+  const tabs = document.getElementById('calc-tabs'), on = tabs && tabs.querySelector('.active');
+  if (on && tabs.scrollWidth > tabs.clientWidth) requestAnimationFrame(() => { tabs.scrollLeft = on.offsetLeft - tabs.offsetLeft - (tabs.clientWidth - on.offsetWidth) / 2; });
   document.getElementById('calculators').classList.toggle('on-index', key === 'index');
   const title = document.getElementById('calc-title');
   const intro = document.getElementById('calc-intro');
@@ -536,12 +539,12 @@ const VIEWS = {
         key: 'sip',
         answer: [
           el('div', { class: 'stats' }, [
-            stat('Projected value', inr(main.fv), true),
-            stat('Amount invested', inr(main.invested)),
-            stat('Wealth gained', inr(main.gain)),
+            stat('Projected value', inrShort(main.fv), true),
+            stat('Amount invested', inrShort(main.invested)),
+            stat('Wealth gained', inrShort(main.gain)),
             stepped ? stat('SIP in the final year', inr(sp > 0 ? main.finalMonthly / (1 + sp / 100) : main.finalMonthly - sa)) : lumpTotal > 0 && a > 0 ? stat('Lump sums add', inr(main.fv - sipOnly.fv)) : null,
           ]),
-          el('p', { class: 'explain' }, `Over ${y} years at ${r}% a year, ${what} grows to about ${inr(main.fv)}, of which ${inr(main.gain)} is growth.`),
+          el('p', { class: 'explain' }, `Over ${y} years at ${r}% a year, ${what} grows to about ${inrShort(main.fv)}, of which ${inrShort(main.gain)} is growth.`),
         ],
         why: [
           splitBar('Invested', main.invested, 'Gains', main.gain),

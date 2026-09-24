@@ -6,6 +6,7 @@ import { snapshot, seedFromCtc } from '../public/js/snapshot-engine.js';
 import { emptyProfile, fromSalaryStore, normaliseProfile } from '../public/engine/profile.js';
 import { salaryBreakdown } from '../public/js/salary.js';
 import { toSalaryStore } from '../public/engine/profile.js';
+import { inrShort } from '../public/js/util.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const rates = JSON.parse(readFileSync(path.join(here, '../public/data/tax_rates.json'), 'utf8'));
@@ -68,6 +69,12 @@ ok('empty profile -> no snapshot', snapshot(emptyProfile(), { rates, mix, loanPo
   const b = snapshot(both, { rates, mix, loanPolicy, equityPct: 60, years: 10 });
   ok('both: salary and receipts in one picture, tax on the combined income', b.kind === 'both' && b.ctc === 1800000 && b.business.income === 600000 && b.tax.annual > snapshot(fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), { rates, mix, loanPolicy }).tax.annual);
   ok('salary-only profile with business receipts but employment salaried ignores the receipts', snapshot({ ...both, person: { ...both.person, employment: 'salaried' } }, { rates, mix, loanPolicy }).kind === 'salary');
+}
+
+// projections read in lakh and crore, not to the rupee
+{
+  const cases = [[0, '₹0'], [95000, '₹95,000'], [100000, '₹1 lakh'], [8290991, '₹82.9 lakh'], [9994000, '₹99.9 lakh'], [9995000, '₹1 crore'], [12400000, '₹1.24 crore'], [999600000, '₹100 crore'], [-8290991, '−₹82.9 lakh']];
+  for (const [n, want] of cases) ok(`inrShort(${n}) = ${want}`, inrShort(n) === want, inrShort(n));
 }
 
 console.log(failures ? `\n${failures} failure(s)` : '\nAll snapshot tests passed');

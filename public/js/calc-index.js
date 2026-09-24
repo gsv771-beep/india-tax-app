@@ -4,7 +4,7 @@
  * something the card says it in their own figures ("On ₹1,15,900 a month you could carry about ₹87 L").
  * The tabs above still open a tool directly.
  */
-import { el, inr } from './util.js';
+import { el, inr, inrShort } from './util.js';
 import { getProfile } from './profile-store.js';
 import { isEmptyProfile } from '../engine/profile.js';
 import { baseRates } from './mix-rates.js';
@@ -22,7 +22,7 @@ const GROUPS = [
   {
     title: 'Big commitments',
     items: [
-      { href: '/calculators/home', icon: '🏠', q: 'Should I buy this home?', d: 'Stamp duty, registration, GST and builder charges by city, then the loan, down payment and the stage-wise payment plan.', line: (s) => (s && s.home.kind === 'budget' && s.home.price > 0 ? `A rule of thumb says about ${inr(Math.round(s.home.price / 100000) * 100000)} is within reach.` : null) },
+      { href: '/calculators/home', icon: '🏠', q: 'Should I buy this home?', d: 'Stamp duty, registration, GST and builder charges by city, then the loan, down payment and the stage-wise payment plan.', line: (s) => (s && s.home.kind === 'budget' && s.home.price > 0 ? `A rule of thumb says about ${inrShort(s.home.price)} is within reach.` : null) },
       { href: '/calculators/emi', icon: '🏦', q: 'Can I carry this EMI?', d: 'EMI, total interest, and what a step-up or a prepayment saves; the loan can come from price and down payment.', line: (s) => (s && s.loans.count ? `You pay ${inr(s.loans.emi)} a month in EMIs today.` : null) },
       { href: '/calculators/debt', icon: '🧯', q: 'Which loan do I clear first?', d: 'Cards and loans in one place: the fastest order, what each really costs a year, and whether to prepay or invest.', line: (s) => (s && s.loans.count ? `${s.loans.count} loan${s.loans.count > 1 ? 's' : ''} in your profile, ${inr(s.loans.emi)} a month.` : null) },
       { href: '/calculators/capital-gains', icon: '📑', q: 'What will I owe if I sell?', d: 'Shares, funds or property: the gain, the exemptions, and the reliefs that cut the tax if you reinvest.', line: () => null },
