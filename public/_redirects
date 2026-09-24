@@ -1,6 +1,7 @@
 # Removed pages: permanent redirects to the nearest live page.
 /calculators/lumpsum /calculators/sip 301
 /calculators/advance-tax /tax 301
+/calculators/insurance /calculators 301
 
 # Friendly aliases for the decisions page.
 /decide /calculators 301

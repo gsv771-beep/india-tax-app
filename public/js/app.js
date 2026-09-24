@@ -92,7 +92,7 @@ async function boot() {
   // Show the right section at once; results fill in when the data arrives (a few tens of milliseconds on a warm cache).
   route();
   try {
-    const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy, insurance] = await Promise.all([
+    const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy] = await Promise.all([
       loadJSON('/data/tax_rates.json'),
       loadJSON('/data/deductions.json'),
       loadJSON('/data/onboarding_and_comparison.json'),
@@ -102,9 +102,8 @@ async function boot() {
       loadJSON('/data/capital_gains.json'),
       loadJSON('/data/property_charges.json'),
       loadJSON('/data/loan_policy.json'),
-      loadJSON('/data/insurance.json'),
     ]);
-    appData = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy, insurance };
+    appData = { rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy };
 
     initGlossaryTooltips(glossary);
     initProfilePanel();

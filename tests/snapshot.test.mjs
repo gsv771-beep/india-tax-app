@@ -30,7 +30,7 @@ ok('empty profile -> no snapshot', snapshot(emptyProfile(), { rates, mix, loanPo
   ok('no loans: free money is take-home', s.loans.count === 0 && s.surplus.monthly === s.takeHome.monthly && !s.surplus.fromBudget);
   ok('no budget: the ten-year line assumes 30% of take-home is invested', s.invest.assumedShare === 0.3 && Math.abs(s.invest.monthly - Math.round(0.3 * pay.monthly)) <= 1);
   ok('ten-year line grows that at the mix rate', s.invest.fv > s.invest.monthly * 120 && s.invest.fvBad < s.invest.fv);
-  ok('home budget: EMI is half of take-home, price = loan / 0.8', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.5 * pay.monthly) < 1 && Math.abs(s.home.price * 0.8 - s.home.loan) < 1);
+  ok('home budget: total EMI stays within 35% of take-home, price = loan / 0.8', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.35 * pay.monthly) < 1 && Math.abs(s.home.price * 0.8 - s.home.loan) < 1);
   ok('home budget uses the policy rate', s.home.ratePct === loanPolicy.rate.default_pct);
   ok('no goals yet', s.goals.length === 0 && s.goalSip === 0);
 }
@@ -63,7 +63,7 @@ ok('empty profile -> no snapshot', snapshot(emptyProfile(), { rates, mix, loanPo
   near('business: presumptive income is half of receipts', s.business.income, 1500000);
   ok('business: TDS and refund flow to the tax line', s.tax.tds === 240000 && s.tax.refund > 0 && s.tax.netPayable === 0);
   near('business: left after tax = income less tax, per month', s.takeHome.monthly, (1500000 - s.tax.annual) / 12, 1);
-  ok('business: home budget builds on what is left after tax', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.5 * s.takeHome.monthly) < 1);
+  ok('business: home budget builds conservatively on what is left after tax', s.home.kind === 'budget' && Math.abs(s.home.emi - 0.35 * s.takeHome.monthly) < 1);
   const both = normaliseProfile({ ...fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), person: { employment: 'both' }, business: { receipts: 1200000, kind: 'profession', presumptive: true } });
   const b = snapshot(both, { rates, mix, loanPolicy, equityPct: 60, years: 10 });
   ok('both: salary and receipts in one picture, tax on the combined income', b.kind === 'both' && b.ctc === 1800000 && b.business.income === 600000 && b.tax.annual > snapshot(fromSalaryStore(emptyProfile(), seedFromCtc(emptyProfile(), 1800000, rates).store, seedFromCtc(emptyProfile(), 1800000, rates).breakdown), { rates, mix, loanPolicy }).tax.annual);

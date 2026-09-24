@@ -37,13 +37,6 @@ const GROUPS = [
     ],
   },
   {
-    title: 'If things go wrong',
-    items: [
-      { href: '/calculators/insurance', icon: '🛡️', q: 'Is my family covered?', d: 'The life cover they would need if your income stopped, what it costs at your age, and how much health cover to hold.', line: (s) => (s && s.takeHome.monthly > 0 ? `Your household runs on about ${inr(s.takeHome.monthly)} a month.` : null) },
-      { href: '/calculators/insurance', icon: '📜', q: 'Should I keep this LIC policy?', d: 'Keep paying, stop paying, or surrender: all three valued at the policy\u2019s maturity, with the money already paid treated as sunk.', line: () => null },
-    ],
-  },
-  {
     title: 'Where it all has to end up',
     items: [
       { href: '/calculators/goal', icon: '🎯', q: 'Will I reach the goal?', d: 'A child’s education or wedding, a house, a car: today’s cost, the cost when it arrives, and the SIP that gets there.', line: (s) => (s && s.goals.length ? `${s.goals.length} goal${s.goals.length > 1 ? 's' : ''} need ${inr(s.goalSip)} a month.` : null) },

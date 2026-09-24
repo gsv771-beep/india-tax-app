@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="b5e95cd064">
+  <meta name="tc-build" content="bf838fa0e5">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: know the number, make the decision</title>
   <meta name="description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
@@ -65,7 +65,7 @@
     <div class="wrap header-inner">
       <a href="/" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span><span class="brand-tag">Know the number. Make the decision.</span></a>
       <nav class="tabs" aria-label="Sections">
-        <a href="/calculators" data-tab="calculators">Decisions</a>
+        <a href="/calculators" data-tab="calculators">Money tools</a>
         <a href="/tax" data-tab="tax">Tax comparison</a>
         <a href="/nps" data-tab="nps">NPS</a>
         <a href="/glossary" data-tab="glossary">Glossary</a>
@@ -83,7 +83,7 @@
       <div class="hero">
         <span class="eyebrow">TaxCompass India</span>
         <h1>Know the number.<br>Make the decision.</h1>
-        <p>Tax, salary, loans, investing, home buying and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.</p>
+        <p>Tax, salary, loans, investing, home buying and retirement, worked out for your situation in about two minutes. Free and independent. Calculator entries stay on this device unless you choose to email a workbook or send feedback.</p>
       </div>
       <div id="home-snapshot" hidden></div>
       <h2 class="decide-title">What are you trying to decide?</h2>
@@ -111,7 +111,7 @@
           <span>Income-tax Act, Finance Act 2026, CBDT</span>
           <span>NPS: PFRDA · Funds: AMFI · Small savings: Ministry of Finance</span>
           <span>Every assumption shown and editable</span>
-          <span>No account, no ads, nothing uploaded</span>
+          <span>No account or ads · calculator entries stay on this device</span>
         </div>
         <a class="trust-link" href="/about">How each number is calculated →</a>
       </div>
@@ -127,7 +127,6 @@
           <span>FY 2025-26 and FY 2026-27</span>
           <span>Every deduction and exemption, both regimes</span>
           <span>Shows how far you are from the other regime winning</span>
-          <span data-counter hidden></span>
         </div>
       </div>
 
@@ -343,10 +342,9 @@
     <!-- ============ CALCULATORS ============ -->
     <section id="calculators" class="panel" hidden>
       <div class="panel-head">
-        <span class="eyebrow">Decision engine</span>
-        <h1>What are you working out?</h1>
-        <p>Illustrative projections. Returns are not guaranteed. Mutual fund investments are subject to market risk. Where a calculator shows fund categories and funds, they are historical returns from AMFI NAV data to help you sanity-check the return you assumed, not a recommendation to invest.</p>
-        <div class="facts"><span data-counter-calcs hidden></span></div>
+        <span class="eyebrow" id="calc-eyebrow">Money tools</span>
+        <h1 id="calc-title">What do you want to work out?</h1>
+        <p id="calc-intro">Choose a practical question. Your figures carry between tools and stay in this browser.</p>
       </div>
       <nav class="subtabs" id="calc-tabs" aria-label="Calculators">
         <a href="/calculators" data-calc="index">All</a>
@@ -355,7 +353,6 @@
         <a href="/calculators/emi" data-calc="emi">EMI</a>
         <a href="/calculators/sip" data-calc="sip">SIP</a>
         <a href="/calculators/home" data-calc="home">Home buying</a>
-        <a href="/calculators/insurance" data-calc="insurance">Insurance</a>
         <a href="/calculators/debt" data-calc="debt">Debt</a>
         <a href="/calculators/compare" data-calc="compare">Compare investments</a>
         <a href="/calculators/capital-gains" data-calc="capital-gains">Capital gains</a>
@@ -418,7 +415,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© 2026 TaxCompass India · <a href="/about">About &amp; sources</a> · Built by <a href="https://www.linkedin.com/in/gauravsv/" target="_blank" rel="noopener">Gaurav</a> · <span data-counter-all hidden></span> <span data-feedback-badge hidden></span></span>
+        <span>© 2026 TaxCompass India · <a href="/about">About &amp; sources</a> · Built by <a href="https://www.linkedin.com/in/gauravsv/" target="_blank" rel="noopener">Gaurav</a> · <span data-feedback-badge hidden></span></span>
         <span>Your entries stay in your browser. Only the emailed workbook leaves it, with your consent.</span>
       </div>
     </div>

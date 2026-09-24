@@ -23,11 +23,13 @@ function pageLabel(path) {
 /** A card for the About page. Resolves to null when there is nothing to show. */
 export async function feedbackWallCard() {
   const d = await loadWall();
-  if (!d.available || (!d.items.length && !(d.rating.count >= 5))) return null;
+  if (!d.available) return null;
+  const publicItems = d.items.filter((it) => String(it.message || '').trim().length >= 20);
+  if (publicItems.length < 3 && !(d.rating.count >= 5)) return null;
   const head = d.rating.average != null && d.rating.count >= 5
     ? el('p', { class: 'wall-rating' }, [stars(Math.round(d.rating.average)), ` ${d.rating.average} out of 5 from ${d.rating.count} people who rated the site`])
     : null;
-  const items = d.items.map((it) => el('blockquote', { class: 'wall-item' }, [
+  const items = publicItems.map((it) => el('blockquote', { class: 'wall-item' }, [
     el('p', {}, it.message),
     el('footer', {}, [el('strong', {}, it.name), it.rating ? [' · ', stars(it.rating)] : null, pageLabel(it.page) ? ` · on ${pageLabel(it.page)}` : '', ` · ${new Date(it.ts).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}`]),
   ]));
