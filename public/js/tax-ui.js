@@ -99,7 +99,23 @@ function syncIncomeType(form) {
   form.querySelectorAll('[data-for-books]').forEach((n) => { n.hidden = presumptive; });
   const rentHint = form.querySelector('[data-rent-hint]');
   if (rentHint) rentHint.textContent = t === 'business' ? '80GG: least of ₹60,000, 25% of income, or rent less 10% of income; old regime only' : 'with HRA the exemption is worked out; without HRA, 80GG gives up to ₹60,000 (old regime)';
-  form.querySelector('#tax-topics label.topic input[value="hra"]').closest('label').querySelector('span').textContent = t === 'business' ? '🏢 I pay rent' : '🏢 I pay rent / get HRA';
+  // the tick boxes are worded for whoever is reading them: HRA, EPF and perks mean nothing to a shop owner
+  const noSalary = t === 'business';
+  const TOPIC_LABELS = {
+    hra: noSalary ? '🏢 I pay rent (80GG)' : '🏢 I pay rent / get HRA',
+    invest: noSalary ? '💹 80C investments, own NPS' : '💹 80C investments, NPS',
+    more: noSalary ? '➕ Other deductions' : '➕ Other deductions and perks',
+  };
+  for (const [value, label] of Object.entries(TOPIC_LABELS)) {
+    const span = form.querySelector(`#tax-topics input[value="${value}"]`);
+    if (span) span.closest('label').querySelector('span').textContent = label;
+  }
+  const help = form.querySelector('#topics-help');
+  if (help) help.textContent = noSalary
+    ? 'Tick what applies and only those questions appear. Your receipts alone already give a real answer; business expenses and the TDS your clients deducted are in step 1 above.'
+    : t === 'both'
+      ? 'Tick what applies and only those questions appear. Nothing ticked is fine: the salary and receipts above already give a real answer.'
+      : 'Tick what applies and only those questions appear. Nothing ticked is fine: salary alone gives a real answer.';
 }
 
 /** Business or profession: what is left to pay after TDS, the advance-tax calendar, and GST. */
