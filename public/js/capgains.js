@@ -4,6 +4,7 @@
  */
 import { inr, pct, el, setChildren, disclaimer, beginPrompt } from './util.js';
 import { calcExportCard } from './calc-export-card.js';
+import { resultLayout } from './result-layout.js';
 
 // ---------- dates ----------
 const parse = (s) => { const [y, m, d] = String(s).split('-').map(Number); return y && m && d ? Date.UTC(y, m - 1, d) : null; };
@@ -320,19 +321,35 @@ export function renderCapitalGains(app) {
     }
     // nothing entered yet is not a loss of zero; ask rather than assert
     if (!(+st.cost > 0) && !(+st.sale > 0)) { setChildren(out, [beginPrompt('Enter what you paid and what you sold it for to see the tax.')]); last = null; return; }
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
+    setChildren(out, resultLayout({
+      key: 'capgains',
+      answer: [
+        el('div', { class: 'stats' }, [
         stat('Holding period', `${Math.floor(r.months / 12)} yr ${r.months % 12} mo`),
         stat('Treatment', r.classification),
         stat(r.gain >= 0 ? 'Gain' : 'Loss', inr(Math.abs(r.gain)), r.gain < 0 ? 'bad' : ''),
         relief.items.length ? stat('Tax after reliefs', inr(relief.total), 'hi') : stat('Tax payable', inr(r.total), 'hi'),
       ]),
-      relief.items.length ? el('p', { class: 'explain' }, `With ${relief.items.map((x) => `${inr(x.exempt)} exempt under Section ${x.section}`).join(' and ')}, the taxable gain falls from ${inr(r.taxableGain)} to ${inr(relief.taxable)} and the tax from ${inr(r.total)} to ${inr(relief.total)}: ${inr(r.total - relief.total)} saved, provided the conditions and deadlines below are met.`) : null,
-      el('p', { class: 'explain' }, r.gain <= 0
+        el('p', { class: 'explain' }, r.gain <= 0
+          ? `No tax: this is a ${r.longTerm ? 'long-term' : 'short-term'} capital loss of ${inr(-r.gain)}, which you can set off against other gains.`
+          : relief.items.length
+            ? `You owe ${inr(relief.total)} in tax on a ${inr(r.gain)} ${r.classification.toLowerCase()} gain, after the reliefs below; ${inr(r.total)} without them.`
+            : `You owe ${inr(r.total)} in tax on a ${inr(r.gain)} ${r.classification.toLowerCase()} gain.`),
+      ],
+      why: [
+        el('p', { class: 'explain' }, r.gain <= 0
         ? `This is a ${r.longTerm ? 'long-term' : 'short-term'} capital loss of ${inr(-r.gain)}; no tax is due on it.`
         : `Held ${r.months} months against a ${r.holdingRule} threshold, so this is a ${r.classification.toLowerCase()} gain taxed at ${r.rateLabel}. Effective tax ${pct(r.effective, 1)} of the gain. Section ${r.section1961} of the 1961 Act, ${r.section2025} of the 2025 Act.`),
-      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, [el('th', {}, 'Computation'), el('th', {}, 'Amount')])), el('tbody', {}, rows)])),
-      r.options ? el('div', {}, [
+        relief.items.length ? el('p', { class: 'explain' }, `With ${relief.items.map((x) => `${inr(x.exempt)} exempt under Section ${x.section}`).join(' and ')}, the taxable gain falls from ${inr(r.taxableGain)} to ${inr(relief.taxable)} and the tax from ${inr(r.total)} to ${inr(relief.total)}: ${inr(r.total - relief.total)} saved, provided the conditions and deadlines below are met.`) : null,
+        r.notes.length ? el('ul', { class: 'notes' }, r.notes.map((n) => el('li', {}, n))) : null,
+      ],
+      next: [
+        reliefCard(r),
+        r.gain > 0 ? el('div', { class: 'btn-row' }, [el('button', { type: 'button', class: 'btn secondary', onclick: () => addToTaxComparison(r) }, 'Add this gain to my tax comparison')]) : null,
+      ],
+      details: [
+        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, [el('th', {}, 'Computation'), el('th', {}, 'Amount')])), el('tbody', {}, rows)])),
+        r.options ? el('div', {}, [
         el('h3', {}, 'Your two options, and which one applies'),
         el('div', { class: 'table-wrap' }, el('table', { class: 'compare compare-scen' }, [
           el('thead', {}, el('tr', {}, [el('th', {}, ''), el('th', { class: r.options.chosen === 'plain' ? 'on' : '' }, r.options.plain.label), el('th', { class: r.options.chosen === 'indexed' ? 'on' : '' }, r.options.indexed.label)])),
@@ -344,11 +361,12 @@ export function renderCapitalGains(app) {
         ])),
         el('p', { class: 'muted small' }, `Indexation: cost × CII of FY ${r.options.indexed.ciiSell.fy} (${r.options.indexed.ciiSell.value}) ÷ CII of FY ${r.options.indexed.ciiBuy.fy} (${r.options.indexed.ciiBuy.value}).`),
       ]) : null,
-      r.notes.length ? el('ul', { class: 'notes' }, r.notes.map((n) => el('li', {}, n))) : null,
-      reliefCard(r),
-      r.gain > 0 ? el('div', { class: 'btn-row' }, [el('button', { type: 'button', class: 'btn secondary', onclick: () => addToTaxComparison(r) }, 'Add this gain to my tax comparison')]) : null,
-      disclaimer('tax'),
-    ]);
+      ],
+      foot: [
+        disclaimer('tax'),
+      ],
+      detailsLabel: 'Show the computation line by line',
+    }));
   }
   /** The reliefs actually claimed with the amounts entered; they stack, but never beyond the gain. */
   function appliedReliefs(r) {

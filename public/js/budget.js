@@ -4,7 +4,8 @@
  *
  * Pure functions at the top (tested in tests/budget.test.mjs); DOM code below.
  */
-import { inr, pct, el, setChildren, disclaimer, isBlankAfterReset, clearBlankAfterReset } from './util.js';
+import { inr, pct, el, setChildren, disclaimer, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { resultLayout } from './result-layout.js';
 import { sipFV } from './calculators.js';
 import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName } from './xlsx-style.js';
 import { emailWorkbookCard } from './email-card.js';
@@ -348,43 +349,59 @@ export function renderBudget(appData) {
     el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => { state = defaultState(); save(); root.replaceWith(renderBudget()); } }, 'Start over')),
   ]);
 
-  // right side
-  const stats = el('div', { class: 'stats' });
-  const allocBox = el('div', { class: 'chart' });
-  const catBox = el('div', { class: 'chart' });
-  const tables = el('div');
-  const exportBox = exportCard(() => state, () => summarise(state), () => ({ alloc: allocBox.querySelector('svg'), cat: catBox.querySelector('svg') }));
-  right.append(stats, el('h3', {}, 'Where your income goes'), allocBox, el('h3', {}, 'Expenses by category'), catBox, tables, exportBox, disclaimer('invest'));
+  // right side: the answer, why, what to do next, then the working
+  const result = el('div');
+  const exportBox = exportCard(() => state, () => summarise(state), () => ({ alloc: result.querySelector('.alloc-chart svg'), cat: result.querySelector('.cat-chart svg') }));
+  right.append(result, exportBox, disclaimer('invest'));
 
   function refresh() {
     save();
     const s = summarise(state);
-    setChildren(stats, [
-      statTile('Income', inr(s.income), true),
-      statTile('Expenses', inr(s.totalExpenses)),
-      statTile('Investments', inr(s.totalInvestments)),
-      statTile(s.deficit ? 'Shortfall' : 'Left over', inr(s.surplus), false, s.deficit ? 'bad' : ''),
-      statTile('Savings rate', pct(s.savingsRate, 0)),
-    ]);
-    setChildren(allocBox, s.income > 0 || s.totalExpenses > 0 ? [allocationChart(s)] : [el('p', { class: 'muted' }, 'Enter your income and expenses to see the split.')]);
-    setChildren(catBox, s.categories.length ? [categoryChart(s)] : [el('p', { class: 'muted' }, 'No expenses yet.')]);
-    setChildren(tables, [
-      s.deficit ? el('div', { class: 'notice warn' }, `Expenses and investments exceed income by ${inr(-s.surplus)} a month. Something on the left needs to give, or the investments will be funded by debt.`) : null,
-      !s.deficit && s.surplus >= 500 ? el('div', { class: 'btn-row' }, [
-        el('a', { class: 'btn', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.floor(s.surplus / 500) * 500 }, 'budget') }, `See what a ${inr(Math.floor(s.surplus / 500) * 500)} monthly SIP could grow into`),
-      ]) : null,
-      !s.deficit && s.income > 0 && s.savingsRate < 0.2 ? el('p', { class: 'muted' }, 'A common rule of thumb is to save or invest at least 20% of take-home pay. This is a guideline, not advice.') : null,
-      s.investments.length ? el('div', {}, [
-        el('h3', {}, 'What your investments could grow to'),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, 'Investment'), el('th', {}, 'Monthly'), el('th', {}, 'Rate'), el('th', {}, 'Years'), el('th', {}, 'Invested'), el('th', {}, 'Projected value')])),
-          el('tbody', {}, s.investments.map((i) => el('tr', {}, [
-            el('td', {}, `${i.name || (i.type === 'rd' ? 'Recurring deposit' : 'SIP')} (${i.type === 'rd' ? 'RD' : 'SIP'})`), el('td', {}, inr(i.amount)), el('td', {}, `${(+i.ratePct).toFixed(1)}%`), el('td', {}, i.years), el('td', {}, inr(i.invested)), el('td', { class: 'better' }, inr(i.fv)),
-          ]))),
-        ])),
-        el('p', { class: 'muted', style: 'font-size:.8rem' }, 'SIP values assume a constant return and are illustrative, not guaranteed. RD maturity uses quarterly compounding, before tax on interest.'),
-      ]) : null,
-    ]);
+    const spare = Math.floor(s.surplus / 500) * 500;
+    exportBox.hidden = !(s.income > 0);       // nothing to email until there is an income
+    if (!(s.income > 0)) { setChildren(result, [beginPrompt('Enter your monthly take-home to begin.')]); return; }
+    setChildren(result, resultLayout({
+      key: 'budget',
+      answer: [
+        el('div', { class: 'stats' }, [
+          statTile('Income', inr(s.income), true),
+          statTile('Expenses', inr(s.totalExpenses)),
+          statTile('Investments', inr(s.totalInvestments)),
+          statTile(s.deficit ? 'Shortfall' : 'Left over', inr(s.surplus), false, s.deficit ? 'bad' : ''),
+          statTile('Savings rate', pct(s.savingsRate, 0)),
+        ]),
+        el('p', { class: 'explain' }, s.deficit
+          ? `You are spending and investing ${inr(-s.surplus)} a month more than comes in.`
+          : `${inr(s.surplus)} a month is left over after expenses and investments: a savings rate of ${pct(s.savingsRate, 0)}.`),
+      ],
+      why: [
+        el('div', { class: 'viz-title' }, 'Where your income goes'),
+        el('div', { class: 'chart alloc-chart' }, [allocationChart(s)]),
+        s.deficit ? el('div', { class: 'notice warn' }, `Expenses and investments exceed income by ${inr(-s.surplus)} a month. Something on the left needs to give, or the investments will be funded by debt.`) : null,
+        !s.deficit && s.savingsRate < 0.2 ? el('p', { class: 'muted small' }, 'A common rule of thumb is to save or invest at least 20% of take-home pay. This is a guideline, not advice.') : null,
+      ],
+      next: [
+        !s.deficit && spare >= 500 ? { label: `Put ${inr(spare)} a month to work`, note: 'What it grows into as a SIP', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: spare }, 'budget'), primary: true } : null,
+        s.deficit ? { label: 'Which loan to clear first', note: 'If debt is where the gap goes, the order matters', href: '/calculators/debt', primary: true } : null,
+        { label: 'Where should it go?', note: 'PPF, FD, funds and NPS compared after tax', href: '/calculators/compare' },
+        { label: 'Give it a goal', note: 'A child’s education, a house: the SIP that gets there', href: '/calculators/goal' },
+      ],
+      details: [
+        el('div', { class: 'viz-title' }, 'Expenses by category'),
+        el('div', { class: 'chart cat-chart' }, s.categories.length ? [categoryChart(s)] : [el('p', { class: 'muted' }, 'No expenses yet.')]),
+        s.investments.length ? el('div', {}, [
+          el('h3', {}, 'What your investments could grow to'),
+          el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+            el('thead', {}, el('tr', {}, [el('th', {}, 'Investment'), el('th', {}, 'Monthly'), el('th', {}, 'Rate'), el('th', {}, 'Years'), el('th', {}, 'Invested'), el('th', {}, 'Projected value')])),
+            el('tbody', {}, s.investments.map((i) => el('tr', {}, [
+              el('td', {}, `${i.name || (i.type === 'rd' ? 'Recurring deposit' : 'SIP')} (${i.type === 'rd' ? 'RD' : 'SIP'})`), el('td', {}, inr(i.amount)), el('td', {}, `${(+i.ratePct).toFixed(1)}%`), el('td', {}, String(i.years)), el('td', {}, inr(i.invested)), el('td', {}, inr(i.fv)),
+            ]))),
+          ])),
+          el('p', { class: 'muted small' }, 'SIP values assume a constant return and are illustrative, not guaranteed. RD maturity uses quarterly compounding, before tax on interest.'),
+        ]) : null,
+      ],
+      detailsLabel: 'Show expenses by category and what the investments grow to',
+    }));
   }
   function save() {
     clearBlankAfterReset('budget');

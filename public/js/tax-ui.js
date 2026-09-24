@@ -3,6 +3,7 @@ import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './u
 import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
 import { hasBusiness, businessIncome } from './tax-engine.js';
 import { attachSlider, pctToggle, enhanceMoneyInputs } from './amount-input.js';
+import { rememberFold } from './result-layout.js';
 import { emailWorkbookCard } from './email-card.js';
 import { lineChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
@@ -46,6 +47,7 @@ export function initTax({ rates, onboarding }) {
   form.addEventListener('change', run);
   initTopics(form, run);
   initIncomeType(form, run);
+  rememberFold(document.getElementById('tax-working-fold'), 'tax');
   document.getElementById('tax-reset').addEventListener('click', () => {
     form.reset();
     try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(TOPICS_KEY); } catch {}
@@ -273,6 +275,7 @@ function render(inputs, rates, flags) {
   renderHeadline(result, inputs, rates, flags);
   renderWarnings(result);
   renderBusiness(inputs, result, rates, flags);
+  renderNext(inputs, result);
   renderInsights(inputs, result, rates, flags);
   renderCharts(inputs, result, rates, flags);
   renderTable(result);
@@ -566,6 +569,34 @@ function renderHeadline(r, inputs, rates, flags) {
       shareCard(r, FY_SHORT[lastInputs?.fy] || 'FY 2026-27'),
     ]));
   }
+}
+
+/**
+ * What to do next, and the parts that only make sense once there is an answer: the what-if card sits in
+ * the "What to do next" section, the working folds away, and the email form waits until there is
+ * something to send.
+ */
+function renderNext(inputs, cmp) {
+  const has = !(cmp.old.tax.totalIncome === 0 && cmp.new.tax.totalIncome === 0);
+  const next = document.getElementById('tax-next');
+  const details = document.getElementById('tax-working-fold');
+  const email = document.getElementById('tax-email');
+  if (next) next.hidden = !has;
+  if (details) details.hidden = !has;
+  if (email) email.hidden = !has;
+  const box = document.getElementById('tax-next-actions');
+  if (!box || !has) return;
+  const biz = hasBusiness(inputs);
+  const better = cmp.better === 'old' ? 'old' : 'new';
+  const action = (label, note, href) => el('a', { class: 'r-action', href }, [el('strong', {}, label), el('span', {}, note)]);
+  setChildren(box, [
+    biz ? action('Plan the advance tax', 'The instalments and dates are in the card above', '#tax-business')
+      : action('See your monthly take-home', `What reaches your bank each month under the ${better} regime`, '/calculators/salary'),
+    action('Put the saving to work', 'PPF, FD, funds and NPS compared after tax, at your slab', '/calculators/compare'),
+    (inputs.capitalGains && Object.values(inputs.capitalGains).some((v) => +v > 0))
+      ? action('Work out the capital gains properly', 'From a sale, or from your broker’s Tax P&L file', '/calculators/capital-gains')
+      : action('Sold shares or property this year?', 'The gain, the exemptions, and what reinvesting saves', '/calculators/capital-gains'),
+  ]);
 }
 
 function renderWarnings(r) {

@@ -4,6 +4,7 @@
  */
 import { inr, pct, el, setChildren, disclaimer, animateNumber } from './util.js';
 import { attachSlider, pctToggle } from './amount-input.js';
+import { resultLayout } from './result-layout.js';
 import { sipFV } from './calculators.js';
 import { lineChart } from './charts.js';
 import { getProfile } from './profile-store.js';
@@ -94,19 +95,27 @@ function projector(nps) {
     const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'nps:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };
     const ages = Array.from({ length: r.years + 1 }, (_, k) => k);
     const growth = ages.map((k) => sipFV(r.monthly, +st.returnPct || 0, k, +st.stepUpPct || 0));
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
+    setChildren(out, resultLayout({
+      key: 'nps',
+      answer: [
+        el('div', { class: 'stats' }, [
         stat('Corpus at ' + st.retireAge, inr(r.corpus), 'hi'),
         stat('You will have put in', inr(r.invested)),
         stat('Lump sum in hand', inr(r.lump)),
         stat('Monthly pension', inr(r.pension)),
       ]),
-      r.years > 0 ? el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
+        el('p', { class: 'explain' }, `Contributing ${inr(r.monthly)} a month for ${r.years} years, rising ${st.stepUpPct}% a year and earning ${st.returnPct}%, builds about ${inr(r.corpus)}. Using ${pct(r.annuityShare, 0)} of it to buy an annuity at ${st.annuityRatePct}% gives roughly ${inr(r.pension)} a month for life, and you take ${inr(r.lump)} as a lump sum${r.lumpTaxable > 0 ? `, of which ${inr(r.lumpTaxable)} is taxable at your slab because only 60% of the corpus is exempt` : ', all of it tax-free'}.`),
+      ],
+      next: [
+        { label: 'What NPS saves you in tax', note: 'Employer NPS is the one deduction the new regime still allows', href: '/tax', primary: true },
+        { label: 'Where NPS fits in retirement', note: 'Will the money last, and what to do at 60', href: '/calculators/retirement' },
+      ],
+      details: [
+        r.years > 0 ? el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
         el('div', { class: 'viz-title' }, 'Corpus by age'),
         lineChart({ series: [{ name: 'Contributed', color: '#8a948e', dash: true, points: ages.map((k, i) => [+st.age + k, growth[i].invested]) }, { name: 'Corpus', color: '#1d6b3d', area: true, points: ages.map((k, i) => [+st.age + k, growth[i].fv]) }], xFormat: (x) => `Age ${Math.round(x)}`, xTipFormat: (x) => `At age ${Math.round(x)}`, height: 230, ariaLabel: 'NPS corpus by age' }),
       ]) : null,
-      el('p', { class: 'explain' }, `Contributing ${inr(r.monthly)} a month for ${r.years} years, rising ${st.stepUpPct}% a year and earning ${st.returnPct}%, builds about ${inr(r.corpus)}. Using ${pct(r.annuityShare, 0)} of it to buy an annuity at ${st.annuityRatePct}% gives roughly ${inr(r.pension)} a month for life, and you take ${inr(r.lump)} as a lump sum${r.lumpTaxable > 0 ? `, of which ${inr(r.lumpTaxable)} is taxable at your slab because only 60% of the corpus is exempt` : ', all of it tax-free'}.`),
-      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'At retirement'), el('th', {}, 'Amount'), el('th', {}, 'Tax')])),
         el('tbody', {}, [
           el('tr', {}, [el('td', {}, 'Total corpus'), el('td', {}, inr(r.corpus)), el('td', {}, '')]),
@@ -116,8 +125,10 @@ function projector(nps) {
           el('tr', { class: 'total' }, [el('td', {}, 'Monthly pension from the annuity'), el('td', {}, inr(r.pension)), el('td', {}, 'Taxable as income')]),
         ]),
       ])),
-      el('p', { class: 'muted small' }, 'Returns are assumed constant and are illustrative only; NPS is market-linked. Annuity rates depend on the insurer, the option chosen (with or without return of purchase price, joint life) and interest rates at the time. The pension is not inflation-linked unless you buy an increasing annuity, which starts lower.'),
-    ]);
+        el('p', { class: 'muted small' }, 'Returns are assumed constant and are illustrative only; NPS is market-linked. Annuity rates depend on the insurer, the option chosen (with or without return of purchase price, joint life) and interest rates at the time. The pension is not inflation-linked unless you buy an increasing annuity, which starts lower.'),
+      ],
+      detailsLabel: 'Show the growth chart and the tax at exit',
+    }));
   }
   render();
   return el('div', {}, [el('h2', {}, 'What could your NPS grow into?'), el('div', { class: 'calc' }, [inputs, out])]);

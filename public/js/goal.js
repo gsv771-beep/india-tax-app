@@ -11,6 +11,7 @@ import { isEmptyProfile } from '../engine/profile.js';
 import { baseRates, loadMixRates } from './mix-rates.js';
 import { mixControl } from './mix-control.js';
 import { calcExportCard } from './calc-export-card.js';
+import { resultLayout } from './result-layout.js';
 
 const STORE = 'taxcompass.goal.v1';
 const SOURCE = 'calc:goal';
@@ -97,40 +98,51 @@ export function renderGoal({ schemes }) {
     last = { st: { ...st }, r, rates: R, perChild, typeLabel: t.label };
     if (dirty) writeGoal(r);
     const stat = (k, v, cls = '') => el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
-        stat(t.id === 'fixed' ? 'You need' : `It will cost in ${r.years} years`, inr(r.costThen)),
-        stat('SIP a month', inr(r.sip), 'hi'),
-        stat('Or invest once, today', inr(r.lump)),
-        r.equityPct > 0 ? stat('SIP if markets disappoint', inr(r.sipIfBad)) : stat(`Total you put in over ${r.years} years`, inr(r.invested)),
-      ]),
-      el('p', { class: 'explain' }, t.id === 'fixed'
-        ? `${inr(r.costThen)} in ${r.years} years, at about ${r.returnPct}% a year from a ${r.equityPct}% equity mix, takes ${inr(r.sip)} a month or ${inr(r.lump)} today. If equity has a stretch like its worst 5 years, the SIP would have to be ${inr(r.sipIfBad)}.`
-        : `${inr(r.costToday)} today becomes ${inr(r.costThen)} in ${r.years} years at ${r.inflationPct}% a year. At about ${r.returnPct}% from a ${r.equityPct}% equity mix that takes ${inr(r.sip)} a month, or ${inr(r.lump)} put away today. If equity has a stretch like its worst 5 years, the SIP would have to be ${inr(r.sipIfBad)}: plan nearer that if the date cannot move.`),
-      r.capped ? el('div', { class: 'notice' }, `Equity is capped at ${r.cap}% here: money needed within ${r.years} years cannot wait out a bad market.`) : null,
-      perChild ? el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
-        el('div', { class: 'viz-title' }, `Each child in your profile, same ${t.label.toLowerCase().replace("child's ", '')} at today’s cost`),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, 'Child'), el('th', {}, 'Years to go'), el('th', {}, 'Cost then'), el('th', {}, 'SIP a month')])),
-          el('tbody', {}, [...perChild.map((c) => el('tr', {}, [el('td', {}, `Age ${c.age}`), el('td', {}, String(c.plan.years)), el('td', {}, inr(c.plan.costThen)), el('td', {}, inr(c.plan.sip))])),
-            el('tr', { class: 'total' }, [el('td', {}, 'Together'), el('td', {}, ''), el('td', {}, inr(perChild.reduce((s, c) => s + c.plan.costThen, 0))), el('td', {}, inr(perChild.reduce((s, c) => s + c.plan.sip, 0)))])]),
-        ])),
-      ]) : null,
-      el('div', { class: 'card next-steps' }, [
-        el('h3', { style: 'margin-top:0' }, `Where the ${inr(r.sip)} goes`),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, 'Where'), el('th', {}, 'A month'), el('th', {}, 'Why')])),
-          el('tbody', {}, r.where.lines.map((l) => el('tr', {}, [el('td', {}, l.label), el('td', {}, inr(l.amount)), el('td', { class: 'small' }, l.why)]))),
-        ])),
-        el('p', { class: 'muted small' }, r.where.rule),
-      ]),
-      el('p', { class: 'muted small' }, 'A fair idea, not a plan. Returns are what these categories have done, not a promise; costs rise unevenly; and the SIP assumes you never miss a month. Revisit it yearly, and whenever the child changes their mind about what to study.'),
-      el('div', { class: 'btn-row' }, [
-        el('a', { class: 'btn secondary', href: '/calculators/compare' }, 'Compare where the safe part earns most'),
-        st.type === 'house' ? el('a', { class: 'btn secondary', href: '/calculators/home' }, 'What the house will really cost') : null,
-      ]),
-      disclaimer('invest'),
+    const whereCard = el('div', { class: 'card next-steps' }, [
+      el('h3', { style: 'margin-top:0' }, `Where the ${inr(r.sip)} goes`),
+      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'Where'), el('th', {}, 'A month'), el('th', {}, 'Why')])),
+        el('tbody', {}, r.where.lines.map((l) => el('tr', {}, [el('td', {}, l.label), el('td', {}, inr(l.amount)), el('td', { class: 'small' }, l.why)]))),
+      ])),
+      el('p', { class: 'muted small' }, r.where.rule),
     ]);
+    setChildren(out, resultLayout({
+      key: 'goal',
+      answer: [
+        el('div', { class: 'stats' }, [
+          stat(t.id === 'fixed' ? 'You need' : `It will cost in ${r.years} years`, inr(r.costThen)),
+          stat('SIP a month', inr(r.sip), 'hi'),
+          stat('Or invest once, today', inr(r.lump)),
+          r.equityPct > 0 ? stat('SIP if markets disappoint', inr(r.sipIfBad)) : stat(`Total you put in over ${r.years} years`, inr(r.invested)),
+        ]),
+        el('p', { class: 'explain' }, `Put away ${inr(r.sip)} a month, or ${inr(r.lump)} once today, to have ${inr(r.costThen)} in ${r.years} years.`),
+      ],
+      why: [
+        el('p', {}, t.id === 'fixed'
+          ? `At about ${r.returnPct}% a year from a ${r.equityPct}% equity mix. If equity has a stretch like its worst 5 years, the SIP would have to be ${inr(r.sipIfBad)}.`
+          : `${inr(r.costToday)} today becomes ${inr(r.costThen)} at ${r.inflationPct}% a year of price rises. The SIP assumes about ${r.returnPct}% a year from a ${r.equityPct}% equity mix; if equity has a stretch like its worst 5 years it would have to be ${inr(r.sipIfBad)}, so plan nearer that if the date cannot move.`),
+        r.capped ? el('div', { class: 'notice' }, `Equity is capped at ${r.cap}% here: money needed within ${r.years} years cannot wait out a bad market.`) : null,
+      ],
+      next: [
+        whereCard,
+        { label: 'Where the safe part earns most', note: 'PPF, FD, debt funds and more, after tax', href: '/calculators/compare' },
+        st.type === 'house' ? { label: 'What the house will really cost', note: 'Stamp duty, GST and registration on top of the price', href: '/calculators/home' } : null,
+        { label: 'And retirement?', note: 'The goal that has no fixed date and no second chance', href: '/calculators/retirement' },
+      ],
+      details: [
+        perChild ? el('div', {}, [
+          el('div', { class: 'viz-title' }, `Each child in your profile, same ${t.label.toLowerCase().replace("child's ", '')} at today’s cost`),
+          el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+            el('thead', {}, el('tr', {}, [el('th', {}, 'Child'), el('th', {}, 'Years to go'), el('th', {}, 'Cost then'), el('th', {}, 'SIP a month')])),
+            el('tbody', {}, [...perChild.map((c) => el('tr', {}, [el('td', {}, `Age ${c.age}`), el('td', {}, String(c.plan.years)), el('td', {}, inr(c.plan.costThen)), el('td', {}, inr(c.plan.sip))])),
+              el('tr', { class: 'total' }, [el('td', {}, 'Together'), el('td', {}, ''), el('td', {}, inr(perChild.reduce((s, c) => s + c.plan.costThen, 0))), el('td', {}, inr(perChild.reduce((s, c) => s + c.plan.sip, 0)))])]),
+          ])),
+        ]) : null,
+        el('p', { class: 'muted small' }, 'A fair idea, not a plan. Returns are what these categories have done, not a promise; costs rise unevenly; and the SIP assumes you never miss a month. Revisit it yearly, and whenever the child changes their mind about what to study.'),
+      ],
+      detailsLabel: perChild ? 'Show each child, and the assumptions' : 'Show the assumptions',
+      foot: [disclaimer('invest')],
+    }));
   }
   syncType();
   paint();

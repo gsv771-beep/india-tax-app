@@ -12,6 +12,7 @@ import { mixReturn } from '../engine/mix.js';
 import { baseRates, loadMixRates } from './mix-rates.js';
 import { mixControl } from './mix-control.js';
 import { calcExportCard } from './calc-export-card.js';
+import { resultLayout } from './result-layout.js';
 
 const STORE = 'taxcompass.retirement.v1';
 const SOURCE = 'calc:retirement';
@@ -96,45 +97,58 @@ export function renderRetirement({ schemes }) {
       vlines: [{ x: r.retireAt, label: 'Retire' }],
       xFormat: (x) => `Age ${Math.round(x)}`, xTipFormat: (x) => `At ${Math.round(x)}`, height: 240, ariaLabel: 'Savings by age, before and after retirement',
     });
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
-        stat(ok ? 'Your money lasts' : 'Your money runs out at', ok ? `past ${r.planUntil}` : `age ${r.shortfallAt}`, ok ? 'hi' : 'bad'),
-        stat(`Saved by ${r.retireAt}`, inr(r.corpusAtRetirement)),
-        stat(`Needed at ${r.retireAt}`, inr(r.corpusNeeded)),
-        stat(ok ? `Left over at ${r.planUntil}` : 'Extra to save a month', ok ? inr(r.surplusAtEnd) : inr(r.gapSip), ok ? '' : 'hi'),
-      ]),
-      el('p', { class: 'explain' }, ok
-        ? `On these numbers you reach ${r.retireAt} with about ${inr(r.corpusAtRetirement)}, spend ${inr(r.firstYearSpend / 12)} a month in the first year rising with prices, and still have ${inr(r.surplusAtEnd)} at ${r.planUntil}. Comfortable, with room for prices or health to surprise you.`
-        : `On these numbers you reach ${r.retireAt} with about ${inr(r.corpusAtRetirement)} and need about ${inr(r.corpusNeeded)} to spend ${inr(r.firstYearSpend / 12)} a month rising with prices until ${r.planUntil}. The money runs out around ${r.shortfallAt}. Putting away ${inr(r.gapSip)} more a month from now closes the gap.`),
-      el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [el('div', { class: 'viz-title' }, 'Savings by age'), chart]),
-      el('ul', { class: 'levers' }, [
-        el('li', {}, `Retire at ${+st.retireAt + 2} instead: the money ${later.gap <= 0 ? `lasts past ${later.planUntil} with ${inr(later.surplusAtEnd)} left` : `runs out at ${later.shortfallAt}; the gap falls to ${inr(later.gapSip)} a month`}.`),
-        el('li', {}, `Prices rise ${+st.inflationPct + 1}% a year instead of ${st.inflationPct}%: ${hotter.gap <= 0 ? `still fine, ${inr(hotter.surplusAtEnd)} left at ${hotter.planUntil}` : `money runs out at ${hotter.shortfallAt}; gap ${inr(hotter.gapSip)} a month`}. Inflation moves this answer more than any fund choice.`),
-        st.equityBeforePct > 0 ? el('li', {}, `Equity has a stretch like its worst 5 years (${g.before.bad.toFixed(1)}% on your mix instead of ${g.before.typical.toFixed(1)}%): ${rough.gap <= 0 ? `still fine, ${inr(rough.surplusAtEnd)} left at ${rough.planUntil}` : `money runs out at ${rough.shortfallAt}; gap ${inr(rough.gapSip)} a month`}.`) : null,
-      ]),
-      el('div', { class: 'card next-steps' }, [
-        el('h3', { style: 'margin-top:0' }, `How to build it: ${inr(build.reduce((s, b) => s + b.amount, 0))} a month${r.gap > 0 ? ` (what you save now plus the ${inr(r.gapSip)} extra)` : ''}`),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, 'Where'), el('th', {}, 'A month'), el('th', {}, 'Why')])),
-          el('tbody', {}, build.map((b) => el('tr', {}, [el('td', {}, b.label), el('td', {}, inr(b.amount)), el('td', { class: 'small' }, b.why)]))),
-        ])),
-        el('p', { class: 'muted small' }, `The equity share is the ${st.equityBeforePct}% you chose above (a common rule of thumb is 110 minus your age); the order (EPF, NPS, equity, PPF) is what the tax rules reward.`),
-      ]),
-      el('div', { class: 'card next-steps' }, [
-        el('h3', { style: 'margin-top:0' }, r.gap > 0 ? `At ${r.retireAt}, once you have closed the gap and reached ${inr(r.corpusNeeded)}: three buckets` : `At ${r.retireAt}, with ${inr(r.corpusAtRetirement)}: three buckets`),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, 'Bucket'), el('th', {}, 'Amount'), el('th', {}, 'Held in'), el('th', {}, 'Why')])),
-          el('tbody', {}, draw.buckets.map((b) => el('tr', {}, [el('td', {}, b.label), el('td', {}, inr(b.amount)), el('td', { class: 'small' }, b.where), el('td', { class: 'small' }, b.why)]))),
-        ])),
-        el('ul', { class: 'levers' }, draw.rules.map((t) => el('li', {}, t))),
-      ]),
-      el('p', { class: 'muted small' }, `A fair idea, not a plan. Your ${st.equityBeforePct}% equity mix is taken to grow at about ${g.before.typical.toFixed(1)}% a year until you retire, and the ${st.equityAfterPct}% mix at ${g.after.typical.toFixed(1)}% after; prices rise steadily; no big one-off costs. Tax at withdrawal is not modelled: EPF and PPF are tax-free, equity gains pay 12.5%, so the picture is a little rosy for equity-heavy savers. Check it once a year.`),
-      el('div', { class: 'btn-row' }, [
-        r.gap > 0 ? el('a', { class: 'btn', href: '/calculators/compare' }, 'Where should the extra savings go?') : null,
-        el('a', { class: 'btn secondary', href: '/nps' }, 'How NPS fits in'),
-      ]),
-      disclaimer('invest'),
+    const buildCard = el('div', { class: 'card next-steps' }, [
+      el('h3', { style: 'margin-top:0' }, `How to build it: ${inr(build.reduce((s, b) => s + b.amount, 0))} a month${r.gap > 0 ? ` (what you save now plus the ${inr(r.gapSip)} extra)` : ''}`),
+      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'Where'), el('th', {}, 'A month'), el('th', {}, 'Why')])),
+        el('tbody', {}, build.map((b) => el('tr', {}, [el('td', {}, b.label), el('td', {}, inr(b.amount)), el('td', { class: 'small' }, b.why)]))),
+      ])),
+      el('p', { class: 'muted small' }, `The equity share is the ${st.equityBeforePct}% you chose above (a common rule of thumb is 110 minus your age); the order (EPF, NPS, equity, PPF) is what the tax rules reward.`),
     ]);
+    const bucketsCard = el('div', { class: 'card next-steps' }, [
+      el('h3', { style: 'margin-top:0' }, r.gap > 0 ? `At ${r.retireAt}, once you have closed the gap and reached ${inr(r.corpusNeeded)}: three buckets` : `At ${r.retireAt}, with ${inr(r.corpusAtRetirement)}: three buckets`),
+      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'Bucket'), el('th', {}, 'Amount'), el('th', {}, 'Held in'), el('th', {}, 'Why')])),
+        el('tbody', {}, draw.buckets.map((b) => el('tr', {}, [el('td', {}, b.label), el('td', {}, inr(b.amount)), el('td', { class: 'small' }, b.where), el('td', { class: 'small' }, b.why)]))),
+      ])),
+      el('ul', { class: 'levers' }, draw.rules.map((t) => el('li', {}, t))),
+    ]);
+    setChildren(out, resultLayout({
+      key: 'retirement',
+      answer: [
+        el('div', { class: 'stats' }, [
+          stat(ok ? 'Your money lasts' : 'Your money runs out at', ok ? `past ${r.planUntil}` : `age ${r.shortfallAt}`, ok ? 'hi' : 'bad'),
+          stat(`Saved by ${r.retireAt}`, inr(r.corpusAtRetirement)),
+          stat(`Needed at ${r.retireAt}`, inr(r.corpusNeeded)),
+          stat(ok ? `Left over at ${r.planUntil}` : 'Extra to save a month', ok ? inr(r.surplusAtEnd) : inr(r.gapSip), ok ? '' : 'hi'),
+        ]),
+        el('p', { class: 'explain' }, ok
+          ? `Yes: on these numbers the money lasts past ${r.planUntil}, with ${inr(r.surplusAtEnd)} to spare.`
+          : `Not yet: the money runs out around ${r.shortfallAt}. Putting away ${inr(r.gapSip)} more a month from now closes the gap.`),
+      ],
+      why: [
+        el('p', {}, ok
+          ? `You reach ${r.retireAt} with about ${inr(r.corpusAtRetirement)}, spend ${inr(r.firstYearSpend / 12)} a month in the first year rising with prices, and still have money left at ${r.planUntil}: room for prices or health to surprise you.`
+          : `You reach ${r.retireAt} with about ${inr(r.corpusAtRetirement)}, but spending ${inr(r.firstYearSpend / 12)} a month rising with prices until ${r.planUntil} needs about ${inr(r.corpusNeeded)}.`),
+        el('ul', { class: 'levers' }, [
+          el('li', {}, `Retire at ${+st.retireAt + 2} instead: the money ${later.gap <= 0 ? `lasts past ${later.planUntil} with ${inr(later.surplusAtEnd)} left` : `runs out at ${later.shortfallAt}; the gap falls to ${inr(later.gapSip)} a month`}.`),
+          el('li', {}, `Prices rise ${+st.inflationPct + 1}% a year instead of ${st.inflationPct}%: ${hotter.gap <= 0 ? `still fine, ${inr(hotter.surplusAtEnd)} left at ${hotter.planUntil}` : `money runs out at ${hotter.shortfallAt}; gap ${inr(hotter.gapSip)} a month`}. Inflation moves this answer more than any fund choice.`),
+          st.equityBeforePct > 0 ? el('li', {}, `Equity has a stretch like its worst 5 years (${g.before.bad.toFixed(1)}% on your mix instead of ${g.before.typical.toFixed(1)}%): ${rough.gap <= 0 ? `still fine, ${inr(rough.surplusAtEnd)} left at ${rough.planUntil}` : `money runs out at ${rough.shortfallAt}; gap ${inr(rough.gapSip)} a month`}.`) : null,
+        ]),
+      ],
+      next: [
+        buildCard,
+        bucketsCard,
+        r.gap > 0 ? { label: 'Where should the extra savings go?', note: 'PPF, NPS, funds and more, after tax', href: '/calculators/compare', primary: true } : null,
+        { label: 'How NPS fits in', note: 'The pension, the lump sum at 60, and its tax', href: '/nps' },
+      ],
+      details: [
+        el('div', { class: 'viz-title' }, 'Savings by age'), chart,
+        el('p', { class: 'muted small' }, `A fair idea, not a plan. Your ${st.equityBeforePct}% equity mix is taken to grow at about ${g.before.typical.toFixed(1)}% a year until you retire, and the ${st.equityAfterPct}% mix at ${g.after.typical.toFixed(1)}% after; prices rise steadily; no big one-off costs. Tax at withdrawal is not modelled: EPF and PPF are tax-free, equity gains pay 12.5%, so the picture is a little rosy for equity-heavy savers. Check it once a year.`),
+      ],
+      detailsLabel: 'Show the savings chart and the assumptions',
+      foot: [disclaimer('invest')],
+    }));
   }
   paint();
   loadMixRates(schemes).then((r) => { rates = r; eqField.querySelector('input').placeholder = String(r.equity); eqField.querySelector('small').textContent = r.sources.equity; paint(); });

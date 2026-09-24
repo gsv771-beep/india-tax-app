@@ -13,6 +13,7 @@ import { getProfile, updateProfile } from './profile-store.js';
 import { isEmptyProfile } from '../engine/profile.js';
 import { setHandoff } from './handoff.js';
 import { calcExportCard } from './calc-export-card.js';
+import { resultLayout } from './result-layout.js';
 import { attachSlider } from './amount-input.js';
 
 const STORE = 'taxcompass.home.v1';
@@ -230,16 +231,30 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     const link = (u) => el('a', { href: u, target: '_blank', rel: 'noopener' }, new URL(u).hostname);
     const links = (arr) => arr.flatMap((u, k) => [k ? ', ' : '', link(u)]);
 
-    setChildren(out, [
-      // ---- Step 1: what it costs ----
+    setChildren(out, resultLayout({
+      key: 'home',
+      answer: [
+        // ---- Step 1: what it costs ----
       el('div', { class: 'stats' }, [
         stat('All-in cost', inr(c.total), 'hi'),
         stat('Not on the sticker', inr(c.hiddenTotal) + ` (${pct(c.hiddenPct, 1)})`),
         stat('Paid to the state', inr(c.statutory)),
         st.funding ? stat('Your money in total', inr(cashNeeded), cashNeeded > liquid && liquid > 0 ? 'bad' : '') : stat('Fees and builder charges', inr(c.customary + c.builder + c.optional)),
       ]),
-      el('p', { class: 'explain' }, `A ${inr(c.price)} ${STATUS_LABELS[st.status].split(',')[0].toLowerCase()} home in ${c.city} costs ${inr(c.total)} to actually own: ${inr(c.hiddenTotal)}, or ${pct(c.hiddenPct, 1)}, on top of the price. ${inr(c.statutory)} of that goes to the state${st.status === 'under_construction' ? ', on registration and as GST with each builder demand' : ' on registration'}.${st.funding ? ` With a ${inr(loan)} loan you bring ${inr(cashNeeded)} yourself: the ${inr(downPayment)} down payment plus every charge, none of which a bank finances.${liquid > 0 ? ` Your profile shows ${inr(liquid)} in fixed deposits and debt funds${cashNeeded > liquid ? `, ${inr(cashNeeded - liquid)} short of that` : ', which covers it'}.` : ''}` : ''}`),
-      resultFold('cost', 'Where the money goes', `${inr(c.hiddenTotal)} beyond the price`, [
+        el('p', { class: 'explain' }, `A ${inr(c.price)} ${STATUS_LABELS[st.status].split(',')[0].toLowerCase()} home in ${c.city} costs ${inr(c.total)} to actually own: ${inr(c.hiddenTotal)}, or ${pct(c.hiddenPct, 1)}, on top of the price. ${inr(c.statutory)} of that goes to the state${st.status === 'under_construction' ? ', on registration and as GST with each builder demand' : ' on registration'}.${st.funding ? ` With a ${inr(loan)} loan you bring ${inr(cashNeeded)} yourself: the ${inr(downPayment)} down payment plus every charge, none of which a bank finances.${liquid > 0 ? ` Your profile shows ${inr(liquid)} in fixed deposits and debt funds${cashNeeded > liquid ? `, ${inr(cashNeeded - liquid)} short of that` : ', which covers it'}.` : ''}` : ''}`),
+        // ---- Step 2: funding ----
+      st.funding ? el('div', { class: 'stats' }, [
+        stat('Monthly EMI', inr(emi), 'hi'),
+        stat('Loan', inr(loan) + ` (${pct(c.price ? loan / c.price : 0, 0)} of price)`),
+        stat('Cash at booking', inr(plan.cashAtBooking)),
+        stat(plan.constructionMonths > 0 ? `Pre-EMI interest, ${plan.constructionMonths} months` : 'Interest before the first EMI', inr(plan.preEmiTotal)),
+      ]) : null,
+        st.funding ? el('p', { class: 'explain' }, plan.constructionMonths > 0
+        ? `Your ${inr(plan.downPaymentUsed)} goes into the first stages, then the bank releases ${inr(plan.loan)} stage by stage over ${plan.constructionMonths} months. Until the last release you pay only interest on what has been released, ${inr(plan.preEmiTotal)} in all, on top of the ${inr(plan.gstTotal)} of GST that comes with each demand. The full EMI of ${inr(emi)} at ${(+st.ratePct).toFixed(2)}% for ${years} years starts in month ${plan.emiStartMonth}.`
+        : `The whole price changes hands at registration: ${inr(plan.downPaymentUsed)} from you and ${inr(plan.loan)} from the bank, and the EMI of ${inr(emi)} at ${(+st.ratePct).toFixed(2)}% for ${years} years starts the following month.`) : null,
+      ],
+      why: [
+        resultFold('cost', 'Where the money goes', `${inr(c.hiddenTotal)} beyond the price`, [
         hiddenBar,
         el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
           el('thead', {}, el('tr', {}, [el('th', {}, 'Item'), el('th', {}, 'Amount'), el('th', {}, '% of price')])),
@@ -249,27 +264,9 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
         c.warnings.length ? el('div', { class: 'notice warn' }, c.warnings.map((w) => el('div', {}, w))) : null,
         c.notes.length ? el('p', { class: 'muted small' }, c.notes.join(' ')) : null,
       ]),
-
-      // ---- The invitation to step 2 ----
-      !st.funding ? el('div', { class: 'card next-steps' }, [
-        el('h3', { style: 'margin-top:0' }, 'Want to work out how you would fund it?'),
-        el('p', { class: 'muted small' }, 'Say how much you would borrow and put down, and see the EMI, what you pay at each stage of construction, the interest before possession, and the cash you need in all.'),
-        el('div', { class: 'btn-row' }, [el('button', { type: 'button', class: 'btn', onclick: startFunding }, 'Plan the funding')]),
-      ]) : null,
-
-      // ---- Step 2: funding ----
-      st.funding ? el('div', { class: 'stats' }, [
-        stat('Monthly EMI', inr(emi), 'hi'),
-        stat('Loan', inr(loan) + ` (${pct(c.price ? loan / c.price : 0, 0)} of price)`),
-        stat('Cash at booking', inr(plan.cashAtBooking)),
-        stat(plan.constructionMonths > 0 ? `Pre-EMI interest, ${plan.constructionMonths} months` : 'Interest before the first EMI', inr(plan.preEmiTotal)),
-      ]) : null,
-      st.funding ? el('p', { class: 'explain' }, plan.constructionMonths > 0
-        ? `Your ${inr(plan.downPaymentUsed)} goes into the first stages, then the bank releases ${inr(plan.loan)} stage by stage over ${plan.constructionMonths} months. Until the last release you pay only interest on what has been released, ${inr(plan.preEmiTotal)} in all, on top of the ${inr(plan.gstTotal)} of GST that comes with each demand. The full EMI of ${inr(emi)} at ${(+st.ratePct).toFixed(2)}% for ${years} years starts in month ${plan.emiStartMonth}.`
-        : `The whole price changes hands at registration: ${inr(plan.downPaymentUsed)} from you and ${inr(plan.loan)} from the bank, and the EMI of ${inr(emi)} at ${(+st.ratePct).toFixed(2)}% for ${years} years starts the following month.`) : null,
-      st.funding && ltvHigh ? el('div', { class: 'notice warn' }, `Lenders can finance at most 90% of the price for loans up to ₹30 lakh, 80% up to ₹75 lakh and 75% above that (RBI), and never the charges. A ${inr(loan)} loan on a ${inr(c.price)} price is above that; expect to bring a bigger down payment.`) : null,
-      st.funding && plan.warnings.length ? el('div', { class: 'notice warn' }, plan.warnings.map((w) => el('div', {}, w))) : null,
-      st.funding ? resultFold('plan', 'When the money goes out', `${inr(plan.cashAtBooking)} at ${plan.constructionMonths > 0 ? 'booking' : 'registration'} · ${inr(plan.youByPossession)} from you by possession`, [
+        st.funding && ltvHigh ? el('div', { class: 'notice warn' }, `Lenders can finance at most 90% of the price for loans up to ₹30 lakh, 80% up to ₹75 lakh and 75% above that (RBI), and never the charges. A ${inr(loan)} loan on a ${inr(c.price)} price is above that; expect to bring a bigger down payment.`) : null,
+        st.funding && plan.warnings.length ? el('div', { class: 'notice warn' }, plan.warnings.map((w) => el('div', {}, w))) : null,
+        st.funding ? resultFold('plan', 'When the money goes out', `${inr(plan.cashAtBooking)} at ${plan.constructionMonths > 0 ? 'booking' : 'registration'} · ${inr(plan.youByPossession)} from you by possession`, [
         el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
           el('thead', {}, el('tr', {}, [el('th', {}, 'Month'), el('th', {}, 'Stage'), el('th', {}, 'Builder demands'), el('th', {}, 'From you'), el('th', {}, 'Bank releases'), el('th', {}, 'Loan released so far'), el('th', {}, 'Pre-EMI until next stage')])),
           el('tbody', {}, plan.rows.map((r) => el('tr', {}, [
@@ -279,13 +276,22 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
         ])),
         el('p', { class: 'muted small' }, 'Your own money is used before any loan is released, which is how lenders disburse. Pre-EMI interest is charged monthly on the released amount at the loan rate. Interest paid before possession is deductible in five equal yearly instalments starting the year you get possession, within the ₹2,00,000 self-occupied cap and only in the old regime. Some lenders let you start a full EMI on the released amount instead of pre-EMI; that pays down principal sooner.'),
       ]) : null,
-
-      el('div', { class: 'btn-row' }, [
+      ],
+      next: [
+        // ---- The invitation to step 2 ----
+      !st.funding ? el('div', { class: 'card next-steps' }, [
+        el('h3', { style: 'margin-top:0' }, 'Want to work out how you would fund it?'),
+        el('p', { class: 'muted small' }, 'Say how much you would borrow and put down, and see the EMI, what you pay at each stage of construction, the interest before possession, and the cash you need in all.'),
+        el('div', { class: 'btn-row' }, [el('button', { type: 'button', class: 'btn', onclick: startFunding }, 'Plan the funding')]),
+      ]) : null,
+        el('div', { class: 'btn-row' }, [
         st.funding && loan > 0 ? el('a', { class: 'btn', href: '/calculators/emi', onclick: () => setHandoff('emi', { principal: Math.round(loan), ratePct: +st.ratePct, years, price: Math.round(c.price), downPayment: Math.round(downPayment), constructionMonths: plan.constructionMonths, note: `the ${inr(loan)} loan from the home-buying tool` }, 'home') }, 'Plan this loan’s EMI and prepayments') : null,
         cashNeeded > 0 ? el('button', { type: 'button', class: 'btn secondary', onclick: () => { updateProfile((d) => { const g = d.horizon.goals.find((x) => x.name === 'Home down payment') || (d.horizon.goals.push({ name: 'Home down payment', years: 3, target: 0 }), d.horizon.goals.at(-1)); g.target = Math.round(cashNeeded); return d; }, SOURCE); } }, `Save ${inr(cashNeeded)} as a goal in my profile`) : null,
         st.funding ? el('button', { type: 'button', class: 'btn secondary', onclick: () => { st.funding = false; save(); syncVisibility(); render(); } }, 'Hide the funding plan') : null,
       ]),
-      el('details', { class: 'sources' }, [
+      ],
+      details: [
+        el('details', { class: 'sources' }, [
         el('summary', {}, 'Sources and dates for these rates'),
         el('ul', {}, [
           el('li', {}, [`${c.city} stamp duty and registration (as of ${cityData.stamp_duty.as_of}, ${cityData.stamp_duty.confidence}): `, ...links(cityData.stamp_duty.sources)]),
@@ -293,8 +299,12 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
           el('li', {}, ['RBI loan-to-value bands: ', ...links(policy._meta.sources.ltv)]),
         ]),
       ]),
-      disclaimer('loan'),
-    ]);
+      ],
+      foot: [
+        disclaimer('loan'),
+      ],
+      detailsLabel: 'Show the sources and dates for these rates',
+    }));
   }
 
   paint();

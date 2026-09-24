@@ -27,7 +27,7 @@ const CARD_TEXT = {
 export function calcExportCard(source, getLast) {
   const t = CARD_TEXT[source];
   let sheets = [];
-  return emailWorkbookCard({
+  const card = emailWorkbookCard({
     title: t.title, intro: t.intro, source, fileName: calcFileName(source),
     buildBase64: async (who) => {
       const last = getLast();
@@ -39,4 +39,20 @@ export function calcExportCard(source, getLast) {
     },
     sheetNames: () => sheets,
   });
+  // An email form above an empty result is noise: show it only once there is something to send.
+  // Calculators recompute a moment after each edit, so look again shortly after any input or change.
+  card.hidden = true;
+  let timer = null, seen = false;
+  const events = ['input', 'change', 'click'];   // a preset button or a Reset changes the result too
+  const stop = () => events.forEach((e) => document.removeEventListener(e, later, true));
+  const sync = () => {
+    if (card.isConnected) seen = true;
+    else if (seen) { stop(); return; }           // the calculator was swapped out; stop listening
+    card.hidden = !getLast();
+  };
+  function later() { clearTimeout(timer); timer = setTimeout(sync, 250); }
+  events.forEach((e) => document.addEventListener(e, later, true));
+  setTimeout(sync, 0);
+  setTimeout(sync, 400);
+  return card;
 }

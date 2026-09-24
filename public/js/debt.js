@@ -10,6 +10,7 @@ import { getProfile } from './profile-store.js';
 import { isEmptyProfile } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { calcExportCard } from './calc-export-card.js';
+import { resultLayout } from './result-layout.js';
 
 const STORE = 'taxcompass.debt.v1';
 const LOAN_LABEL = { home: 'Home loan', car: 'Car loan', personal: 'Personal loan', education: 'Education loan', other: 'Loan' };
@@ -94,18 +95,34 @@ export function renderDebt() {
     last = { st: { ...st }, debts, cmp, chosen, pv, total };
     const stat = (k, v, cls = '') => el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v)]);
     const methodBtn = (id, label) => el('button', { type: 'button', class: 'seg' + (st.method === id ? ' on' : ''), onclick: () => { st.method = id; save(); paint(); } }, label);
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
+    setChildren(out, resultLayout({
+      key: 'debt',
+      answer: [
+        el('div', { class: 'stats' }, [
         stat('You owe', inr(total)),
         stat(chosen.impossible ? 'Never clears' : 'Debt-free in', chosen.impossible ? 'at this rate' : `${chosen.years} years`, chosen.impossible ? 'bad' : 'hi'),
         stat('Interest you will pay', inr(chosen.totalInterest)),
         stat('Pay this first', cmp.firstAvalanche || '—'),
       ]),
-      chosen.impossible ? el('div', { class: 'notice warn' }, chosen.note) : null,
-      el('p', { class: 'explain' }, chosen.impossible
+        chosen.impossible ? el('div', { class: 'notice warn' }, chosen.note) : null,
+        el('p', { class: 'explain' }, chosen.impossible ? 'At these payments the debt never clears.' : `Debt-free in ${chosen.years} years: send every spare rupee to ${cmp.firstAvalanche} first.`),
+      ],
+      why: [
+        el('p', { class: 'explain' }, chosen.impossible
         ? `The minimums do not cover the interest on ${inr(total)} of debt, so the balance grows every month. Raising what you pay, or moving the expensive balance to a cheaper loan, is the only way out.`
         : `Paying the minimums plus ${inr(extra)} a month, and rolling each cleared payment into the next debt, clears ${inr(total)} in ${chosen.years} years and costs ${inr(chosen.totalInterest)} in interest. Send the spare money to ${cmp.firstAvalanche} first: it is the most expensive.${cmp.saving > 0 ? ` Clearing smallest-first instead would cost ${inr(cmp.saving)} more${cmp.monthsSaved > 0 ? ` and take ${cmp.monthsSaved} months longer` : ''}.` : ''}`),
-      el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
+      ],
+      next: [
+        el('div', { class: 'card next-steps' }, [
+        el('h3', { style: 'margin-top:0' }, pv.better === 'prepay' ? 'The next spare rupee: prepay' : pv.better === 'invest' ? 'The next spare rupee: invest' : 'The next spare rupee: either, they are close'),
+        el('p', {}, pv.why),
+        el('p', { class: 'muted small' }, `Prepaying earns ${pv.prepayRate}% for certain; investing is ${pv.investRate}% after tax and is not. Anything above about 15% should be cleared before a rupee is invested.`),
+      ]),
+        { label: 'What a prepayment does to one loan', note: 'Years and interest saved on a single loan', href: '/calculators/emi' },
+        { label: 'Find the spare money', note: 'Expenses against take-home, and what is genuinely free', href: '/calculators/budget' },
+      ],
+      details: [
+        el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
         el('div', { class: 'viz-title' }, 'What you owe, month by month'),
         lineChart({
           series: [
@@ -115,7 +132,7 @@ export function renderDebt() {
           xFormat: (x) => `Month ${Math.round(x)}`, xTipFormat: (x) => `Month ${Math.round(x)}`, height: 230, ariaLabel: 'Outstanding debt by month under each order',
         }),
       ]),
-      el('div', { class: 'card next-steps' }, [
+        el('div', { class: 'card next-steps' }, [
         el('h3', { style: 'margin-top:0' }, 'The order to clear them'),
         el('div', { class: 'seg-group', style: 'margin-bottom:10px' }, [methodBtn('avalanche', 'Highest rate first'), methodBtn('snowball', 'Smallest balance first')]),
         el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
@@ -127,18 +144,13 @@ export function renderDebt() {
         ])),
         el('p', { class: 'muted small' }, '"Really costs" is the rate compounded monthly, which is how these are actually charged: a card at 42% a year charged monthly costs 51%.'),
       ]),
-      el('div', { class: 'card next-steps' }, [
-        el('h3', { style: 'margin-top:0' }, pv.better === 'prepay' ? 'The next spare rupee: prepay' : pv.better === 'invest' ? 'The next spare rupee: invest' : 'The next spare rupee: either, they are close'),
-        el('p', {}, pv.why),
-        el('p', { class: 'muted small' }, `Prepaying earns ${pv.prepayRate}% for certain; investing is ${pv.investRate}% after tax and is not. Anything above about 15% should be cleared before a rupee is invested.`),
-      ]),
-      el('div', { class: 'card next-steps' }, [el('h3', { style: 'margin-top:0' }, 'Before any of this'), el('ul', { class: 'levers' }, TRIAGE_RULES.map((t) => el('li', {}, t)))]),
-      el('div', { class: 'btn-row' }, [
-        el('a', { class: 'btn secondary', href: '/calculators/emi' }, 'What a prepayment does to one loan'),
-        el('a', { class: 'btn secondary', href: '/calculators/budget' }, 'Find the spare money'),
-      ]),
-      disclaimer('invest'),
-    ]);
+        el('div', { class: 'card next-steps' }, [el('h3', { style: 'margin-top:0' }, 'Before any of this'), el('ul', { class: 'levers' }, TRIAGE_RULES.map((t) => el('li', {}, t)))]),
+      ],
+      foot: [
+        disclaimer('invest'),
+      ],
+      detailsLabel: 'Show the payoff chart, the order and the rules',
+    }));
   }
   paint();
   queueMicrotask(() => enhanceMoneyInputs(inputs));

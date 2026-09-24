@@ -14,6 +14,7 @@ import { getProfile } from './profile-store.js';
 import { isEmptyProfile, toTaxInputs } from '../engine/profile.js';
 import { computeRegime } from './tax-engine.js';
 import { calcExportCard } from './calc-export-card.js';
+import { resultLayout } from './result-layout.js';
 
 const STORE = 'taxcompass.compare.v1';
 const HORIZONS = [[0.5, '6 months'], [1, '1 year'], [2, '2 years'], [3, '3 years'], [5, '5 years'], [7, '7 years'], [10, '10 years'], [15, '15 years'], [20, '20 years']];
@@ -141,16 +142,28 @@ export function renderCompare({ rates, schemes }) {
     if (debt && fd && years >= 1) { const sameRate = postTax(debt.inst, { ...o, ratePct: ratesById.fd }); answers.push(`A debt fund earning the same ${ratesById.fd}% as the deposit would still keep ${inr(sameRate.post - fd.post)} more over the period, because its tax is paid once on redemption instead of every year.`); }
     if (showSaved) answers.push(`Because you are in the old regime with 80C room, ${inr(o.amount)} into PPF, ELSS or NSC also takes ${inr(Math.min(o.amount, 150000) * t)} off this year’s tax bill; that is counted in the last column.`);
 
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
+    setChildren(out, resultLayout({
+      key: 'compare',
+      answer: [
+        el('div', { class: 'stats' }, [
         el('div', { class: 'stat hi' }, [el('div', { class: 'k' }, 'Keeps the most'), el('div', { class: 'v' }, best ? best.inst.label : '—')]),
         el('div', { class: 'stat' }, [el('div', { class: 'k' }, 'You keep'), el('div', { class: 'v' }, best ? inr(best.post) : '—')]),
         el('div', { class: 'stat' }, [el('div', { class: 'k' }, 'After tax, per year'), el('div', { class: 'v' }, best ? pct(best.effPost, 1) : '—')]),
         el('div', { class: 'stat' }, [el('div', { class: 'k' }, 'Your slab incl. cess'), el('div', { class: 'v' }, pct(t, 1))]),
       ]),
-      el('h3', {}, parking ? `Parking ${inr(o.amount)} for ${horizonLabel}` : `${inr(o.amount)} for ${horizonLabel}, ${profileLabel} risk`),
-      el('p', { class: 'explain' }, best ? `At a ${pct(t, 1)} slab and a ${profileLabel} risk profile, ${best.inst.label.toLowerCase()} keeps the most: ${inr(best.post)}, ${best.how}. ${avail[1] ? `Next is ${avail[1].inst.label.toLowerCase()} at ${inr(avail[1].post)}.` : ''} The order changes with the horizon and the slab; the "pre-tax equivalent" column is what a fully taxed deposit would have to pay to match each one.${best.inst.category && categories ? (() => { const c = categories.find((x) => x.category === best.inst.category); return c && c.low < best.ratePct - 2 ? ` ${best.inst.label} is a historical median, not a promise: the same category’s worst ${years >= 5 ? '5' : '3'}-year window returned ${c.low.toFixed(1)}% a year${c.low < 0 ? ', a loss' : ''}.` : ''; })() : ''}` : 'Nothing is available for this horizon.'),
-      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+        el('h3', {}, parking ? `Parking ${inr(o.amount)} for ${horizonLabel}` : `${inr(o.amount)} for ${horizonLabel}, ${profileLabel} risk`),
+        el('p', { class: 'explain' }, best ? `At a ${pct(t, 1)} slab and a ${profileLabel} risk profile, ${best.inst.label.toLowerCase()} keeps the most: ${inr(best.post)}, ${best.how}. ${avail[1] ? `Next is ${avail[1].inst.label.toLowerCase()} at ${inr(avail[1].post)}.` : ''} The order changes with the horizon and the slab; the "pre-tax equivalent" column is what a fully taxed deposit would have to pay to match each one.${best.inst.category && categories ? (() => { const c = categories.find((x) => x.category === best.inst.category); return c && c.low < best.ratePct - 2 ? ` ${best.inst.label} is a historical median, not a promise: the same category’s worst ${years >= 5 ? '5' : '3'}-year window returned ${c.low.toFixed(1)}% a year${c.low < 0 ? ', a loss' : ''}.` : ''; })() : ''}` : 'Nothing is available for this horizon.'),
+      ],
+      why: [
+        answers.length ? el('div', { class: 'card next-steps' }, [el('h3', { style: 'margin-top:0' }, 'The questions people ask'), el('ul', { class: 'levers' }, answers.map((a) => el('li', {}, a)))]) : null,
+      ],
+      next: [
+        { label: 'Make it a goal', note: 'What it is for, when, and the SIP that gets there', href: '/calculators/goal', primary: true },
+        { label: 'Set up a SIP', note: 'What a monthly amount grows into, with step-ups', href: '/calculators/sip' },
+        { label: 'Is it for retirement?', note: 'Will the money last, and how to build it', href: '/calculators/retirement' },
+      ],
+      details: [
+        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'Instrument'), el('th', {}, 'Return assumed'), el('th', {}, 'Taxed how'), el('th', {}, 'You keep'), el('th', {}, 'After tax p.a.'), el('th', {}, 'Pre-tax equivalent'), showSaved ? el('th', {}, 'Tax saved now') : null, showSaved ? el('th', {}, 'All-in p.a.') : null])),
         el('tbody', {}, rows.flatMap((x, i) => [x.available && !x.inProfile && (i === 0 || rows[i - 1].inProfile || !rows[i - 1].available) ? el('tr', { class: 'group' }, [el('td', { colspan: showSaved ? 8 : 6 }, `Outside a ${profileLabel} profile (${outside.length}): riskier than you said you would take`)]) : null, !x.available && (i === 0 || rows[i - 1].available) ? el('tr', { class: 'group' }, [el('td', { colspan: showSaved ? 8 : 6 }, 'Not for this horizon')]) : null, el('tr', { class: !x.available ? 'muted' : !x.inProfile ? 'outside' : i === 0 ? 'better' : '' }, [
           el('td', {}, [x.inst.label, el('div', { class: 'muted small' }, x.available ? `lock-in: ${x.inst.lock}` : x.reason), x.inst.note && x.available ? el('div', { class: 'muted small' }, x.inst.note) : null]),
@@ -163,10 +176,13 @@ export function renderCompare({ rates, schemes }) {
           showSaved ? el('td', {}, x.available ? pct(x.effAllIn, 1) : '—') : null,
         ])].filter(Boolean))),
       ])),
-      answers.length ? el('div', { class: 'card next-steps' }, [el('h3', { style: 'margin-top:0' }, 'The questions people ask'), el('ul', { class: 'levers' }, answers.map((a) => el('li', {}, a)))]) : null,
-      el('p', { class: 'muted small' }, 'Guaranteed instruments pay what is notified; small-savings rates change quarterly. Fund figures are the median of what each category returned over rolling windows near your horizon, from AMFI NAV history; the actual return will differ, and the equity ones can be negative over short periods. Equity tax assumes the yearly exemption is available once; a long holding realised in one go gets the exemption only in that year. NPS assumes 60% taken tax-free and 40% annuitised with the annuity taxed at your slab. EPF interest above ₹2.5 lakh of own contributions a year is taxable and not modelled.'),
-      disclaimer('invest'),
-    ]);
+        el('p', { class: 'muted small' }, 'Guaranteed instruments pay what is notified; small-savings rates change quarterly. Fund figures are the median of what each category returned over rolling windows near your horizon, from AMFI NAV history; the actual return will differ, and the equity ones can be negative over short periods. Equity tax assumes the yearly exemption is available once; a long holding realised in one go gets the exemption only in that year. NPS assumes 60% taken tax-free and 40% annuitised with the annuity taxed at your slab. EPF interest above ₹2.5 lakh of own contributions a year is taxable and not modelled.'),
+      ],
+      foot: [
+        disclaimer('invest'),
+      ],
+      detailsLabel: 'Show every instrument, side by side',
+    }));
   }
 
   paint();

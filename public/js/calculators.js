@@ -6,6 +6,7 @@ import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromLoanInputs } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
+import { resultLayout } from './result-layout.js';
 import { countEvent } from './feedback.js';
 import { CALCS } from './routes.js';
 
@@ -371,39 +372,54 @@ const VIEWS = {
         el('div', {}, [el('div', { class: 'viz-title' }, 'What each year\'s payments went to'), columnChart({ categories: show.years.map((a) => String(a.year)), series: [{ name: 'Principal', color: GREEN, values: show.years.map((a) => a.principal) }, { name: 'Interest', color: GOLD, values: show.years.map((a) => a.interest) }], xLabel: 'Year', height: 220 })]),
       ]);
 
-      setChildren(out, [
-        el('div', { class: 'stats' }, stats),
-        sentence ? el('p', { class: 'explain' }, sentence) : null,
-        splitBar('Principal', p, 'Interest', show.totalInterest),
-        charts,
-        scen ? el('div', { class: 'table-wrap' }, el('table', { class: 'compare compare-scen' }, [
-          el('thead', {}, el('tr', {}, [el('th', {}, ''), el('th', {}, 'Plain EMI, no changes'), el('th', { class: 'on' }, hasStep && hasPrepay ? 'With step-up and prepayments' : hasStep ? 'With step-up EMI' : 'With prepayments')])),
-          el('tbody', {}, [
-            el('tr', {}, [el('td', {}, 'Loan closes in'), el('td', {}, months(base.months)), el('td', { class: 'on' }, months(scen.months))]),
-            el('tr', {}, [el('td', {}, 'Total interest paid'), el('td', {}, inr(base.totalInterest)), el('td', { class: 'on' }, inr(scen.totalInterest))]),
-            el('tr', {}, [el('td', {}, 'Total paid to the bank (EMIs + prepayments)'), el('td', {}, inr(base.totalPaid)), el('td', { class: 'on' }, inr(scen.totalPaid))]),
-            el('tr', { class: 'total' }, [el('td', {}, 'Interest saved'), el('td', {}, '—'), el('td', { class: 'on' }, inr(saved))]),
-          ]),
-        ])) : null,
-        !scen && base.totalInterest > p ? el('p', { class: 'notice warn' }, 'You will pay more in interest than the amount you borrowed. Try a step-up EMI or an extra payment every year on the left to see how much it saves.') : null,
-        hasPrepay && !hasStep && mode === 'reduce_tenure' ? el('p', { class: 'muted' }, 'Keeping the EMI and finishing sooner almost always saves more interest than lowering the EMI. Change the last option on the left to compare.') : null,
-        hasStep ? el('p', { class: 'muted' }, 'With a step-up EMI the loan always closes sooner, so the "lower EMI" option is switched off.') : null,
-        scen && scen.insufficient ? el('p', { class: 'notice error' }, 'The EMI does not cover the interest with these inputs.') : null,
-        el('h3', {}, 'Year-by-year schedule' + (scen ? ' (with your changes)' : '')),
-        el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, head.map((h) => el('th', {}, h)))), el('tbody', {}, rows)])),
-        el('p', { class: 'muted' }, `Tax note: for a self-occupied home, interest up to ${RUPEE}2,00,000 is deductible in the old regime only. For a let-out home, interest is deductible in both regimes but a loss cannot be set off against salary in the new regime.`),
-        el('div', { class: 'card next-steps' }, [
-          el('h3', { style: 'margin-top:0' }, 'Compare with investing'),
-          el('p', { class: 'muted small' }, scen ? `Prepaying saves ${inr(saved)} in interest, guaranteed. See what the same money might do in the market, with no guarantee, before you decide.` : 'Set a prepayment on the left to compare it with investing the same money, or plan what to do with the EMI once the loan is over.'),
-          el('div', { class: 'btn-row' }, [
-            hasAnnual ? el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(v(A) / 12), years: Math.round(base.months / 12), note: `the ${inr(v(A))} a year you would have prepaid, as a monthly SIP` }, 'emi') }, `Invest ${inr(v(A) / 12)} a month instead`) : null,
-            hasLump ? el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { amount: Math.round(v(L)), years: Math.round(base.months / 12), note: `the ${inr(v(L))} lump sum you would have prepaid` }, 'emi') }, `Invest the ${inr(v(L))} lump sum instead`) : null,
-            el('a', { class: 'btn secondary', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(base.emi), years: 10, note: `your EMI of ${inr(base.emi)}, continued as a SIP after the loan closes` }, 'emi') }, `After the loan: SIP the ${inr(base.emi)} EMI`),
-          ]),
+      const compareTable = scen ? el('div', { class: 'table-wrap' }, el('table', { class: 'compare compare-scen' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, ''), el('th', {}, 'Plain EMI, no changes'), el('th', { class: 'on' }, hasStep && hasPrepay ? 'With step-up and prepayments' : hasStep ? 'With step-up EMI' : 'With prepayments')])),
+        el('tbody', {}, [
+          el('tr', {}, [el('td', {}, 'Loan closes in'), el('td', {}, months(base.months)), el('td', { class: 'on' }, months(scen.months))]),
+          el('tr', {}, [el('td', {}, 'Total interest paid'), el('td', {}, inr(base.totalInterest)), el('td', { class: 'on' }, inr(scen.totalInterest))]),
+          el('tr', {}, [el('td', {}, 'Total paid to the bank (EMIs + prepayments)'), el('td', {}, inr(base.totalPaid)), el('td', { class: 'on' }, inr(scen.totalPaid))]),
+          el('tr', { class: 'total' }, [el('td', {}, 'Interest saved'), el('td', {}, '—'), el('td', { class: 'on' }, inr(saved))]),
         ]),
-        fundBox,
-        disclaimer(['loan', 'invest']),
-      ]);
+      ])) : null;
+      // the prepayment controls live in the inputs; "try one" takes you there
+      const goToPrepay = () => {
+        const title = [...document.querySelectorAll('#calc-body .card.inputs .opt-title')].find((t) => /Prepay principal/.test(t.textContent));
+        if (!title) return;
+        title.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const first = title.parentElement.querySelector('input[type=number]');
+        if (first) setTimeout(() => first.focus({ preventScroll: true }), 400);
+      };
+      setChildren(out, resultLayout({
+        key: 'emi',
+        answer: [
+          el('div', { class: 'stats' }, stats),
+          el('p', { class: 'explain' }, sentence || `An EMI of ${inr(base.emi)} for ${y} years repays ${inr(p)} and costs ${inr(base.totalInterest)} in interest: ${inr(base.totalPaid)} to the bank in all.`),
+        ],
+        why: [
+          splitBar('Principal', p, 'Interest', show.totalInterest),
+          !scen && base.totalInterest > p ? el('p', { class: 'notice warn' }, 'You will pay more in interest than the amount you borrowed. A step-up EMI or an extra payment every year changes that most.') : null,
+          compareTable,
+          scen && scen.insufficient ? el('p', { class: 'notice error' }, 'The EMI does not cover the interest with these inputs.') : null,
+          hasPrepay && !hasStep && mode === 'reduce_tenure' ? el('p', { class: 'muted small' }, 'Keeping the EMI and finishing sooner almost always saves more interest than lowering the EMI.') : null,
+          hasStep ? el('p', { class: 'muted small' }, 'With a step-up EMI the loan always closes sooner, so the "lower EMI" option is switched off.') : null,
+        ],
+        next: [
+          !scen ? { label: 'Try a prepayment', note: 'An extra payment each year usually takes years off the loan', onclick: goToPrepay, primary: true } : null,
+          hasAnnual ? { label: `Or invest ${inr(v(A) / 12)} a month instead`, note: 'The same money as a SIP, with no guarantee', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(v(A) / 12), years: Math.round(base.months / 12), note: `the ${inr(v(A))} a year you would have prepaid, as a monthly SIP` }, 'emi') } : null,
+          hasLump ? { label: `Or invest the ${inr(v(L))} lump sum`, note: 'Prepaying is certain; investing is not', href: '/calculators/sip', onclick: () => setHandoff('sip', { amount: Math.round(v(L)), years: Math.round(base.months / 12), note: `the ${inr(v(L))} lump sum you would have prepaid` }, 'emi') } : null,
+          { label: 'All your loans together', note: 'Which to clear first, and what each really costs', href: '/calculators/debt' },
+          { label: `After the loan: SIP the ${inr(base.emi)}`, note: 'Keep paying yourself the EMI once the bank is done', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: Math.round(base.emi), years: 10, note: `your EMI of ${inr(base.emi)}, continued as a SIP after the loan closes` }, 'emi') },
+        ],
+        details: [
+          charts,
+          el('h3', {}, 'Year-by-year schedule' + (scen ? ' (with your changes)' : '')),
+          el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, head.map((h) => el('th', {}, h)))), el('tbody', {}, rows)])),
+          el('p', { class: 'muted small' }, `Tax note: for a self-occupied home, interest up to ${RUPEE}2,00,000 is deductible in the old regime only. For a let-out home, interest is deductible in both regimes but a loss cannot be set off against salary in the new regime.`),
+          fundBox,
+        ],
+        detailsLabel: 'Show the charts and the year-by-year schedule',
+        foot: [disclaimer(['loan', 'invest'])],
+      }));
 
       const key = `${r}|${y}`;
       if (key !== fundKey) {
@@ -510,21 +526,44 @@ const VIEWS = {
       ];
       if (stepped) series.splice(1, 0, { name: 'Value, flat SIP', color: GOLD, points: yrs.map((k) => [k, at(k, false).fv]) });
       const what = a > 0 && lumpTotal > 0 ? `a ${inr(a)} SIP plus ${inr(lumpTotal)} in lump sums` : a > 0 ? `a ${inr(a)} SIP` : `${inr(lumpTotal)} invested as lump sums`;
-      setChildren(out, [
-        el('div', { class: 'stats' }, [
-          stat('Projected value', inr(main.fv), true),
-          stat('Amount invested', inr(main.invested)),
-          stat('Wealth gained', inr(main.gain)),
-          stepped ? stat('SIP in the final year', inr(sp > 0 ? main.finalMonthly / (1 + sp / 100) : main.finalMonthly - sa)) : lumpTotal > 0 && a > 0 ? stat('Lump sums add', inr(main.fv - sipOnly.fv)) : null,
-        ]),
-        splitBar('Invested', main.invested, 'Gains', main.gain),
-        el('div', { class: 'viz-title' }, 'How it grows'),
-        lineChart({ series, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'SIP growth by year' }),
-        el('p', { class: 'explain' }, `Over ${y} years at ${r}% a year, ${what} grows to about ${inr(main.fv)}, of which ${inr(main.gain)} is growth.${stepped ? ` A flat SIP would reach ${inr(flat.fv)}; stepping it up ${sp > 0 ? `${sp}%` : inr(sa)} every year adds ${inr(stepped.fv - flat.fv)} for ${inr(stepped.invested - flat.invested)} more invested.` : ''}${lumpTotal > 0 && a > 0 ? ` The lump sums alone account for ${inr(main.fv - sipOnly.fv)} of the final value.` : ''}`),
-        el('p', { class: 'muted' }, 'Instalments are assumed at the start of each month (annuity-due), the convention most Indian SIP calculators use; lump sums earn from the end of the year you add them, and everything compounds monthly at the annual rate divided by 12. Returns are illustrative and not guaranteed.'),
-        fundBox,
-        disclaimer('invest'),
-      ]);
+      const goToStepUp = () => {
+        const sel = [...document.querySelectorAll('#calc-body .card.inputs select')].find((x) => /step-up/i.test(x.closest('label')?.textContent || ''));
+        if (!sel) return;
+        sel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => sel.focus({ preventScroll: true }), 400);
+      };
+      setChildren(out, resultLayout({
+        key: 'sip',
+        answer: [
+          el('div', { class: 'stats' }, [
+            stat('Projected value', inr(main.fv), true),
+            stat('Amount invested', inr(main.invested)),
+            stat('Wealth gained', inr(main.gain)),
+            stepped ? stat('SIP in the final year', inr(sp > 0 ? main.finalMonthly / (1 + sp / 100) : main.finalMonthly - sa)) : lumpTotal > 0 && a > 0 ? stat('Lump sums add', inr(main.fv - sipOnly.fv)) : null,
+          ]),
+          el('p', { class: 'explain' }, `Over ${y} years at ${r}% a year, ${what} grows to about ${inr(main.fv)}, of which ${inr(main.gain)} is growth.`),
+        ],
+        why: [
+          splitBar('Invested', main.invested, 'Gains', main.gain),
+          stepped ? el('p', {}, `A flat SIP would reach ${inr(flat.fv)}; stepping it up ${sp > 0 ? `${sp}%` : inr(sa)} every year adds ${inr(stepped.fv - flat.fv)} for ${inr(stepped.invested - flat.invested)} more invested.`) : null,
+          lumpTotal > 0 && a > 0 ? el('p', {}, `The lump sums alone account for ${inr(main.fv - sipOnly.fv)} of the final value.`) : null,
+          el('p', { class: 'muted small' }, `Everything here rests on ${r}% a year. The detailed working shows what fund categories have actually delivered over periods this long, including their worst stretches.`),
+        ],
+        next: [
+          !stepped && a > 0 ? { label: 'Step it up each year', note: 'Raising the SIP with your pay is the biggest lever you have', onclick: goToStepUp, primary: true } : null,
+          { label: 'Tie it to a goal', note: 'A child’s education, a house: what it will cost, and the SIP that gets there', href: '/calculators/goal' },
+          { label: 'Where should this money go?', note: 'PPF, FD, funds and NPS compared after tax', href: '/calculators/compare' },
+          { label: 'Will it be enough to retire?', note: 'What you save, what you will spend, and the year it runs out', href: '/calculators/retirement' },
+        ],
+        details: [
+          el('div', { class: 'viz-title' }, 'How it grows'),
+          lineChart({ series, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'SIP growth by year' }),
+          el('p', { class: 'muted small' }, 'Instalments are assumed at the start of each month (annuity-due), the convention most Indian SIP calculators use; lump sums earn from the end of the year you add them, and everything compounds monthly at the annual rate divided by 12. Returns are illustrative and not guaranteed.'),
+          fundBox,
+        ],
+        detailsLabel: 'Show the growth chart and what funds have actually returned',
+        foot: [disclaimer('invest')],
+      }));
       const key = `${r}|${y}`;
       if (key !== fundKey) {
         fundKey = key;

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="180bfff437">
+  <meta name="tc-build" content="c6fede6400">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: know the number, make the decision</title>
   <meta name="description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
@@ -331,15 +331,24 @@
           <div id="tax-headline" class="headline"></div>
           <div id="tax-warnings"></div>
           <div id="tax-business"></div>
-          <div id="tax-insights"></div>
-          <div id="tax-charts"></div>
-          <div id="tax-table"></div>
-          <div id="tax-notes"></div>
-          <div id="tax-email"></div>
-          <details class="provisions">
-            <summary>Provision-by-provision reference (what each regime allows)</summary>
-            <div id="provision-table"></div>
+          <section class="r-block r-next" id="tax-next" aria-label="What to do next" hidden>
+            <h3 class="r-head">What to do next</h3>
+            <div id="tax-insights"></div>
+            <div class="r-actions" id="tax-next-actions"></div>
+          </section>
+          <details class="r-details" id="tax-working-fold" hidden>
+            <summary>Show the detailed working: charts, every line, and the rules</summary>
+            <div class="r-details-body">
+              <div id="tax-charts"></div>
+              <div id="tax-table"></div>
+              <div id="tax-notes"></div>
+            <details class="provisions">
+              <summary>Provision-by-provision reference (what each regime allows)</summary>
+              <div id="provision-table"></div>
+            </details>
+            </div>
           </details>
+          <div id="tax-email" hidden></div>
           <div class="disclaimer" role="note"><strong>Please note.</strong> This is an estimate for information only and is not tax advice. Please consult your tax consultant or chartered accountant before taking any decision.</div>
         </div>
       </div>

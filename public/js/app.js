@@ -7,6 +7,7 @@ import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
 import { initHome } from './home.js';
 import { initSnapshot } from './snapshot.js';
+import { initProfileUndo } from './profile-undo.js';
 import { ensureFresh, checkLiveBuild } from './fresh.js';
 import { isProduction } from './env.js';
 import { initProfilePanel } from './profile-panel.js';
@@ -126,6 +127,7 @@ async function boot() {
 
     initGlossaryTooltips(glossary);
     initProfilePanel();
+    initProfileUndo();
     initHome(appData);
     initSnapshot(appData);
     initTax(appData);

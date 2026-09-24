@@ -222,7 +222,7 @@ details.relief { border: 1px solid var(--line); border-radius: var(--radius-sm);
 details.relief > summary { list-style: none; cursor: pointer; padding: 10px 0; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
 details.relief > summary::-webkit-details-marker { display: none; }
 details.relief > summary .rf-title { font-weight: 700; }
-details.relief > summary .rf-title::before { content: "B8"; display: inline-block; margin-right: 6px; color: var(--accent-2); }
+details.relief > summary .rf-title::before { content: "▸"; display: inline-block; margin-right: 6px; color: var(--accent-2); }
 details.relief[open] > summary .rf-title::before { transform: rotate(90deg); }
 details.relief > summary .rf-sum { color: var(--accent-2); font-weight: 600; font-size: .88rem; }
 details.relief > p { margin: 0 0 6px; }
@@ -727,3 +727,37 @@ details.section[open] summary::after { content: "–"; }
 .site-footer a { color: #fff; }
 .site-footer .muted { color: rgba(255, 255, 255, .55); }
 .footer-bottom { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .12); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: rgba(255, 255, 255, .55); font-size: .78rem; }
+
+/* results: answer, why, what next, detailed working */
+.r-answer { margin-bottom: 4px; }
+.r-answer > .explain:last-child { margin-bottom: 0; }
+.r-block { margin: 14px 0; padding: 14px 16px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.r-head { margin: 0 0 8px; font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-2); font-weight: 700; }
+.r-why p:last-child, .r-why ul:last-child { margin-bottom: 0; }
+.r-next { border-left: 4px solid var(--accent); }
+.r-next > .card { box-shadow: none; border: 0; padding: 0; margin: 0 0 10px; background: none; }
+.r-next > .card h3 { font-size: 1rem; }
+.r-actions { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.r-action { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); text-decoration: none; font: inherit; cursor: pointer; }
+.r-action:hover { border-color: var(--accent); text-decoration: none; }
+.r-action strong { color: var(--accent-2); font-size: .95rem; }
+.r-action strong::after { content: " →"; }
+.r-action span { font-size: .84rem; color: var(--muted); }
+.r-action.primary { background: var(--accent-soft); border-color: var(--accent); }
+.r-details { margin: 14px 0; border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.r-details > summary { cursor: pointer; padding: 12px 16px; font-weight: 600; color: var(--accent-2); list-style: none; }
+.r-details > summary::-webkit-details-marker { display: none; }
+.r-details > summary::before { content: "+ "; font-weight: 700; }
+.r-details[open] > summary::before { content: "− "; }
+.r-details-body { padding: 0 16px 14px; }
+.r-details-body > .card { box-shadow: none; }
+/* "Saved to your profile — Undo" */
+.profile-toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 60; display: flex; align-items: center; gap: 12px; max-width: min(620px, calc(100vw - 32px)); padding: 11px 14px 11px 16px; border-radius: var(--radius); background: var(--accent-ink, #12351f); color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: .9rem; line-height: 1.4; }
+.profile-toast[hidden] { display: none; }
+.profile-toast span { flex: 1; }
+.profile-toast .toast-undo { background: #fff; color: var(--accent-ink, #12351f); border: 0; border-radius: 999px; padding: 5px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+.profile-toast .toast-close { background: none; border: 0; color: rgba(255,255,255,.7); font-size: 1.2rem; cursor: pointer; padding: 0 2px; }
+@media (max-width: 560px) { .profile-toast { bottom: 76px; } }
+#tax-next .insights { box-shadow: none; border: 0; padding: 0; margin: 0 0 12px; background: none; }
+#tax-next .insights h3 { font-size: 1rem; }
+#tax-next[hidden], #tax-working-fold[hidden], #tax-email[hidden] { display: none; }

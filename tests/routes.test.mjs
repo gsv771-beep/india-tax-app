@@ -19,5 +19,15 @@ ok('every title carries the site name', Object.keys(PAGES).filter((t) => t !== '
 ok('compare route has its title', /Where should this money go/.test(metaFor('/calculators/compare').title));
 ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip')) === JSON.stringify({ tab: 'calculators', sub: 'sip' }));
 
+// the page shell: two elements with one id means getElementById silently picks the first (a results
+// fold once toggled the tax form's step 3 instead of itself)
+{
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
+  const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const dups = [...new Set(ids.filter((x, i) => ids.indexOf(x) !== i))];
+  ok('index.html has no duplicate ids', dups.length === 0, dups.join(', '));
+}
+
 console.log(failures === 0 ? '\nAll route tests passed.' : `\n${failures} route test(s) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

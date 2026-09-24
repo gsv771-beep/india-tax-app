@@ -9,6 +9,7 @@ import { calcExportCard } from './calc-export-card.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, fromSalaryStore, isEmptyProfile } from '../engine/profile.js';
 import { attachSlider, pctToggle, enhanceMoneyInputs } from './amount-input.js';
+import { resultLayout } from './result-layout.js';
 
 const SOURCE = 'calc:salary';
 
@@ -132,31 +133,42 @@ export function renderSalary(data) {
     const stat = (k, v, cls = '') => { const val = el('div', { class: 'v' }); animateNumber(val, 'salary:' + k, v); return el('div', { class: 'stat ' + cls }, [el('div', { class: 'k' }, k), val]); };
     const otherRegime = r.regime === 'old' ? 'new' : 'old';
     const otherInHand = r.regime === 'old' ? r.inHandNew : r.inHandOld;
-    setChildren(out, [
-      el('div', { class: 'stats' }, [
-        stat(r.variableApart ? 'Monthly in hand, fixed pay' : 'Monthly in hand', inr(r.monthly), 'hi'),
-        stat('Yearly in hand', inr(r.annual)),
-        stat(`Income tax, ${r.regime} regime`, inr(r.tax)),
-        stat(r.variableInCtc ? 'Take-home as % of CTC' : 'Take-home as % of package', pct(r.takeHomePct, 0)),
-      ]),
-      el('p', { class: 'explain' }, `Of a ${inr(r.ctc)} CTC, ${inr(r.grossSalary)} is paid to you as salary; the rest goes to your PF and gratuity. After your own PF, professional tax and ${inr(r.tax)} of income tax under the ${r.regime} regime, you take home about ${inr(r.monthly)} a month.${Math.abs(otherInHand - r.annual) > 1 ? ` Under the ${otherRegime} regime it would be ${inr(otherInHand / 12)} a month.` : ''}`),
-      el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
-        el('thead', {}, el('tr', {}, [el('th', {}, 'Component'), el('th', {}, 'Per year'), el('th', {}, 'Per month')])),
-        el('tbody', {}, [
-          ['Basic', r.basic], ['HRA', r.hra], r.conveyance ? ['Conveyance allowance', r.conveyance] : null, r.variable ? ['Variable pay', r.variable] : null, ['Special allowance (the balance)', r.special], r.employerNps ? ['Employer NPS (in salary, deducted under 80CCD(2))', r.employerNps] : null,
-          ['Gross salary', r.grossSalary, 'subtotal'],
-          ['Less: your PF (12% of Basic)', -r.employeePf], r.professionalTax ? ['Less: professional tax', -r.professionalTax] : null, [`Less: income tax, ${r.regime} regime (TDS)`, -r.tax],
-          ['In hand', r.annual, 'total'],
-        ].filter(Boolean).map(([label, v, cls]) => el('tr', { class: cls || '' }, [el('td', {}, label), el('td', { class: v < 0 ? 'neg' : '' }, inr(v)), el('td', { class: v < 0 ? 'neg' : '' }, inr(v / 12))]))),
-      ])),
-      r.variableApart ? el('p', { class: 'explain' }, `Variable pay of ${inr(r.variable)}${r.variableInCtc ? ' (carved out of the CTC)' : ` on top of the ${inr(r.ctc)} CTC, so the package is ${inr(r.totalPackage)}`} is kept out of the monthly figure because it is paid separately: about ${inr(r.variableNet)} of it reaches you after tax, whenever it is paid and to the extent targets are met. The tax is split in proportion to pay.`) : null,
-      el('p', { class: 'muted small' }, `Employer PF ${inr(r.employerPf)} and gratuity ${inr(r.gratuity)} are yours but not paid monthly. Conveyance allowance is fully taxable (the ₹1,600 a month exemption ended in 2018, except for employees with a disability). HRA exemption${r.inputs.salary.rentPaid ? ' has been applied from the rent you entered' : ' needs the rent you pay; enter it above'}. Bonuses, variable pay, meal cards and other perquisites are not modelled; add them to CTC if they are paid in cash.`),
-      el('div', { class: 'btn-row' }, [
-        el('a', { class: 'btn', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(r.monthly) }, 'salary') }, `Plan a monthly budget with ${inr(r.monthly)}`),
-        el('button', { type: 'button', class: 'btn secondary', onclick: () => openInTaxComparison(r) }, 'Open the full tax comparison with these figures'),
-      ]),
-      disclaimer('tax'),
-    ]);
+    const breakup = el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
+      el('thead', {}, el('tr', {}, [el('th', {}, 'Component'), el('th', {}, 'Per year'), el('th', {}, 'Per month')])),
+      el('tbody', {}, [
+        ['Basic', r.basic], ['HRA', r.hra], r.conveyance ? ['Conveyance allowance', r.conveyance] : null, r.variable ? ['Variable pay', r.variable] : null, ['Special allowance (the balance)', r.special], r.employerNps ? ['Employer NPS (in salary, deducted under 80CCD(2))', r.employerNps] : null,
+        ['Gross salary', r.grossSalary, 'subtotal'],
+        ['Less: your PF (12% of Basic)', -r.employeePf], r.professionalTax ? ['Less: professional tax', -r.professionalTax] : null, [`Less: income tax, ${r.regime} regime (TDS)`, -r.tax],
+        ['In hand', r.annual, 'total'],
+      ].filter(Boolean).map(([label, v, cls]) => el('tr', { class: cls || '' }, [el('td', {}, label), el('td', { class: v < 0 ? 'neg' : '' }, inr(v)), el('td', { class: v < 0 ? 'neg' : '' }, inr(v / 12))]))),
+    ]));
+    setChildren(out, resultLayout({
+      key: 'salary',
+      answer: [
+        el('div', { class: 'stats' }, [
+          stat(r.variableApart ? 'Monthly in hand, fixed pay' : 'Monthly in hand', inr(r.monthly), 'hi'),
+          stat('Yearly in hand', inr(r.annual)),
+          stat(`Income tax, ${r.regime} regime`, inr(r.tax)),
+          stat(r.variableInCtc ? 'Take-home as % of CTC' : 'Take-home as % of package', pct(r.takeHomePct, 0)),
+        ]),
+        el('p', { class: 'explain' }, `You take home about ${inr(r.monthly)} a month${r.variableApart ? ' from fixed pay' : ''}, ${pct(r.takeHomePct, 0)} of your ${r.variableInCtc ? 'CTC' : 'package'}.`),
+      ],
+      why: [
+        el('p', {}, `Of a ${inr(r.ctc)} CTC, ${inr(r.grossSalary)} is paid to you as salary; employer PF of ${inr(r.employerPf)} and gratuity of ${inr(r.gratuity)} are yours but not paid monthly. From the salary come your own PF (${inr(r.employeePf)}), professional tax and ${inr(r.tax)} of income tax under the ${r.regime} regime.${Math.abs(otherInHand - r.annual) > 1 ? ` Under the ${otherRegime} regime you would take home ${inr(otherInHand / 12)} a month.` : ''}`),
+        r.variableApart ? el('p', {}, `Variable pay of ${inr(r.variable)}${r.variableInCtc ? ' (carved out of the CTC)' : ` on top of the ${inr(r.ctc)} CTC, so the package is ${inr(r.totalPackage)}`} is kept out of the monthly figure because it is paid separately: about ${inr(r.variableNet)} of it reaches you after tax, when it is paid and to the extent targets are met.`) : null,
+      ],
+      next: [
+        { label: 'Plan where it goes', note: `Put ${inr(r.monthly)} a month into a budget and see what is genuinely free`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(r.monthly) }, 'salary'), primary: true },
+        { label: 'Check the regime', note: 'Both regimes line by line, and what would flip the answer', onclick: () => openInTaxComparison(r) },
+        { label: 'What home can this carry?', note: 'The true cost of buying, then the loan', href: '/calculators/home' },
+      ],
+      details: [
+        breakup,
+        el('p', { class: 'muted small' }, `Conveyance allowance is fully taxable (the ₹1,600 a month exemption ended in 2018, except for employees with a disability). HRA exemption${r.inputs.salary.rentPaid ? ' has been applied from the rent you entered' : ' needs the rent you pay; enter it above'}. Variable pay is split out of the tax in proportion to pay. Meal cards and other perquisites are not modelled; add them to the CTC if they are paid in cash.`),
+      ],
+      detailsLabel: 'Show the component-by-component working',
+      foot: [disclaimer('tax')],
+    }));
   }
   render();
   return el('div', { class: 'calc' }, [inputs, el('div', {}, [out, exportCard])]);
