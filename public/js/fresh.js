@@ -13,7 +13,8 @@
  */
 import { BUILD } from './version.js';
 
-const FLAG = 'taxcompass.fresh-retry';
+const FLAG = 'taxcompass.fresh-retry';        // the page-versus-script check
+const LIVE_FLAG = 'taxcompass.fresh-live';    // the live-build check; kept apart so neither can clear the other's guard
 
 /** Resolves true when the page should stop booting because a reload is under way. */
 export async function ensureFresh() {
@@ -35,20 +36,32 @@ export async function ensureFresh() {
 
 /**
  * The second check: is the build we are running still the live one? Runs after the page is usable and
- * costs one small request; the answer never comes from the browser cache. Called from app.js on boot.
+ * costs one small request; the answer never comes from the browser cache.
+ *
+ * This one never reloads the page. An earlier version did, and it could loop: when a browser served a
+ * whole stale copy, the first check saw page and script agreeing and cleared its flag, this check saw
+ * the live build differ and reloaded, and round it went. A reload cannot fix a copy the browser keeps
+ * handing back anyway, so instead we warm the cache with the new files and offer the person a reload
+ * they choose. At most one notice per session.
  */
 export async function checkLiveBuild() {
-  let retried = false; try { retried = sessionStorage.getItem(FLAG) === 'live'; } catch {}
-  if (retried) return false;
+  let done = false; try { done = sessionStorage.getItem(LIVE_FLAG) === '1'; } catch {}
+  if (done) return false;
   try {
     const m = await fetch('/js/manifest.json', { cache: 'reload' }).then((r) => (r.ok ? r.json() : null));
     if (!m || !m.build || m.build === BUILD) return false;
-    try { sessionStorage.setItem(FLAG, 'live'); } catch {}
-    const notice = document.getElementById('loading');
-    if (notice) { notice.textContent = 'A newer version is available; loading it…'; notice.hidden = false; }
+    try { sessionStorage.setItem(LIVE_FLAG, '1'); } catch {}
+    // pull the new files into the cache so the reload the person chooses is the fast one
     await Promise.allSettled((m.files || []).map((f) => fetch(f, { cache: 'reload' })));
-    await fetch(location.pathname, { cache: 'reload' }).catch(() => {});
-    location.reload();
+    const notice = document.getElementById('loading');
+    if (notice) {
+      const btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'btn secondary'; btn.style.marginLeft = '10px'; btn.textContent = 'Reload';
+      btn.addEventListener('click', () => location.reload());
+      notice.textContent = 'A newer version of this site is available. ';
+      notice.append(btn);
+      notice.hidden = false;
+    }
     return true;
   } catch { return false; }
 }
