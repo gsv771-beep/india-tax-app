@@ -9,9 +9,16 @@
 import { el } from './util.js';
 
 let dataPromise = null;
-export function loadFunds() {
+export function loadFunds({ timeoutMs = 8000 } = {}) {
   if (!dataPromise) {
-    dataPromise = fetch('/data/mf_returns.json').then((r) => { if (!r.ok) throw new Error('fund data unavailable'); return r.json(); });
+    // the file is a megabyte of NAV history; on a slow connection a page must not wait for it forever
+    dataPromise = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('fund data timed out')), timeoutMs);
+      fetch('/data/mf_returns.json')
+        .then((r) => { if (!r.ok) throw new Error('fund data unavailable'); return r.json(); })
+        .then((d) => { clearTimeout(timer); resolve(d); })
+        .catch((e) => { clearTimeout(timer); dataPromise = null; reject(e); });   // let a later page try again
+    });
   }
   return dataPromise;
 }

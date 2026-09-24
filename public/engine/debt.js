@@ -7,6 +7,7 @@
  *   prepayVsInvest({...})                 -> { prepayRate, investRate, better, gap, why }
  *
  * A debt is { name, balance, ratePct, minPayment, kind?: 'card' | 'personal' | 'home' | ... }.
+ * A balance under a rupee counts as cleared: paise left over by a rounded EMI are not another month.
  * Interest is charged monthly on the outstanding balance, which is how every one of these actually works;
  * a credit card's 3.5% a month is shown as the 42%+ a year it really is.
  */
@@ -60,7 +61,7 @@ export function debtPlan({ debts, extra = 0, method = 'avalanche' }) {
       if (d.balance <= 0) continue;
       const pay = Math.min(d.minPayment, d.balance);
       d.balance -= pay;
-      if (d.balance <= 0.5) { d.balance = 0; freedAt.push({ name: d.name, month }); order.push(d.name); pool += d.minPayment - pay; }
+      if (d.balance <= 1) { d.balance = 0; freedAt.push({ name: d.name, month }); order.push(d.name); pool += d.minPayment - pay; }
     }
     // everything spare (plus the payments of debts already cleared) to the target
     const targets = list.filter((d) => d.balance > 0).sort(rank);
@@ -71,7 +72,7 @@ export function debtPlan({ debts, extra = 0, method = 'avalanche' }) {
       if (pool <= 0) break;
       const pay = Math.min(pool, d.balance);
       d.balance -= pay; pool -= pay;
-      if (d.balance <= 0.5) { d.balance = 0; freedAt.push({ name: d.name, month }); order.push(d.name); }
+      if (d.balance <= 1) { d.balance = 0; freedAt.push({ name: d.name, month }); order.push(d.name); }
     }
     schedule.push({ month, outstanding: Math.round(list.reduce((s, d) => s + d.balance, 0)), interestSoFar: Math.round(totalInterest) });
   }

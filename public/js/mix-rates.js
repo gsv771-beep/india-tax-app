@@ -13,7 +13,8 @@ export function baseRates(schemes) {
   const npsE = schemes.nps.historical_returns_by_asset_class.E_equity;
   return {
     equity: npsE['10yr'], equityWorst: Math.min(npsE['1yr'], npsE['3yr'], npsE['5yr']), safe: ss.ppf.rate, ssy: ss.ssy.rate,
-    sources: { equity: 'NPS equity (E) 10-year return, as published; fund history loading', safe: `PPF, ${ss._effective}` },
+    sources: { equity: 'NPS equity (E) 10-year return, as published', safe: `PPF, ${ss._effective}` },
+    fundsPending: true,
   };
 }
 
@@ -25,6 +26,9 @@ export async function loadMixRates(schemes) {
     const cats = summariseCategories(data, 5);
     const lc = cats.find((c) => c.category === 'Large Cap') || cats.find((c) => c.category === 'Index Fund (Equity)');
     if (!lc) return base;
-    return { ...base, equity: +lc.typical.toFixed(1), equityWorst: +lc.low.toFixed(1), sources: { ...base.sources, equity: `${lc.category} funds: median 5-year rolling return across ${lc.count} funds; worst 5-year window ${lc.low.toFixed(1)}%, best ${lc.high.toFixed(1)}%` } };
-  } catch { return base; }
+    return { ...base, fundsPending: false, equity: +lc.typical.toFixed(1), equityWorst: +lc.low.toFixed(1), sources: { ...base.sources, equity: `${lc.category} funds: median 5-year rolling return across ${lc.count} funds; worst 5-year window ${lc.low.toFixed(1)}%, best ${lc.high.toFixed(1)}%` } };
+  } catch {
+    // history unavailable: keep the published NPS figure and say so, rather than waiting on it
+    return { ...base, fundsPending: false, sources: { ...base.sources, equity: `${base.sources.equity} (fund history unavailable just now)` } };
+  }
 }

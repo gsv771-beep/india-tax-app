@@ -297,16 +297,16 @@ export function renderBudget(appData) {
   const right = el('div');
   root.append(left, right);
 
-  const incomeInput = el('input', { type: 'number', min: 0, step: 1000, value: state.income || '', placeholder: 'e.g. 120000' });
+  const incomeInput = el('input', { 'aria-label': 'Monthly take-home income in rupees', type: 'number', min: 0, step: 1000, value: state.income || '', placeholder: 'e.g. 120000' });
   incomeInput.addEventListener('input', () => { state.income = +incomeInput.value || 0; refresh(); });
 
   const expenseList = el('div', { class: 'rows' });
   const investList = el('div', { class: 'rows' });
 
   function expenseRow(e) {
-    const cat = el('select', {}, CATEGORIES.map((c) => el('option', { value: c, selected: c === e.category }, c)));
-    const note = el('input', { type: 'text', placeholder: 'note (optional)', value: e.note || '', maxlength: 60 });
-    const amt = el('input', { type: 'number', min: 0, step: 100, placeholder: '₹ / month', value: e.amount || '' });
+    const cat = el('select', { 'aria-label': 'Expense category' }, CATEGORIES.map((c) => el('option', { value: c, selected: c === e.category }, c)));
+    const note = el('input', { type: 'text', placeholder: 'note (optional)', value: e.note || '', maxlength: 60, 'aria-label': 'Note about this expense' });
+    const amt = el('input', { type: 'number', min: 0, step: 100, placeholder: '₹ / month', value: e.amount || '', 'aria-label': 'Amount per month in rupees' });
     const del = el('button', { type: 'button', class: 'icon-btn', title: 'Remove', 'aria-label': 'Remove expense' }, '×');
     cat.addEventListener('change', () => { e.category = cat.value; refresh(); });
     note.addEventListener('input', () => { e.note = note.value; save(); });
@@ -316,11 +316,11 @@ export function renderBudget(appData) {
     return row;
   }
   function investRow(inv) {
-    const type = el('select', {}, [el('option', { value: 'sip', selected: inv.type === 'sip' }, 'Mutual fund SIP'), el('option', { value: 'rd', selected: inv.type === 'rd' }, 'Recurring deposit')]);
-    const name = el('input', { type: 'text', placeholder: 'name (optional)', value: inv.name || '', maxlength: 60 });
-    const amt = el('input', { type: 'number', min: 0, step: 500, placeholder: '₹ / month', value: inv.amount || '' });
-    const rate = el('input', { type: 'number', min: 0, step: 0.1, value: inv.ratePct, title: inv.type === 'rd' ? 'RD interest rate % p.a.' : 'Expected return % p.a.' });
-    const yrs = el('input', { type: 'number', min: 1, max: 40, step: 1, value: inv.years, title: 'Years' });
+    const type = el('select', { 'aria-label': 'Investment type' }, [el('option', { value: 'sip', selected: inv.type === 'sip' }, 'Mutual fund SIP'), el('option', { value: 'rd', selected: inv.type === 'rd' }, 'Recurring deposit')]);
+    const name = el('input', { type: 'text', placeholder: 'name (optional)', value: inv.name || '', maxlength: 60, 'aria-label': 'Name of this investment' });
+    const amt = el('input', { type: 'number', min: 0, step: 500, placeholder: '₹ / month', value: inv.amount || '', 'aria-label': 'Amount invested per month in rupees' });
+    const rate = el('input', { type: 'number', min: 0, step: 0.1, value: inv.ratePct, title: inv.type === 'rd' ? 'RD interest rate % p.a.' : 'Expected return % p.a.', 'aria-label': 'Return per year, percent' });
+    const yrs = el('input', { type: 'number', min: 1, max: 40, step: 1, value: inv.years, title: 'Years', 'aria-label': 'Term in years' });
     const del = el('button', { type: 'button', class: 'icon-btn', title: 'Remove', 'aria-label': 'Remove investment' }, '×');
     type.addEventListener('change', () => { inv.type = type.value; if (inv.type === 'rd' && +rate.value > 9) { rate.value = 6.7; inv.ratePct = 6.7; } refresh(); });
     name.addEventListener('input', () => { inv.name = name.value; save(); });
@@ -337,7 +337,8 @@ export function renderBudget(appData) {
   for (const e of state.expenses) expenseList.append(expenseRow(e));
   for (const inv of state.investments) investList.append(investRow(inv));
 
-  left.append(
+  // append() turns a null into the text "null"; setChildren drops it
+  setChildren(left, [
     handoff ? handoffNote(handoff.from, `Income set to ${inr(state.income)} a month from `) : null,
     el('label', {}, ['Monthly take-home income (₹)', el('small', {}, ['after tax and deductions, as credited to your bank. ', el('a', { href: '/calculators/salary' }, 'Work it out from your CTC')]), incomeInput]),
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), el('div', { class: 'row-head' }, ['Category', 'Note', 'Amount', ''].map((t) => el('span', {}, t))), expenseList,
@@ -345,7 +346,7 @@ export function renderBudget(appData) {
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly investments'), el('div', { class: 'row-head invest-head' }, ['Type', 'Name', 'Amount', 'Return', 'Term', ''].map((t) => el('span', {}, t))), investList,
       el('div', { class: 'chips' }, [el('button', { type: 'button', onclick: () => addInvest('sip') }, '+ SIP'), el('button', { type: 'button', onclick: () => addInvest('rd') }, '+ Recurring deposit')])]),
     el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => { state = defaultState(); save(); root.replaceWith(renderBudget()); } }, 'Start over')),
-  );
+  ]);
 
   // right side
   const stats = el('div', { class: 'stats' });

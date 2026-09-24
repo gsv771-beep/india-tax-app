@@ -1,5 +1,5 @@
 import { loadJSON } from './util.js';
-import { PAGES, REMOVED, parsePath, metaFor } from './routes.js';
+import { PAGES, REMOVED, parsePath, metaFor, CALCS } from './routes.js';
 import { initTax } from './tax-ui.js';
 import { initCalculators, showCalc } from './calculators.js';
 import { initGlossaryTooltips } from './tooltips.js';
@@ -21,6 +21,24 @@ const started = new Set();
 let appData = null;
 
 let currentTab = null;
+/**
+ * The calculators panel carries the index heading in its markup, so a direct link to one tool used to
+ * show "What do you want to work out?" until the data arrived. Set the right heading, and a skeleton in
+ * place of the index, before anything is loaded.
+ */
+function primeCalcHeading(tab, sub) {
+  if (tab !== 'calculators') return;
+  const title = document.getElementById('calc-title');
+  const eyebrow = document.getElementById('calc-eyebrow');
+  const intro = document.getElementById('calc-intro');
+  const body = document.getElementById('calc-body');
+  if (!title || !CALCS[sub]) return;
+  eyebrow.textContent = 'Calculator';
+  title.textContent = CALCS[sub].title;
+  intro.textContent = CALCS[sub].desc;
+  if (body && !body.firstChild) body.append(Object.assign(document.createElement('div'), { className: 'skeleton calc-skeleton' }));
+}
+
 function showTab(tab) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
@@ -61,6 +79,7 @@ function route() {
   const { tab, sub } = parsePath(location.pathname);
   showTab(tab);
   setMeta(location.pathname);
+  primeCalcHeading(tab, sub);
   // The rest needs the data files; until they arrive the section heading and static form are already on screen.
   if (!appData) return;
   if (LAZY[tab] && !started.has(tab)) { started.add(tab); LAZY[tab](appData).catch((e) => console.error(e)); }

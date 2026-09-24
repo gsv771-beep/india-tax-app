@@ -15,16 +15,33 @@ import { el, formatIndian } from './util.js';
  * bare 1200000 is easy to mistype by a zero. The echo sits under the field and reads the Indian way.
  * Attached automatically by attachSlider, and by enhanceMoneyInputs for every other rupee field.
  */
-export function attachAmountEcho(input, { prefix = '₹' } = {}) {
+export function attachAmountEcho(input, { unit = 'inr' } = {}) {
   if (input.dataset.echo) return null;
   input.dataset.echo = '1';
   const echo = el('div', { class: 'amount-echo', 'aria-hidden': 'true' });
-  const paint = () => { const v = input.value; echo.textContent = v === '' || !Number.isFinite(+v) ? '' : prefix + formatIndian(Math.round(+v)); };
+  // a rate is not money: 8.5 must read "8.5%", not "₹9"
+  const show = (v) => (unit === 'pct' ? `${+(+v).toFixed(2)}%`
+    : unit === 'years' ? `${Math.round(+v)} year${Math.round(+v) === 1 ? '' : 's'}`
+    : unit === 'months' ? `${Math.round(+v)} month${Math.round(+v) === 1 ? '' : 's'}`
+    : unit === 'none' ? ''
+    : '₹' + formatIndian(Math.round(+v)));
+  const paint = () => { const v = input.value; echo.textContent = v === '' || !Number.isFinite(+v) ? '' : show(v); };
   input.addEventListener('input', paint);
   input.addEventListener('change', paint);
   paint();
   input.after(echo);
   return echo;
+}
+
+/** What a field is measured in, from its own label: rupees, percent, years or months. */
+export function unitOf(input) {
+  const label = input.closest('label');
+  const text = label ? label.textContent : '';
+  if (/₹/.test(text)) return 'inr';
+  if (/%/.test(text)) return 'pct';
+  if (/\byears?\b/i.test(text)) return 'years';
+  if (/\bmonths?\b/i.test(text)) return 'months';
+  return 'none';
 }
 
 /** Every rupee field under `root` gets the echo: a number input whose own label mentions the rupee sign. */
@@ -40,7 +57,7 @@ export function enhanceMoneyInputs(root) {
 
 const nice = (v) => { const p = Math.pow(10, Math.floor(Math.log10(Math.max(1, v)))); return Math.ceil((v * 1.25) / p) * p; };
 
-export function attachSlider(input, { min = 0, max, step }) {
+export function attachSlider(input, { min = 0, max, step, unit } = {}) {
   const range = el('input', { type: 'range', class: 'drag', min, max, step, value: input.value === '' ? min : input.value, tabindex: -1, 'aria-hidden': 'true' });
   const sync = () => {
     const v = input.value === '' ? +min : +input.value || 0;
@@ -52,7 +69,7 @@ export function attachSlider(input, { min = 0, max, step }) {
   input.addEventListener('change', sync);
   sync();
   input.after(range);
-  attachAmountEcho(input);
+  attachAmountEcho(input, { unit: unit || unitOf(input) });
   return range;
 }
 

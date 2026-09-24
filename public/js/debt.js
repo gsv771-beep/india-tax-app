@@ -22,7 +22,8 @@ export function renderDebt() {
   let saved = {}; try { saved = JSON.parse(localStorage.getItem(STORE) || '{}'); } catch {}
   let st = { debts: [], extra: '', method: 'avalanche', investReturnPct: 11, slabRate: 0.3, ...saved };
   if (!st.debts.length && !blank && !isEmptyProfile(p) && p.loans.length) {
-    st.debts = p.loans.filter((l) => l.outstanding > 0).map((l) => ({ name: LOAN_LABEL[l.type] || 'Loan', balance: Math.round(l.outstanding), ratePct: l.rate || TYPICAL[l.type] || 12, minPayment: Math.round(l.emi || 0), kind: l.type }));
+    // keep the EMI and the term exactly as the profile holds them: a rounded EMI adds a month to the payoff
+    st.debts = p.loans.filter((l) => l.outstanding > 0).map((l) => ({ name: LOAN_LABEL[l.type] || 'Loan', balance: Math.round(l.outstanding), ratePct: l.rate || TYPICAL[l.type] || 12, minPayment: l.emi > 0 ? Math.round(l.emi) : 0, exactPayment: l.emi || 0, monthsLeft: l.remainingMonths || 0, kind: l.type }));
   }
   if (!st.debts.length) st.debts = [{ name: 'Credit card', balance: '', ratePct: 42, minPayment: '', kind: 'card' }];
   const save = () => { clearBlankAfterReset('debt'); try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
@@ -37,7 +38,7 @@ export function renderDebt() {
     setChildren(rows, st.debts.map((d, i) => {
       const num = (key, label, attrs = {}) => {
         const input = el('input', { type: 'number', min: 0, step: attrs.step || 1, value: d[key] === '' ? '' : d[key], placeholder: attrs.placeholder });
-        input.addEventListener('input', () => { d[key] = input.value === '' ? '' : +input.value; save(); rerender(); });
+        input.addEventListener('input', () => { d[key] = input.value === '' ? '' : +input.value; if (key === 'minPayment') d.exactPayment = 0; save(); rerender(); });
         return el('label', {}, [label, input]);
       };
       const kind = el('select', {}, KINDS.map(([v, t]) => el('option', { value: v, selected: v === d.kind }, t)));
@@ -81,7 +82,7 @@ export function renderDebt() {
   function paint() {
     const live = st.debts.filter((d) => +d.balance > 0);
     if (!live.length) { setChildren(out, [beginPrompt('Add what you owe and the minimum you pay on each.')]); last = null; return; }
-    const debts = live.map((d) => ({ ...d, balance: +d.balance || 0, ratePct: +d.ratePct || 0, minPayment: +d.minPayment || 0 }));
+    const debts = live.map((d) => ({ ...d, balance: +d.balance || 0, ratePct: +d.ratePct || 0, minPayment: +d.exactPayment > 0 ? +d.exactPayment : +d.minPayment || 0 }));
     const extra = +st.extra || 0;
     const cmp = compareMethods({ debts, extra });
     const chosen = st.method === 'snowball' ? cmp.snowball : cmp.avalanche;

@@ -2,7 +2,7 @@
  * Capital gains calculator: pure computation (tested) and the UI.
  * Rules and the Cost Inflation Index come from data/capital_gains.json.
  */
-import { inr, pct, el, setChildren, disclaimer } from './util.js';
+import { inr, pct, el, setChildren, disclaimer, beginPrompt } from './util.js';
 import { calcExportCard } from './calc-export-card.js';
 
 // ---------- dates ----------
@@ -318,6 +318,8 @@ export function renderCapitalGains(app) {
       rows.push(el('tr', { class: 'total' }, [el('td', {}, relief.items.length ? 'Tax on this sale after reliefs' : 'Tax on this sale'), el('td', {}, inr(relief.total))]));
       if (relief.items.length) rows.push(el('tr', {}, [el('td', { class: 'muted' }, 'Tax without the reliefs'), el('td', { class: 'muted' }, inr(r.total))]));
     }
+    // nothing entered yet is not a loss of zero; ask rather than assert
+    if (!(+st.cost > 0) && !(+st.sale > 0)) { setChildren(out, [beginPrompt('Enter what you paid and what you sold it for to see the tax.')]); last = null; return; }
     setChildren(out, [
       el('div', { class: 'stats' }, [
         stat('Holding period', `${Math.floor(r.months / 12)} yr ${r.months % 12} mo`),

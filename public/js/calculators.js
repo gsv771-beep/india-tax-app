@@ -429,8 +429,20 @@ const VIEWS = {
     }
     syncFromPrice();
     [PR, DP, CM].forEach((f) => f.input.addEventListener('input', () => { syncFromPrice(); debounce(render, 80)(); }));
-    const writeBack = debounce(() => updateProfile((p) => fromLoanInputs(p, { principal: v(P), ratePct: v(R), years: v(Y) }), 'calc:emi'), 300);
-    [P, R, Y].forEach((f) => f.input.addEventListener('input', writeBack));
+    // Typing here is a what-if, not a fact: a loan you are only considering must not turn up in the
+    // profile, and from there in the debt tool, as one you already have. Saving is a deliberate act.
+    const saveNote = el('div', { class: 'muted small' });
+    const saveBtn = el('button', { type: 'button', class: 'btn secondary small-btn' }, 'Save this loan to my profile');
+    saveBtn.addEventListener('click', () => {
+      if (!(v(P) > 0)) { saveNote.textContent = 'Enter a loan amount first.'; return; }
+      updateProfile((p) => fromLoanInputs(p, { principal: v(P), ratePct: v(R), years: v(Y) }), 'calc:emi');
+      saveNote.textContent = `Saved: ${inr(v(P))} at ${v(R)}% for ${v(Y)} years. The debt and home tools now count it as a loan you have.`;
+    });
+    const saveRow = el('div', { class: 'opts' }, [
+      el('div', { class: 'opt-title' }, 'This is a what-if'),
+      el('p', { class: 'opt-help' }, 'Nothing here touches your profile. Save it only if this is a loan you actually hold, or are about to take.'),
+      el('div', { class: 'btn-row' }, [saveBtn]), saveNote,
+    ]);
     [P, R, Y, L, LM, A, AS].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
     M.input.addEventListener('change', render);
@@ -452,6 +464,7 @@ const VIEWS = {
         el('div', { class: 'sub' }, [el('div', { class: 'sub-title' }, 'Extra payment every year'), el('div', { class: 'two' }, [A.node, AS.node])]),
         M.node,
       ]),
+      saveRow,
     ], [out, calcExportCard('emi', () => lastEmi)]);
   },
 

@@ -24,8 +24,8 @@ export function initProfilePanel() {
   const toggle = el('button', { type: 'button', class: 'profile-toggle', 'aria-expanded': 'false', 'aria-controls': 'profile-body' }, [
     el('span', { class: 'profile-title' }, 'Your profile'), summary, chev,
   ]);
-  const badge = el('span', { class: 'privacy-badge', title: 'Saved only in this browser. TaxCompass has no account system and no database of users; nothing you type here is ever transmitted.' }, [
-    el('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒'), 'Stays on this device. Never sent anywhere.',
+  const badge = el('span', { class: 'privacy-badge', title: 'Saved in this browser. TaxCompass has no account system and no database of users; these figures are sent only when you choose to email your profile or a workbook to yourself.' }, [
+    el('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒'), 'Stays on this device unless you email it to yourself.',
   ]);
   const body = el('div', { id: 'profile-body', class: 'profile-body', hidden: true });
   root.append(el('div', { class: 'profile-bar' }, [toggle, badge]), body);
@@ -190,7 +190,7 @@ export function initProfilePanel() {
     setChildren(body, [
       el('p', { class: 'privacy-note' }, [
         el('strong', {}, 'Private by design. '),
-        'Everything below is stored only in this browser’s local storage and read by every tool on this site. It is never uploaded, there is no account, and TaxCompass keeps no copy. Email it to yourself to keep a copy or move to another device; clear it any time with the wipe link. ',
+        'Everything below is stored in this browser’s local storage and read by every tool on this site. There is no account, and TaxCompass keeps no copy. It leaves the device only when you deliberately send it: emailing your profile or a workbook passes it once through our email provider to reach your inbox, and feedback you send carries what you typed into the feedback box. Clear it any time with the wipe link. ',
         el('a', { href: '/about' }, 'How the site handles data'),
       ]),
       isEmptyProfile(p) ? el('p', { class: 'small muted' }, 'Tip: fill in the tax comparison or the in-hand salary calculator and this fills itself in.') : null,

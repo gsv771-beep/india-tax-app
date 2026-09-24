@@ -7,7 +7,7 @@ import { el } from './util.js';
 import { mixReturn, describeMix } from '../engine/mix.js';
 
 export function mixControl({ label, hint, value, cap = 100, rates, onChange }) {
-  const range = el('input', { type: 'range', min: 0, max: 100, step: 5, value });
+  const range = el('input', { type: 'range', min: 0, max: 100, step: 5, value, 'aria-label': typeof label === 'string' ? label : 'Equity share, percent' });
   const val = el('span', { class: 'slider-val' });
   const desc = el('div', { class: 'mix-desc' });
   const node = el('div', { class: 'mix-ctl' }, [
