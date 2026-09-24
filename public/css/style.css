@@ -162,6 +162,7 @@ html.non-production .site-header { top: var(--staging-h); }
 .profile-summary { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .9rem; }
 .profile-toggle .chev { transition: transform .15s; color: var(--muted); }
 .profile-panel.open .chev { transform: rotate(180deg); }
+.privacy-badge .badge-short { display: none; }
 .privacy-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: .8rem; font-weight: 600; white-space: nowrap; margin-right: 4px; }
 @media (prefers-color-scheme: dark) { .privacy-badge { color: #9fe0b8; } }
 .profile-body { border-top: 1px solid var(--line); padding: 14px 16px 16px; }
@@ -186,6 +187,10 @@ html.non-production .site-header { top: var(--staging-h); }
   .profile-bar { padding: 4px 6px; }
   .profile-summary { display: none; }
   .privacy-badge { font-size: .74rem; padding: 5px 10px; }
+  .privacy-badge .badge-long { display: none; }
+  .privacy-badge .badge-short { display: inline; }
+  .profile-bar { flex-wrap: nowrap; }
+  .profile-toggle { flex: 1 1 auto; }
   .profile-panel.open .profile-summary { display: none; }
 }
 
@@ -269,6 +274,21 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .hero { padding: 18px 0 8px; max-width: 70ch; }
 .hero h1 { font-size: clamp(2rem, 5vw, 3rem); line-height: 1.08; margin: 6px 0 14px; letter-spacing: -.01em; }
 .hero p { font-size: 1.08rem; color: var(--muted); margin: 0; }
+/* the question and the one input that answers it share the first screen: side by side on a wide
+   screen, stacked with the input straight under the headline on a phone */
+@media (min-width: 960px) {
+  .home-top { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 40px; align-items: start; }
+  .home-top .hero { padding-top: 26px; }
+  .home-top .snap, .home-top .snap-start { margin-top: 0; }
+  .home-top .snap-start .snap-form label { max-width: none; }
+}
+@media (max-width: 700px) {
+  .home-top .hero { padding-top: 0; }
+  .home-top .hero .eyebrow { display: none; }
+  .home-top .hero h1 { font-size: 1.9rem; margin: 0 0 8px; }
+  .home-top .hero p { font-size: 1rem; }
+  .home-top .snap-start { margin-top: 14px; }
+}
 .home-profile { margin-top: 12px !important; font-size: .95rem !important; color: var(--text) !important; padding: 10px 14px; background: var(--accent-soft); border-radius: var(--radius-sm); display: inline-block; }
 .decide-title { font-size: 1.1rem; margin: 26px 0 12px; }
 .calc-count { margin: -4px 0 10px; }
@@ -465,6 +485,12 @@ table.compare td.neg { color: var(--danger); }
 .subtabs a, .subtabs button { display: inline-block; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); text-decoration: none; font: inherit; font-weight: 500; cursor: pointer; transition: all .15s; }
 .subtabs a:hover, .subtabs button:hover { border-color: var(--accent-3); color: var(--accent); }
 .subtabs a.active, .subtabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px rgba(20, 83, 45, .25); }
+/* on a phone the tool list is one row you swipe, so the tool itself starts on the first screen */
+@media (max-width: 700px) {
+  .subtabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -22px 16px; padding: 2px 22px 4px; }
+  .subtabs::-webkit-scrollbar { display: none; }
+  .subtabs a, .subtabs button { flex: none; white-space: nowrap; padding: 7px 14px; font-size: .9rem; }
+}
 
 /* about */
 .about { display: grid; gap: 14px; max-width: 900px; }
@@ -757,7 +783,7 @@ details.section[open] summary::after { content: "–"; }
 .profile-toast span { flex: 1; }
 .profile-toast .toast-undo { background: #fff; color: var(--accent-ink, #12351f); border: 0; border-radius: 999px; padding: 5px 14px; font: inherit; font-weight: 700; cursor: pointer; }
 .profile-toast .toast-close { background: none; border: 0; color: rgba(255,255,255,.7); font-size: 1.2rem; cursor: pointer; padding: 0 2px; }
-@media (max-width: 560px) { .profile-toast { bottom: 76px; } }
+@media (max-width: 560px) { .profile-toast { bottom: 76px; width: calc(100vw - 32px); font-size: .85rem; } }
 #tax-next .insights { box-shadow: none; border: 0; padding: 0; margin: 0 0 12px; background: none; }
 #tax-next .insights h3 { font-size: 1rem; }
 #tax-next[hidden], #tax-working-fold[hidden], #tax-email[hidden] { display: none; }

@@ -3,7 +3,7 @@
  * picture (tax -> take-home -> after EMIs -> ten years of investing -> home budget -> goals), each line
  * linking to the tool that owns it. Without one it asks for the CTC alone and seeds the profile.
  */
-import { el, inr, pct, setChildren } from './util.js';
+import { el, inr, inrShort, pct, setChildren } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromSalaryStore } from '../engine/profile.js';
 import { attachSlider } from './amount-input.js';
@@ -55,7 +55,7 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
     show();
     return el('div', { class: 'card snap-start' }, [
       el('div', { class: 'snap-title' }, 'Start with one number'),
-      el('p', { class: 'muted' }, 'A salary or a year’s receipts is enough for a first picture: tax, what is left each month, what you could invest, what home you could carry. Refine it in any tool later; everything stays in your browser.'),
+      el('p', { class: 'muted' }, 'One figure gives the first picture: your tax, take-home, what you could invest and the home you could carry.'),
       el('div', { class: 'income-type' }, [el('span', { class: 'income-type-label' }, 'My income comes from'), el('span', { class: 'seg-group' }, segs)]),
       el('div', { class: 'snap-form' }, [ctcRow, recRow, kindRow, go]),
     ]);
@@ -73,13 +73,13 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
       row(s.kind === 'salary' ? 'Take-home' : 'Left after tax', `${inr(th.monthly)} a month`, s.kind === 'salary' ? `${pct(th.pctOfCtc)} of CTC after PF, professional tax and income tax.` : s.kind === 'business' ? `${s.business.presumptive ? `Presumptive income of ${inr(s.business.income)} on ${inr(s.business.receipts)} of receipts` : `Income of ${inr(s.business.income)} after expenses`}, less tax.` : `Salary take-home plus ${inr(s.business.income)} of business income, less tax.`, s.kind === 'salary' ? '/calculators/salary' : '/tax', s.kind === 'salary' ? 'See the split →' : 'How it is worked out →'),
       s.loans.count ? row('After EMIs', `${inr(s.loans.afterEmi)} a month`, `${s.loans.count} loan${s.loans.count > 1 ? 's' : ''}, ${inr(s.loans.emi)} a month in EMIs.`, '/calculators/emi', 'Prepay or step up →') : null,
       s.surplus.fromBudget || s.loans.count ? row(s.surplus.fromBudget ? 'Free each month' : 'Free before expenses', `${inr(s.surplus.monthly)} a month`, s.surplus.fromBudget ? 'From your budget: what is left after expenses and EMIs.' : 'Take-home after EMIs; the budget tool takes expenses off this.', '/calculators/budget', s.surplus.fromBudget ? 'Budget →' : 'Add expenses →') : null,
-      inv.monthly > 0 || inv.held > 0 ? row(`In ${inv.years} years`, inr(inv.fv), `${inv.monthly > 0 ? (inv.assumedShare ? `If you invested ${Math.round(inv.assumedShare * 100)}% of it, ${inr(inv.monthly)} a month,` : `Investing ${inr(inv.monthly)} a month`) : ''}${inv.monthly > 0 && inv.held > 0 ? ' plus ' : ''}${inv.held > 0 ? `the ${inr(inv.held)} you hold` : ''} at a ${inv.equityPct}% equity mix (about ${inv.ratePct.toFixed(1)}% a year); ${inr(inv.fvBad)} in a bad stretch.`, '/calculators/compare', 'Where to put it →') : null,
+      inv.monthly > 0 || inv.held > 0 ? row(`In ${inv.years} years`, inrShort(inv.fv), `${inv.monthly > 0 ? (inv.assumedShare ? `If you invested ${Math.round(inv.assumedShare * 100)}% of it, ${inr(inv.monthly)} a month,` : `Investing ${inr(inv.monthly)} a month`) : ''}${inv.monthly > 0 && inv.held > 0 ? ' plus ' : ''}${inv.held > 0 ? `the ${inr(inv.held)} you hold` : ''} at a ${inv.equityPct}% equity mix (about ${inv.ratePct.toFixed(1)}% a year); ${inrShort(inv.fvBad)} in a bad stretch.`, '/calculators/compare', 'Where to put it →') : null,
       h.kind === 'have'
         ? row('Home loan', `${inr(h.outstanding)} left`, `EMI ${inr(h.emi)} a month, about ${h.yearsLeft} years to go at ${h.ratePct}%.`, '/calculators/emi', 'What prepaying does →')
-        : h.price > 0 ? row('Rough home-price range', `about ${inr(Math.round(h.price / 100000) * 100000)}`, `A conservative first screen: total EMIs within 35% of take-home, at ${h.ratePct}% for 20 years, with ${inr(h.down)} down. Existing expenses, lender rules, stamp duty and GST can lower this.`, '/calculators/home', 'Check the true cost →') : null,
+        : h.price > 0 ? row('Rough home-price range', `about ${inrShort(h.price)}`, `A conservative first screen: total EMIs within 35% of take-home, at ${h.ratePct}% for 20 years, with ${inrShort(h.down)} down. Existing expenses, lender rules, stamp duty and GST can lower this.`, '/calculators/home', 'Check the true cost →') : null,
       s.goals.length
-        ? row('Goals', `${inr(s.goalSip)} a month`, s.goals.map((g) => `${g.name}: ${inr(g.target)} in ${g.years} years needs ${inr(g.sip)} a month`).join('; ') + '.', '/calculators/goal', 'Plan a goal →')
-        : row('Goals', 'none yet', 'A child’s education, a house, retirement: say what and when, and see the SIP.', '/calculators/goal', 'Add one →'),
+        ? row('Goals', `${inr(s.goalSip)} a month`, s.goals.map((g) => `${g.name}: ${inrShort(g.target)} in ${g.years} years needs ${inr(g.sip)} a month`).join('; ') + '.', '/calculators/goal', 'Plan a goal →')
+        : row('Goals', 'Add your first', 'A child’s education, a house, retirement: say what and when, and see the SIP that gets there.', '/calculators/goal', 'Plan a goal →'),
       s.emergency.fund > 0 ? row('Emergency fund', `${s.emergency.monthsCovered.toFixed(1)} months`, `${inr(s.emergency.fund)} against a take-home of ${inr(th.monthly)}; six months is the usual floor.`, null) : null,
     ];
     const range = el('input', { type: 'range', min: 0, max: 100, step: 10, value: equityPct, 'aria-label': 'Equity share' });

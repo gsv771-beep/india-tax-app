@@ -25,7 +25,7 @@ export function initProfilePanel() {
     el('span', { class: 'profile-title' }, 'Your profile'), summary, chev,
   ]);
   const badge = el('span', { class: 'privacy-badge', title: 'Saved in this browser. TaxCompass has no account system and no database of users; these figures are sent only when you choose to email your profile or a workbook to yourself.' }, [
-    el('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒'), 'Stays on this device unless you email it to yourself.',
+    el('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒'), el('span', { class: 'badge-long' }, 'Stays on this device unless you email it to yourself.'), el('span', { class: 'badge-short' }, 'Stays on this device'),
   ]);
   const body = el('div', { id: 'profile-body', class: 'profile-body', hidden: true });
   root.append(el('div', { class: 'profile-bar' }, [toggle, badge]), body);
@@ -36,11 +36,24 @@ export function initProfilePanel() {
   const setOpen = (v) => {
     open = v; body.hidden = !v; toggle.setAttribute('aria-expanded', String(v)); root.classList.toggle('open', v);
     if (v) renderBody();
+    syncVisible(getProfile());
   };
   toggle.addEventListener('click', () => setOpen(!open));
   window.addEventListener('taxcompass:navigate', () => { if (open) setOpen(false); });
 
-  const refreshSummary = (p) => { summary.textContent = profileSummary(p, inr); };
+  // A first-time visitor has nothing to see here, so the panel waits until something is saved.
+  // It stays up while open (a reset from inside it does not yank it away), and the footer's
+  // "Restore a saved profile" link opens it on a fresh device.
+  const syncVisible = (p) => { root.hidden = isEmptyProfile(p) && !open; };
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest && e.target.closest('[data-open-profile]');
+    if (!a) return;
+    e.preventDefault();
+    if (!open) setOpen(true);
+    root.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+
+  const refreshSummary = (p) => { summary.textContent = profileSummary(p, inr); syncVisible(p); };
   refreshSummary(getProfile());
 
   onProfileChange((p) => { refreshSummary(p); if (open) renderBody(); }, SOURCE);

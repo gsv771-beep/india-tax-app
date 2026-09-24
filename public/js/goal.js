@@ -3,7 +3,7 @@
  * terms, and see the SIP. Child goals date themselves from the child's age; every child in the profile
  * gets a row. Engine: engine/goal.js and engine/mix.js.
  */
-import { inr, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { inr, inrShort, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { GOAL_TYPES, goalType, goalPlan } from '../engine/goal.js';
 import { equityCap } from '../engine/mix.js';
 import { getProfile, updateProfile } from './profile-store.js';
@@ -110,12 +110,12 @@ export function renderGoal({ schemes }) {
       key: 'goal',
       answer: [
         el('div', { class: 'stats' }, [
-          stat(t.id === 'fixed' ? 'You need' : `It will cost in ${r.years} years`, inr(r.costThen)),
+          stat(t.id === 'fixed' ? 'You need' : `It will cost in ${r.years} years`, inrShort(r.costThen)),
           stat('SIP a month', inr(r.sip), 'hi'),
-          stat('Or invest once, today', inr(r.lump)),
+          stat('Or invest once, today', inrShort(r.lump)),
           r.equityPct > 0 ? stat('SIP if markets disappoint', inr(r.sipIfBad)) : stat(`Total you put in over ${r.years} years`, inr(r.invested)),
         ]),
-        el('p', { class: 'explain' }, `Put away ${inr(r.sip)} a month, or ${inr(r.lump)} once today, to have ${inr(r.costThen)} in ${r.years} years.`),
+        el('p', { class: 'explain' }, `Put away ${inr(r.sip)} a month, or ${inrShort(r.lump)} once today, to have ${inrShort(r.costThen)} in ${r.years} years.`),
       ],
       why: [
         el('p', {}, t.id === 'fixed'

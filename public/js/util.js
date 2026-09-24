@@ -9,6 +9,18 @@ export function inr(n, { sign = false } = {}) {
   return sign && v > 0 ? '+' + s : s;
 }
 
+/**
+ * A rupee amount the way people say it: ₹82.9 lakh, ₹1.24 crore. For projections, where rupee-exact
+ * figures claim a precision the assumptions cannot carry. Under a lakh it is the exact amount.
+ */
+export function inrShort(n) {
+  const v = Math.round(n || 0), a = Math.abs(v), neg = v < 0 ? '−' : '';
+  const trim = (x, d) => String(+x.toFixed(d));
+  if (a < 100000) return inr(v);
+  if (a < 9995000) return `${neg}₹${trim(a / 100000, 1)} lakh`;
+  return `${neg}₹${trim(a / 10000000, a < 999500000 ? 2 : 0)} crore`;
+}
+
 export function pct(x, digits = 2) {
   return (x * 100).toFixed(digits) + '%';
 }
@@ -82,11 +94,11 @@ const REDUCED = typeof matchMedia === 'function' && matchMedia('(prefers-reduced
 export function animateNumber(node, key, text) {
   const m = String(text).match(/-?[\d,]+(?:\.\d+)?/);
   const target = m ? parseFloat(m[0].replace(/,/g, '')) : NaN;
-  const prev = PREV.get(key);
-  PREV.set(key, target);
+  const before = m ? text.slice(0, m.index) : '', after = m ? text.slice(m.index + m[0].length) : '';
+  const last = PREV.get(key), prev = last && last.after === after ? last.target : null;   // no tween across ₹… lakh -> ₹… crore
+  PREV.set(key, { target, after });
   if (!m || REDUCED || prev == null || !Number.isFinite(prev) || prev === target) { node.textContent = text; return; }
   const decimals = (m[0].split('.')[1] || '').length;
-  const before = text.slice(0, m.index), after = text.slice(m.index + m[0].length);
   const useIndian = /,/.test(m[0]) || Math.abs(target) >= 1000;
   const fmt = (v) => useIndian && decimals === 0 ? formatIndian(Math.round(v)) : v.toFixed(decimals);
   const t0 = performance.now(), dur = 420;

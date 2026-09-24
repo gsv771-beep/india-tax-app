@@ -3,7 +3,7 @@
  * month closes the gap. Assumptions are folded away with plain defaults. A fair idea, not a plan.
  * Engine: engine/retirement.js.
  */
-import { inr, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { inr, inrShort, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { retirement, buildPlan, drawPlan } from '../engine/retirement.js';
 import { lineChart } from './charts.js';
 import { getProfile, updateProfile } from './profile-store.js';
@@ -118,12 +118,12 @@ export function renderRetirement({ schemes }) {
       answer: [
         el('div', { class: 'stats' }, [
           stat(ok ? 'Your money lasts' : 'Your money runs out at', ok ? `past ${r.planUntil}` : `age ${r.shortfallAt}`, ok ? 'hi' : 'bad'),
-          stat(`Saved by ${r.retireAt}`, inr(r.corpusAtRetirement)),
-          stat(`Needed at ${r.retireAt}`, inr(r.corpusNeeded)),
-          stat(ok ? `Left over at ${r.planUntil}` : 'Extra to save a month', ok ? inr(r.surplusAtEnd) : inr(r.gapSip), ok ? '' : 'hi'),
+          stat(`Saved by ${r.retireAt}`, inrShort(r.corpusAtRetirement)),
+          stat(`Needed at ${r.retireAt}`, inrShort(r.corpusNeeded)),
+          stat(ok ? `Left over at ${r.planUntil}` : 'Extra to save a month', ok ? inrShort(r.surplusAtEnd) : inr(r.gapSip), ok ? '' : 'hi'),
         ]),
         el('p', { class: 'explain' }, ok
-          ? `Yes: on these numbers the money lasts past ${r.planUntil}, with ${inr(r.surplusAtEnd)} to spare.`
+          ? `Yes: on these numbers the money lasts past ${r.planUntil}, with ${inrShort(r.surplusAtEnd)} to spare.`
           : `Not yet: the money runs out around ${r.shortfallAt}. Putting away ${inr(r.gapSip)} more a month from now closes the gap.`),
       ],
       why: [
