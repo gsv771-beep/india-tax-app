@@ -174,5 +174,24 @@ ok('preset follows the purchase type', presetFor('under_construction') === 'cons
   ok('stages not adding to 100% are flagged', bad.warnings.some((w) => /100%/.test(w)) && Math.abs(bad.pctTotal - 90) < 1e-9);
 }
 
+// ---- builder charges as a share of the price, before there is a cost sheet ----
+{
+  const est = charges.customary.builder_charges_estimate;
+  ok('builder-charge estimate defaults to 2.5%, within a 2-3% range', est.default_rate === 0.025 && est.low === 0.02 && est.high === 0.03);
+  const base = { city: 'Pune', price: 8000000, status: 'under_construction' };
+  const none = propertyCost(base, charges);
+  const withEst = propertyCost({ ...base, builderPct: 0.025 }, charges);
+  const line = withEst.lines.find((l) => l.id === 'builder_estimate');
+  near('2.5% of an 80 lakh flat is 2 lakh of builder charges', line && line.amount, 200000);
+  ok('the estimate is a builder line, labelled with its rate', line && line.kind === 'builder' && /2\.5%/.test(line.label));
+  near('the estimate adds exactly its amount to the total', withEst.total - none.total, 200000);
+  near('and shows in the builder subtotal', withEst.builder, 200000);
+  ok('stamp duty, registration and GST are unchanged by it', withEst.statutory === none.statutory);
+  ok('ready-to-move from a builder takes the estimate too', propertyCost({ ...base, status: 'ready', builderPct: 0.03 }, charges).builder === 240000);
+  ok('resale has no builder: the estimate is ignored', propertyCost({ ...base, status: 'resale', builderPct: 0.025 }, charges).builder === 0);
+  const both = propertyCost({ ...base, builderPct: 0.02, builderCharges: [{ label: 'Covered car parking', amount: 300000 }] }, charges);
+  near('the engine adds itemised charges and an estimate if both are given (the form sends one)', both.builder, 460000);
+}
+
 console.log(failures === 0 ? '\nAll home-buying tests passed.' : `\n${failures} home-buying test(s) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

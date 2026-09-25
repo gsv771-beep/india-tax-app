@@ -43,6 +43,11 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     plan: { preset: '', tranches: null },
     ...saved, ...fromProfile,
   };
+  // Builder charges: a share of the price until there is a cost sheet to itemise. Someone who already
+  // typed items keeps them; everyone else starts from the usual 2-3%.
+  const EST = charges.customary.builder_charges_estimate;
+  if (st.builderMode !== 'pct' && st.builderMode !== 'items') st.builderMode = (st.builderCharges || []).some((b) => +b.amount > 0) ? 'items' : 'pct';
+  if (st.builderPct === undefined || st.builderPct === '') st.builderPct = EST.default_rate * 100;
   const save = () => { clearBlankAfterReset('home'); try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
 
   // --- helpers ---
@@ -84,6 +89,13 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     builderList.append(node);
   };
   st.builderCharges.forEach(addBuilderRow);
+  const builderItemsTitle = el('div', { class: 'sub-title' });
+  const builderItems = el('div', { class: 'sub' }, [
+    builderItemsTitle,
+    el('p', { class: 'opt-help' }, 'Everything on the cost sheet that is not the price: parking, clubhouse, floor rise, maintenance advance. Type what you were quoted.'),
+    suggestions, builderList,
+    el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => { const row = { label: '', amount: 0 }; st.builderCharges.push(row); addBuilderRow(row); save(); } }, '+ Add a charge'),
+  ]);
 
   const F = {
     city: field('city', 'City', { options: PROPERTY_CITIES.map((c) => [c, c]) }),
@@ -95,6 +107,8 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     brokerageOnNew: field('brokerageOnNew', 'I am paying a broker on this builder purchase', { type: 'checkbox' }),
     interiors: field('interiors', 'Interiors and furnishing (₹)', { step: 50000 }, 'optional; not financed by the home loan'),
     legalAndValuation: field('legalAndValuation', 'Legal, title search and valuation (₹)', { step: 1000 }),
+    builderMode: field('builderMode', 'Builder charges', { options: [['pct', 'Estimate: % of the price'], ['items', 'Itemise: my cost sheet']] }, 'parking, clubhouse, floor rise, maintenance advance, corpus fund, connections'),
+    builderPct: field('builderPct', 'Estimate (% of the price)', { step: 0.25, max: 10 }, `usually ${EST.low * 100}% to ${EST.high * 100}%`),
 
     loan: field('loan', 'Loan you want (₹)', { step: 100000, placeholder: 'e.g. 6000000' }, 'the two below add up to the price; edit either'),
     downPayment: field('downPayment', 'Down payment (₹)', { step: 100000, placeholder: 'price less loan' }, 'your own money towards the price; charges come on top and are never financed'),
@@ -156,6 +170,12 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     F.brokerageOnNew.node.hidden = st.status === 'resale';
     F.brokerageRate.node.hidden = !(st.status === 'resale' || st.brokerageOnNew);
     fundingBlock.hidden = !st.funding;
+    const builder = st.status !== 'resale';
+    F.builderMode.node.hidden = !builder;
+    F.builderPct.node.hidden = !builder || st.builderMode !== 'pct';
+    // on resale there is no builder, but a society can still charge transfer and maintenance: the item list stays
+    builderItems.hidden = builder && st.builderMode !== 'items';
+    builderItemsTitle.textContent = builder ? 'Builder charges from the cost sheet' : 'Society charges';
   };
   attachSlider(F.price.input, { max: 50000000, step: 100000 }); attachSlider(F.loan.input, { max: 50000000, step: 100000 });
   const inputs = el('div', { class: 'card inputs' }, [
@@ -163,15 +183,11 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
       el('div', { class: 'opt-title' }, 'The property'),
       el('div', { class: 'two' }, [F.city.node, F.price.node]),
       F.status.node,
+      F.builderMode.node, F.builderPct.node,
+      builderItems,
     ]),
     fold('More about the property', [
       F.buyer.node, F.affordable.node, F.brokerageOnNew.node, F.brokerageRate.node,
-      el('div', { class: 'sub' }, [
-        el('div', { class: 'sub-title' }, 'Builder or society charges'),
-        el('p', { class: 'opt-help' }, 'Everything on the cost sheet that is not the price: parking, clubhouse, floor rise, maintenance advance. Type what you were quoted.'),
-        suggestions, builderList,
-        el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => { const row = { label: '', amount: 0 }; st.builderCharges.push(row); addBuilderRow(row); save(); } }, '+ Add a charge'),
-      ]),
       el('div', { class: 'two' }, [F.legalAndValuation.node, F.interiors.node]),
     ]),
     fundingBlock,
@@ -192,7 +208,9 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     const downPayment = st.funding ? Math.max(0, price - loan) : 0;
     const cost = propertyCost({
       city: st.city, price, status: st.status, buyer: st.buyer, affordable: !!st.affordable, brokerageRate: (+st.brokerageRate || 0) / 100, brokerageOnNew: !!st.brokerageOnNew,
-      builderCharges: st.builderCharges, interiors: +st.interiors, legalAndValuation: +st.legalAndValuation, loanAmount: loan,
+      builderCharges: st.status === 'resale' || st.builderMode === 'items' ? st.builderCharges : [],
+      builderPct: st.status !== 'resale' && st.builderMode === 'pct' ? (+st.builderPct || 0) / 100 : 0,
+      interiors: +st.interiors, legalAndValuation: +st.legalAndValuation, loanAmount: loan,
       processingFeeRate: (+st.processingFeeRate || 0) / 100, processingFeeCap: +st.processingFeeCap || 0,
     }, charges);
     if (!st.funding) return { cost, loan: 0, downPayment: 0, plan: null, emi: 0, tenureMonths: 0, cashNeeded: cost.total };
