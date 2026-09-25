@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="aca5452cc8">
+  <meta name="tc-build" content="cc6c36e2ad">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TaxCompass India: know the number, make the decision</title>
-  <meta name="description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
+  <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
+  <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
   <link rel="canonical" href="https://taxcompass.org/tax">
   <meta property="og:site_name" content="TaxCompass India">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="TaxCompass India: know the number, make the decision">
-  <meta property="og:description" content="Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.">
+  <meta property="og:title" content="TaxCompass India: in-hand salary and old vs new tax regime from your CTC">
+  <meta property="og:description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
   <meta property="og:url" content="https://taxcompass.org/">
   <meta name="theme-color" content="#14532d">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -65,8 +65,8 @@
     <div class="wrap header-inner">
       <a href="/" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span><span class="brand-tag">Know the number. Make the decision.</span></a>
       <nav class="tabs" aria-label="Sections">
-        <a href="/calculators" data-tab="calculators">Money tools</a>
-        <a href="/tax" data-tab="tax">Tax comparison</a>
+        <a href="/tax" data-tab="tax">Tax &amp; salary</a>
+        <a href="/calculators" data-tab="calculators">More tools</a>
         <a href="/nps" data-tab="nps">NPS</a>
         <a href="/glossary" data-tab="glossary">Glossary</a>
         <a href="/about" data-tab="about">About</a>
@@ -80,19 +80,16 @@
 
     <!-- ============ HOME ============ -->
     <section id="home" class="panel" hidden>
-      <div class="home-top">
-        <div class="hero">
-          <span class="eyebrow">TaxCompass India</span>
-          <h1>Know the number.<br>Make the decision.</h1>
-          <p>Tax, take-home, loans, investing and retirement for your situation, in two minutes. Free, no sign-up, and what you type stays on this device.</p>
-        </div>
-        <div id="home-snapshot" hidden></div>
+      <div class="hero hero-quick">
+        <span class="eyebrow">In-hand salary · Old vs new regime · FY 2026-27</span>
+        <h1>What you take home, and which tax regime wins.</h1>
+        <p>Type your CTC and the answer shows as you type. Free, no sign-up, and nothing you type leaves this device.</p>
       </div>
-      <h2 class="decide-title">What are you trying to decide?</h2>
+      <div id="home-quick" class="quick-slot"></div>
+      <div id="home-snapshot" hidden></div>
+      <h2 class="decide-title">More decisions</h2>
       <div class="decide-grid">
-        <a class="decide" href="/tax"><span class="ico" aria-hidden="true">💰</span><strong>Which tax regime?</strong><span>Old or new, line by line, and how far you are from the other one winning.</span></a>
         <a class="decide" href="/calculators/home"><span class="ico" aria-hidden="true">🏠</span><strong>Should I buy this home?</strong><span>What it really costs with stamp duty, GST and registration, then the loan and EMI.</span></a>
-        <a class="decide" href="/calculators/salary"><span class="ico" aria-hidden="true">💼</span><strong>What is my salary after tax?</strong><span>CTC to monthly take-home, under the regime that suits you.</span></a>
         <a class="decide" href="/calculators/compare"><span class="ico" aria-hidden="true">📈</span><strong>Where should this money go?</strong><span>PPF, FD, funds, NPS and more, after tax, for your horizon and risk.</span></a>
         <a class="decide" href="/calculators/emi"><span class="ico" aria-hidden="true">🏦</span><strong>Can I afford this EMI?</strong><span>EMI, total interest, and what prepaying or stepping up does.</span></a>
         <a class="decide" href="/calculators/goal"><span class="ico" aria-hidden="true">🎯</span><strong>Will I reach my goal?</strong><span>A child’s education, a house, a car: what it will cost, and the SIP that gets there.</span></a>
@@ -124,14 +121,11 @@
       <div class="panel-head">
         <span class="eyebrow">Income tax</span>
         <h1>Old regime or new regime?</h1>
-        <p>Answer a few questions and see both regimes computed side by side, line by line, so you can see exactly where the difference comes from.</p>
-        <div class="facts">
-          <span>FY 2025-26 and FY 2026-27</span>
-          <span>Every deduction and exemption, both regimes</span>
-          <span>Shows how far you are from the other regime winning</span>
-        </div>
+        <p>Type your CTC to see which regime leaves more in your hand, and whether your deductions can make the old one win.</p>
       </div>
+      <div id="tax-quick" class="quick-slot"></div>
 
+      <div class="detail-body">
       <div class="tax-layout">
         <div class="tax-left">
         <form id="tax-form" class="tax-form" autocomplete="off">
@@ -353,6 +347,7 @@
           <div id="tax-email" hidden></div>
           <div class="disclaimer" role="note"><strong>Please note.</strong> This is an estimate for information only and is not tax advice. Please consult your tax consultant or chartered accountant before taking any decision.</div>
         </div>
+      </div>
       </div>
     </section>
 

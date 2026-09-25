@@ -16,7 +16,7 @@ const SOURCE = 'calc:salary';
 /**
  * p: { ctc, basicPct (of CTC), hraPct (of basic), conveyance (per year), variable (per year),
  *      variableInCtc (default true; false = paid on top of the CTC), variableMonthly, includeEmployerPf, includeGratuity, employerNpsPct (of basic),
- *      professionalTax, city, rentPaid, other80c, nps1b, healthSelf, ageBand, regime: 'best'|'old'|'new', fy }
+ *      professionalTax, city, rentPaid, other80c, nps1b, healthSelf, homeLoanInterest, ageBand, regime: 'best'|'old'|'new', fy }
  *
  * Special allowance is the balancing figure: everything in the CTC that the other components do not
  * account for. Conveyance allowance and variable pay are ordinary taxable salary (the old Rs 1,600 a
@@ -46,6 +46,8 @@ export function salaryBreakdown(p, rates) {
     salary: { gross: grossSalary + employerNps, basicDa: basic, hraReceived: hra, rentPaid: +p.rentPaid || 0, city: p.city || 'Other', professionalTax },
     employer: { npsContribution: employerNps, isGovernment: false, totalRetirementContribution: employerPf + employerNps },
     deductions: { includeEpf: true, epfEmployee: employeePf, s80c: +p.other80c || 0, nps1b: +p.nps1b || 0, healthSelf: +p.healthSelf || 0 },
+    // not asked on this page; carried from the profile so the regime chosen here matches the tax page
+    houseProperty: { selfOccupiedInterest: Math.max(0, +p.homeLoanInterest || 0), letOut: { rent: 0, municipalTax: 0, interest: 0 } },
   };
   const cmp = compareRegimes(inputs, rates);
   const regime = p.regime === 'old' || p.regime === 'new' ? p.regime : (cmp.better === 'old' ? 'old' : 'new');

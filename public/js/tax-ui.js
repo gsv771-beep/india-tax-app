@@ -24,7 +24,7 @@ export function initTax({ rates, onboarding }) {
   const flags = { ...DEFAULT_FLAGS };
 
   restore(form);
-  applyProfile(form, getProfile());
+  applyProfile(form, getProfile(), { initial: true });
   // a drag line under the salary, and ₹ | % switches for the two figures people know as a share
   { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
     attachSlider(gross, { max: 100000000, step: 50000 });
@@ -64,6 +64,16 @@ export function initTax({ rates, onboarding }) {
   render(first, rates, flags);
   // Existing users: a form saved before the shared profile existed seeds it once.
   if (isEmptyProfile(getProfile()) && (first.salary?.gross > 0)) updateProfile((p) => fromTaxInputs(p, first), 'tax');
+  // Professional tax and home-loan interest joined the profile later: a figure already typed on this
+  // form is kept (applyProfile left it alone above) and becomes the profile's, so every tool agrees.
+  else if (!isEmptyProfile(getProfile())) {
+    const pt = first.salary?.professionalTax, hl = first.houseProperty?.selfOccupiedInterest;
+    updateProfile((p) => {
+      if (pt > 0) p.tax.professionalTax = pt;
+      if (hl > 0 && !p.loans.some((l) => l.type === 'home' && l.propertyUse === 'self_occupied')) p.tax.homeLoanInterest = hl;
+      return p;
+    }, 'tax');
+  }
 }
 
 // ---- the salary / business / both toggle ----
@@ -217,9 +227,12 @@ function showTopics(form) {
 }
 
 // Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
-const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.rentPaid', 'salary.city', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
+const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.rentPaid', 'salary.city', 'salary.professionalTax', 'houseProperty.selfOccupiedInterest', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
 
-function applyProfile(form, profile) {
+// Shared later than the rest: on first load a figure already typed here wins over the profile's default.
+const TYPED_WINS_ON_LOAD = new Set(['salary.professionalTax', 'houseProperty.selfOccupiedInterest']);
+
+function applyProfile(form, profile, { initial = false } = {}) {
   if (isEmptyProfile(profile)) return;
   const t = toTaxInputs(profile);
   // the profile's gross already contains the bonus, so the form must not add it a second time
@@ -227,11 +240,11 @@ function applyProfile(form, profile) {
   if (onTop) onTop.value = 'false';
   const paths = [...PROFILE_PATHS];
   const home = profile.loans.filter((l) => l.type === 'home');
-  if (home.some((l) => l.propertyUse === 'self_occupied')) paths.push('houseProperty.selfOccupiedInterest');
   if (home.some((l) => l.propertyUse === 'let_out')) paths.push('houseProperty.letOut.interest');
   for (const path of paths) {
     const field = form.querySelector(`[data-path="${path}"]`);
     if (!field) continue;
+    if (initial && TYPED_WINS_ON_LOAD.has(path) && +field.value > 0) continue;
     const v = path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), t);
     if (v === undefined) continue;
     if (field.type === 'checkbox') field.checked = !!v;

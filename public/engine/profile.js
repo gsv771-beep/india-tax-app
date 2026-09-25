@@ -10,7 +10,8 @@
  *   business:    receipts (per year), kind ('profession' | 'business'), presumptive, digitalSharePct, expenses, tds
  *   income:      ctc, basic, hra, otherAllowances, employerNps, employerPf, gratuity (provision inside CTC),
  *                esop (annual perquisite value). ctc = the sum of the rest.
- *   tax:         fy, regime ('old' | 'new'), s80cUsed, s80dUsed, nps1bUsed, otherDeductions, ageBand
+ *   tax:         fy, regime ('old' | 'new'), s80cUsed, s80dUsed, nps1bUsed, otherDeductions, ageBand,
+ *                professionalTax (a year), homeLoanInterest (self-occupied, a year: used when no home loan is listed)
  *   location:    city, metro (bool), rentPaid, housing ('rent' | 'own')
  *   loans:       [{ type, outstanding, rate (% p.a.), remainingMonths, emi (monthly), propertyUse }]
  *   investments: corpus by bucket: equity, debt, epf, ppf, nps, fd, gold
@@ -34,7 +35,7 @@ export function emptyProfile() {
     person: { age: 0, creditScore: 0, employment: 'salaried' },
     income: { ctc: 0, basic: 0, hra: 0, conveyance: 0, variablePay: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
     business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0 },
-    tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60' },
+    tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60', professionalTax: 2400, homeLoanInterest: 0 },
     location: { city: 'Other', metro: false, rentPaid: 0, housing: 'rent' },
     loans: [],
     investments: { equity: 0, debt: 0, epf: 0, ppf: 0, nps: 0, fd: 0, gold: 0 },
@@ -187,13 +188,15 @@ export function incomeTypeOf(p) {
 /** Shape used by the old-vs-new comparison page (tax-engine.js `emptyInputs`). */
 export function toTaxInputs(p) {
   const home = p.loans.filter((l) => l.type === 'home');
-  const sop = home.filter((l) => l.propertyUse === 'self_occupied').reduce((s, l) => s + nextYearInterest(l), 0);
+  const listed = home.filter((l) => l.propertyUse === 'self_occupied').reduce((s, l) => s + nextYearInterest(l), 0);
+  // a listed loan's own figures win; otherwise the interest someone typed without the loan's details
+  const sop = listed > 0 ? listed : num(p.tax.homeLoanInterest);
   const letOut = home.filter((l) => l.propertyUse === 'let_out').reduce((s, l) => s + nextYearInterest(l), 0);
   return {
     fy: p.tax.fy, resident: true, ageBand: p.tax.ageBand, hasBusinessIncome: false,
     incomeType: incomeTypeOf(p),
     business: { income: 0, receipts: p.business.receipts, kind: p.business.kind, presumptive: p.business.presumptive, digitalSharePct: p.business.digitalSharePct, expenses: p.business.expenses, tdsDeducted: p.business.tds },
-    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: 0 },
+    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: num(p.tax.professionalTax) },
     employer: { npsContribution: p.income.employerNps, isGovernment: false, totalRetirementContribution: p.income.employerPf + p.income.employerNps },
     perquisites: { other: 0 },
     houseProperty: { selfOccupiedInterest: Math.round(sop), letOut: { rent: 0, municipalTax: 0, interest: Math.round(letOut) } },
@@ -210,6 +213,7 @@ export function toSalaryStore(p) {
     includeEmployerPf: i.employerPf > 0, includeGratuity: i.gratuity > 0, employerNpsPct: i.basic ? +(100 * i.employerNps / i.basic).toFixed(4) : 0,
     city: p.location.city, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0,
     other80c: p.tax.s80cUsed, nps1b: p.tax.nps1bUsed, healthSelf: p.tax.s80dUsed, ageBand: p.tax.ageBand, regime: p.tax.regime,
+    professionalTax: num(p.tax.professionalTax), homeLoanInterest: toTaxInputs(p).houseProperty.selfOccupiedInterest,
   };
 }
 
@@ -237,6 +241,9 @@ export function fromTaxInputs(p, t) {
   out.tax.s80cUsed = num(t.deductions?.s80c);
   out.tax.nps1bUsed = num(t.deductions?.nps1b);
   out.tax.s80dUsed = num(t.deductions?.healthSelf); // parents' cover stays with the tax form
+  out.tax.professionalTax = num(t.salary?.professionalTax);
+  // home-loan interest typed on the form is kept only when no self-occupied loan is listed (a listed loan's schedule wins)
+  if (!out.loans.some((l) => l.type === 'home' && l.propertyUse === 'self_occupied')) out.tax.homeLoanInterest = num(t.houseProperty?.selfOccupiedInterest);
   if (t.incomeType === 'salary' || t.incomeType === 'business' || t.incomeType === 'both') out.person.employment = t.incomeType === 'salary' ? 'salaried' : t.incomeType === 'business' ? 'self_employed' : 'both';
   if (t.business) { const b = t.business; out.business = { receipts: num(b.receipts), kind: b.kind === 'business' ? 'business' : 'profession', presumptive: b.presumptive !== false, digitalSharePct: Math.max(0, Math.min(100, num(b.digitalSharePct) || (b.digitalSharePct === undefined ? 100 : 0))), expenses: num(b.expenses), tds: num(b.tdsDeducted) }; }
   if (t.salary?.city) { out.location.city = t.salary.city; out.location.metro = METRO_CITIES.includes(t.salary.city); }
@@ -261,6 +268,7 @@ export function fromSalaryStore(p, st, r) {
   out.tax.s80cUsed = num(st.other80c);
   out.tax.nps1bUsed = num(st.nps1b);
   out.tax.s80dUsed = num(st.healthSelf);
+  if (st.professionalTax != null) out.tax.professionalTax = num(st.professionalTax);
   if (st.city) { out.location.city = st.city; out.location.metro = METRO_CITIES.includes(st.city); }
   out.location.rentPaid = num(st.rentPaid);
   if (out.location.rentPaid > 0) out.location.housing = 'rent';

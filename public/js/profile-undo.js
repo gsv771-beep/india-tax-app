@@ -10,11 +10,13 @@
  */
 import { getProfile, updateProfile } from './profile-store.js';
 import { inr } from './util.js';
+import { isEmptyProfile } from '../engine/profile.js';
 
 const LABEL = {
   tax: 'the tax comparison', 'calc:salary': 'the in-hand salary calculator', 'calc:emi': 'the EMI calculator',
   'calc:home': 'the home-buying tool', 'calc:goal': 'the goal planner', 'calc:retirement': 'the retirement planner',
   snapshot: 'the home page', 'calc:budget': 'the budget',
+  'quick:home': 'the home page', 'quick:tax': 'the tax page', 'quick:salary': 'the in-hand salary page',
 };
 const QUIET = new Set(['panel', 'undo', 'wipe', 'import', 'fixture', 'unknown']);
 const BURST_MS = 2500;        // writes closer together than this are one change
@@ -91,6 +93,8 @@ export function initProfileUndo() {
     burstSource = src; burstEnd = now + BURST_MS;
     const what = describe(before, next);
     if (!what.length) return;
+    // a first figure typed into the quick answer overwrites nothing; the toast would only cover the answer
+    if (src.startsWith('quick:') && isEmptyProfile(before)) return;
     show(`Saved to your profile from ${LABEL[src]}: ${what.slice(0, 2).join(', ')}${what.length > 2 ? ' and more' : ''}.`, true);
   });
 }
