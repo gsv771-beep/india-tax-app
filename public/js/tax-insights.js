@@ -17,9 +17,13 @@ function firstTrue(lo, hi, pred) {
   return hi;
 }
 
-/** Deductions and exemptions the old regime is currently using (what could be "lost"). */
+/**
+ * Deductions and exemptions the old regime is currently using (what could be "lost"). Self-occupied
+ * home-loan interest counts once, as the loss actually set off against other income: its own line
+ * (hp_interest_sop) is the same money before the set-off, so adding both counted it twice.
+ */
 export function claimedOldRegime(oldIncome) {
-  const lineIds = new Set(['hra', 'lta', 'professional_tax', 'hp_interest_sop']);
+  const lineIds = new Set(['hra', 'lta', 'professional_tax']);
   const fromLines = oldIncome.lines.filter((l) => lineIds.has(l.id)).reduce((s, l) => s + Math.abs(l.amount), 0);
   return oldIncome.viaTotal + fromLines + Math.abs(oldIncome.hpLossSetOff || 0);
 }
