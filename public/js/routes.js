@@ -13,6 +13,7 @@ export const PAGES = {
   calculators: { title: 'Money tools: tax, salary, loans, investing and goals', desc: 'Practical calculators for salary, expenses, EMI, SIP, home buying, capital gains, debt, retirement and goals, connected by one private profile in your browser.' },
   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
   glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
+  salary: { title: 'In-hand salary by CTC, ₹3 lakh to ₹2 crore (FY 2026-27)', desc: 'What every common CTC pays in hand each month, the income tax in the old and new regimes, and the deductions at which the old regime wins. Pick your salary for the full breakup.' },
   about: { title: 'About, sources and methodology', desc: 'How TaxCompass India computes its numbers, where the data comes from, how fresh it is, and what stays private.' },
 };
 
@@ -28,6 +29,29 @@ export const CALCS = {
   debt: { title: 'Which loan to clear first, and what it really costs', desc: 'Credit cards and loans in one place: the order that clears them fastest, the real annual cost of each, the months and interest it saves, and whether the next spare rupee should prepay a loan or be invested.' },
   goal: { title: 'Goal planner', desc: 'A child’s education or wedding, a house, a car: what it costs today, what it will cost when it arrives, and the SIP that gets there at the equity share you choose.' },
 };
+
+/**
+ * The salary pages: one per common CTC, at /salary/<n>-lakh or /salary/<n>-crore. The list is the
+ * sitemap; any other figure falls back to the index rather than minting endless near-duplicates.
+ */
+export const SALARY_CTCS = [
+  ...Array.from({ length: 28 }, (_, i) => (i + 3) * 100000),                        // ₹3 lakh to ₹30 lakh, every lakh
+  3200000, 3500000, 4000000, 4500000, 5000000, 6000000, 7000000, 7500000, 8000000, 9000000,
+  10000000, 15000000, 20000000,
+];
+export function salarySlug(ctc) {
+  return ctc >= 10000000 ? `${+(ctc / 10000000).toFixed(2)}-crore` : `${+(ctc / 100000).toFixed(2)}-lakh`;
+}
+export function ctcFromSlug(slug) {
+  const m = /^(\d+(?:\.\d+)?)-(lakh|crore)$/.exec(String(slug || ''));
+  if (!m) return null;
+  const ctc = Math.round(+m[1] * (m[2] === 'crore' ? 10000000 : 100000));
+  return SALARY_CTCS.includes(ctc) ? ctc : null;
+}
+/** "₹18 lakh", "₹1.5 crore": how the salary pages name a CTC. */
+export function ctcWords(ctc) {
+  return ctc >= 10000000 ? `₹${+(ctc / 10000000).toFixed(2)} crore` : `₹${+(ctc / 100000).toFixed(2)} lakh`;
+}
 
 export const ALIASES = { schemes: 'nps', decide: 'calculators', decisions: 'calculators' };
 /** Removed pages and where they went; public/_redirects carries the same map for the edge. */
@@ -45,6 +69,13 @@ export function metaFor(pathname) {
   const clean = String(pathname || '/').replace(/\/+$/, '') || '/';
   const target = REMOVED[clean] || (clean === '/index.html' ? '/' : clean);
   const { tab, sub } = parsePath(target);
+  if (tab === 'salary') {
+    const ctc = ctcFromSlug(sub);
+    if (ctc) {
+      const w = ctcWords(ctc);
+      return { title: `${w} salary in hand per month, and tax in the old vs new regime (FY 2026-27) · ${SITE}`, desc: `What a ${w} CTC pays in hand each month, the income tax in each regime, and the deductions at which the old regime wins, with the full salary breakup.`, url: `${ORIGIN}/salary/${salarySlug(ctc)}`, tab, sub, ctc };
+    }
+  }
   const page = tab === 'calculators' && CALCS[sub] ? CALCS[sub] : PAGES[tab];
   const path = tab === 'home' ? '/' : tab === 'calculators' ? (CALCS[sub] ? `/calculators/${sub}` : sub ? '/calculators/emi' : '/calculators') : `/${tab}`;
   return { title: tab === 'home' ? page.title : `${page.title} · ${SITE}`, desc: page.desc, url: ORIGIN + path, tab, sub };

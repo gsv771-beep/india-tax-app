@@ -9,7 +9,7 @@
  * 50% of Basic, employer PF and gratuity inside the CTC, ₹2,400 professional tax), so following a link
  * from here to that calculator shows the same figure. Pure; no DOM.
  */
-import { salaryBreakdown } from './salary.js';
+import { salaryBreakdown } from '../engine/salary-split.js';
 import { compareRegimes, mergeInputs } from './tax-engine.js';
 import { breakEven } from './tax-insights.js';
 

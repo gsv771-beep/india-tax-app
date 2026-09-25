@@ -43,8 +43,8 @@ function primeCalcHeading(tab, sub) {
 
 function showTab(tab, sub) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
-  // the in-hand salary page lives under /calculators but belongs with the tax page in the menu
-  const navTab = tab === 'calculators' && sub === 'salary' ? 'tax' : tab;
+  // the in-hand salary page and the salary pages belong with the tax page in the menu
+  const navTab = (tab === 'calculators' && sub === 'salary') || tab === 'salary' ? 'tax' : tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === navTab));
   if (tab !== currentTab) {
     const panel = document.getElementById(tab);
@@ -88,6 +88,7 @@ function route() {
   if (!appData) return;
   if (LAZY[tab] && !started.has(tab)) { started.add(tab); LAZY[tab](appData).catch((e) => console.error(e)); }
   if (tab === 'calculators') showCalc(sub);
+  if (tab === 'salary') import('./salary-pages.js').then((m) => m.showSalaryPage(sub, appData)).catch((e) => console.error(e));
   window.dispatchEvent(new CustomEvent('routechange', { detail: { tab, sub } }));
 }
 
