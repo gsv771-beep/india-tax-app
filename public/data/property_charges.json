@@ -121,6 +121,7 @@
     "brokerage": { "default_rate": 0.01, "note": "Brokerage on resale is 1% to 2% of the price, sometimes plus GST at 18% on the fee. Nil on most builder sales (the builder pays the channel partner).", "confidence": "corroborated" },
     "legal_and_valuation": { "default_amount": 10000, "note": "Lawyer's title search and the lender's valuation and legal fees, typically ₹5,000 to ₹15,000 combined.", "confidence": "corroborated" },
     "loan_processing_fee": { "default_rate": 0.005, "cap": 25000, "note": "Most lenders charge 0.25% to 0.5% of the loan, often capped; some run flat-fee or zero-fee offers.", "confidence": "corroborated" },
+    "builder_charges_estimate": { "default_rate": 0.025, "low": 0.02, "high": 0.03, "note": "On a builder's cost sheet, car parking, clubhouse and amenities, floor rise and preferential location, maintenance advance, corpus fund and electricity and water connections usually add 2% to 3% of the price. Some of these carry 18% GST. Use the builder's own cost sheet when you have it." },
     "builder_charge_suggestions": [
       "Covered car parking", "Clubhouse / amenities", "Preferential location charge (PLC)", "Floor-rise charge",
       "Maintenance advance (12-24 months)", "Corpus / sinking fund", "Electricity, water and sewerage connection", "Legal and documentation charge", "Society formation"

@@ -12,6 +12,8 @@
  *   brokerageRate: 0.01         (applies to resale only unless brokerageOnNew is true)
  *   brokerageOnNew: bool
  *   builderCharges: [{ label, amount }]   free-form, rupees
+ *   builderPct: 0.025           builder charges as a share of the price, when there is no cost sheet yet
+ *                               (builder purchases only; ignored on resale)
  *   interiors: 0                optional
  *   legalAndValuation: 10000
  *   loanAmount: 0               drives processing fee and mortgage-deed stamp
@@ -87,6 +89,10 @@ export function propertyCost(inputsIn, data) {
   add('brokerage', `Brokerage (${pct(num(i.brokerageRate))})`, brokerage, { kind: 'customary' });
   add('legal', 'Legal, title search and valuation', num(i.legalAndValuation), { kind: 'customary' });
   for (const [k, b] of (i.builderCharges || []).entries()) add(`builder_${k}`, b.label || 'Builder charge', num(b.amount), { kind: 'builder' });
+  if (i.status !== 'resale' && num(i.builderPct) > 0) {
+    const est = data.customary.builder_charges_estimate || {};
+    add('builder_estimate', `Builder charges, estimated at ${pct(num(i.builderPct))} of the price`, price * num(i.builderPct), { kind: 'builder', detail: est.note });
+  }
   add('interiors', 'Interiors and furnishing', num(i.interiors), { kind: 'optional' });
 
   // --- loan-linked ---

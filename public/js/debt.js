@@ -40,16 +40,21 @@ export function renderDebt() {
       const num = (key, label, attrs = {}) => {
         const input = el('input', { type: 'number', min: 0, step: attrs.step || 1, value: d[key] === '' ? '' : d[key], placeholder: attrs.placeholder });
         input.addEventListener('input', () => { d[key] = input.value === '' ? '' : +input.value; if (key === 'minPayment') d.exactPayment = 0; save(); rerender(); });
-        return el('label', {}, [label, input]);
+        return el('label', {}, [label, attrs.hint ? el('small', {}, attrs.hint) : null, input]);
       };
-      const kind = el('select', {}, KINDS.map(([v, t]) => el('option', { value: v, selected: v === d.kind }, t)));
+      // each debt is a small card: what it is across the top, where it can be read in full, then its three figures
+      const kind = el('select', { class: 'debt-kind', 'aria-label': `Debt ${i + 1}: what it is` }, KINDS.map(([v, t]) => el('option', { value: v, selected: v === d.kind }, t)));
       kind.addEventListener('change', () => { d.kind = kind.value; d.name = KINDS.find(([v]) => v === kind.value)[1]; if (!d.ratePct || TYPICAL[d.kind]) d.ratePct = TYPICAL[d.kind]; save(); buildRows(); paint(); });
       return el('div', { class: 'debt-row' }, [
-        el('label', {}, ['What it is', kind]),
-        num('balance', 'Outstanding (₹)', { step: 10000, placeholder: 'e.g. 200000' }),
-        num('ratePct', 'Rate (% a year)', { step: 0.5 }),
-        num('minPayment', 'Minimum or EMI a month (₹)', { step: 1000, placeholder: 'e.g. 10000' }),
-        el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => { st.debts.splice(i, 1); if (!st.debts.length) st.debts = [{ name: 'Credit card', balance: '', ratePct: 42, minPayment: '', kind: 'card' }]; save(); buildRows(); paint(); } }, 'Remove'),
+        el('div', { class: 'debt-row-head' }, [
+          kind,
+          el('button', { type: 'button', class: 'debt-remove', 'aria-label': `Remove ${KINDS.find(([v]) => v === d.kind)?.[1] || 'this debt'}`, onclick: () => { st.debts.splice(i, 1); if (!st.debts.length) st.debts = [{ name: 'Credit card', balance: '', ratePct: 42, minPayment: '', kind: 'card' }]; save(); buildRows(); paint(); } }, 'Remove'),
+        ]),
+        el('div', { class: 'debt-row-fields' }, [
+          num('balance', 'Outstanding (₹)', { step: 10000, placeholder: 'e.g. 200000' }),
+          num('ratePct', 'Rate, % a year', { step: 0.5 }),
+          num('minPayment', 'Paid a month (₹)', { step: 1000, placeholder: 'e.g. 10000', hint: 'minimum due or EMI' }),
+        ]),
       ]);
     }));
     enhanceMoneyInputs(rows);

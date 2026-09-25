@@ -377,9 +377,14 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .decide .ico { grid-row: 1 / span 2; font-size: 1.6rem; line-height: 1.2; }
 .decide strong { font-size: 1.02rem; }
 .decide span:not(.ico) { font-size: .88rem; color: var(--muted); }
-.debt-row { display: grid; grid-template-columns: 1.2fr 1fr .7fr 1fr auto; gap: 8px; align-items: end; padding: 8px 0; border-bottom: 1px dashed var(--line); }
-.debt-row .small-btn { margin-bottom: 2px; }
-@media (max-width: 720px) { .debt-row { grid-template-columns: 1fr 1fr; } }
+.debt-rows { display: grid; gap: 10px; margin: 6px 0 10px; }
+.debt-row { border: 1px solid var(--line-strong); border-left: 4px solid var(--accent-3); border-radius: var(--radius-sm); padding: 10px 12px 12px; background: var(--surface); display: grid; gap: 10px; }
+.debt-row-head { display: flex; align-items: center; gap: 10px; }
+.debt-row select.debt-kind { flex: 1; min-width: 0; width: auto; font-weight: 700; font-size: 1rem; color: var(--text); background: var(--accent-soft); border-color: var(--accent-3); }
+.debt-remove { flex: none; background: none; border: 0; padding: 6px 4px; color: var(--muted); font: inherit; font-size: .85rem; text-decoration: underline; cursor: pointer; }
+.debt-remove:hover { color: var(--danger, #9b1c1c); }
+.debt-row-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 8px 10px; align-items: start; }
+.debt-row-fields label { min-width: 0; font-size: .84rem; }
 .policy-fields[hidden] { display: none; }
 .calc-index .decide-title { margin: 22px 0 10px; }
 .calc-index .decide-block:first-of-type .decide-title { margin-top: 8px; }
@@ -562,6 +567,8 @@ table.compare td.neg { color: var(--danger); }
 .about .sources a { text-transform: none; }
 .calc { display: grid; grid-template-columns: minmax(280px, 390px) 1fr; gap: 22px; align-items: start; }
 @media (max-width: 800px) { .calc, .calc.budget { grid-template-columns: 1fr; } }
+/* a grid column otherwise grows to its widest child (a schedule table, a long select) and pushes the page sideways on a phone */
+.calc > * { min-width: 0; }
 .calc .inputs { display: grid; gap: 12px; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 15px; box-shadow: var(--shadow); }
