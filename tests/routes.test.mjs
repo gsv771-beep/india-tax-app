@@ -4,7 +4,7 @@ import { metaFor, parsePath, PAGES, CALCS } from '../public/js/routes.js';
 let failures = 0;
 const ok = (name, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? ' (' + detail + ')' : ''}`); if (!cond) failures++; };
 
-ok('root is the landing page', metaFor('/').tab === 'home' && /Know the number/i.test(metaFor('/').title) && metaFor('/').url === 'https://taxcompass.org/');
+ok('root is the landing page', metaFor('/').tab === 'home' && /in-hand salary/i.test(metaFor('/').title) && /regime/i.test(metaFor('/').title) && metaFor('/').url === 'https://taxcompass.org/');
 ok('index.html is the landing page too', metaFor('/index.html').tab === 'home');
 ok('/tax is still the regime comparison', metaFor('/tax').tab === 'tax' && /regime/.test(metaFor('/tax').title));
 ok('home-buying tool gets its own title', /True cost of buying/.test(metaFor('/calculators/home').title));
@@ -27,6 +27,19 @@ ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip'))
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   const dups = [...new Set(ids.filter((x, i) => ids.indexOf(x) !== i))];
   ok('index.html has no duplicate ids', dups.length === 0, dups.join(', '));
+  // every page section must close where it opened: a stray closing tag once spilled the tax page's
+  // working, email card and disclaimer onto every other page
+  const stack = [], bad = [];
+  for (const m of html.matchAll(/<(\/?)(div|section|details|main)\b[^>]*>/g)) {
+    if (!m[1]) stack.push(m[2]); else if (stack.pop() !== m[2]) bad.push(`${m[0]} at offset ${m.index}`);
+  }
+  ok('index.html opens and closes every div, section and details in order', bad.length === 0 && stack.length === 0, bad.slice(0, 2).join('; ') || stack.join(','));
+  for (const id of ['home', 'tax', 'calculators', 'nps', 'glossary', 'about']) {
+    const open = html.indexOf(`<section id="${id}"`);
+    const next = html.indexOf('<section id="', open + 1);
+    const chunk = html.slice(open, next < 0 ? html.indexOf('</main>') : next);
+    ok(`the ${id} page ends before the next page begins`, /<\/section>\s*(<!--[^>]*-->\s*)*$/.test(chunk.trimEnd()));
+  }
 }
 
 console.log(failures === 0 ? '\nAll route tests passed.' : `\n${failures} route test(s) FAILED.`);

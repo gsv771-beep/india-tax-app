@@ -19,8 +19,13 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
   let mix = baseRates(schemes);
   let equityPct = 60; try { equityPct = +localStorage.getItem(EQ_KEY) || 60; } catch {}
 
+  // The quick answer above this card takes the CTC and shows tax and take-home; this card follows with
+  // what the rest of the money does. Business income, which the quick answer does not take, keeps the
+  // whole card, and so does the receipts starter.
   const paint = (p) => {
     const s = snapshot(p, { rates, mix, loanPolicy, equityPct });
+    const bizProfile = p.person.employment === 'self_employed' || p.person.employment === 'both';
+    if (!s && !bizProfile) { setChildren(slot, []); slot.hidden = true; return; }
     setChildren(slot, [s ? card(s, p) : starter()]);
     slot.hidden = false;
   };
@@ -68,9 +73,10 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
       el('div', { class: 'snap-note' }, [note, href ? [' ', el('a', { href }, linkText || 'Open →')] : null]),
     ]);
     const t = s.tax, th = s.takeHome, inv = s.invest, h = s.home;
+    const extrasOnly = s.kind === 'salary';   // tax and take-home are already in the quick answer
     const rows = [
-      row('Income tax', `${inr(t.annual)} a year`, `${t.otherSaves > 0 ? `${t.regime} regime, ${pct(t.effectiveRate)} of ${s.kind === 'salary' ? 'CTC' : 'income'}. The ${t.otherRegime} regime would save ${inr(t.otherSaves)}.` : `${t.regime} regime, ${pct(t.effectiveRate)} of ${s.kind === 'salary' ? 'CTC' : 'income'}; the cheaper one for you.`}${t.tds > 0 ? ` TDS of ${inr(t.tds)} already deducted${t.refund > 0 ? `; refund of ${inr(t.refund)} due` : `; ${inr(t.netPayable)} still to pay`}.` : ''}`, '/tax', s.kind === 'salary' ? 'Compare regimes →' : 'Tax and advance tax →'),
-      row(s.kind === 'salary' ? 'Take-home' : 'Left after tax', `${inr(th.monthly)} a month`, s.kind === 'salary' ? `${pct(th.pctOfCtc)} of CTC after PF, professional tax and income tax.` : s.kind === 'business' ? `${s.business.presumptive ? `Presumptive income of ${inr(s.business.income)} on ${inr(s.business.receipts)} of receipts` : `Income of ${inr(s.business.income)} after expenses`}, less tax.` : `Salary take-home plus ${inr(s.business.income)} of business income, less tax.`, s.kind === 'salary' ? '/calculators/salary' : '/tax', s.kind === 'salary' ? 'See the split →' : 'How it is worked out →'),
+      extrasOnly ? null : row('Income tax', `${inr(t.annual)} a year`, `${t.otherSaves > 0 ? `${t.regime} regime, ${pct(t.effectiveRate)} of ${s.kind === 'salary' ? 'CTC' : 'income'}. The ${t.otherRegime} regime would save ${inr(t.otherSaves)}.` : `${t.regime} regime, ${pct(t.effectiveRate)} of ${s.kind === 'salary' ? 'CTC' : 'income'}; the cheaper one for you.`}${t.tds > 0 ? ` TDS of ${inr(t.tds)} already deducted${t.refund > 0 ? `; refund of ${inr(t.refund)} due` : `; ${inr(t.netPayable)} still to pay`}.` : ''}`, '/tax', s.kind === 'salary' ? 'Compare regimes →' : 'Tax and advance tax →'),
+      extrasOnly ? null : row(s.kind === 'salary' ? 'Take-home' : 'Left after tax', `${inr(th.monthly)} a month`, s.kind === 'salary' ? `${pct(th.pctOfCtc)} of CTC after PF, professional tax and income tax.` : s.kind === 'business' ? `${s.business.presumptive ? `Presumptive income of ${inr(s.business.income)} on ${inr(s.business.receipts)} of receipts` : `Income of ${inr(s.business.income)} after expenses`}, less tax.` : `Salary take-home plus ${inr(s.business.income)} of business income, less tax.`, s.kind === 'salary' ? '/calculators/salary' : '/tax', s.kind === 'salary' ? 'See the split →' : 'How it is worked out →'),
       s.loans.count ? row('After EMIs', `${inr(s.loans.afterEmi)} a month`, `${s.loans.count} loan${s.loans.count > 1 ? 's' : ''}, ${inr(s.loans.emi)} a month in EMIs.`, '/calculators/emi', 'Prepay or step up →') : null,
       s.surplus.fromBudget || s.loans.count ? row(s.surplus.fromBudget ? 'Free each month' : 'Free before expenses', `${inr(s.surplus.monthly)} a month`, s.surplus.fromBudget ? 'From your budget: what is left after expenses and EMIs.' : 'Take-home after EMIs; the budget tool takes expenses off this.', '/calculators/budget', s.surplus.fromBudget ? 'Budget →' : 'Add expenses →') : null,
       inv.monthly > 0 || inv.held > 0 ? row(`In ${inv.years} years`, inrShort(inv.fv), `${inv.monthly > 0 ? (inv.assumedShare ? `If you invested ${Math.round(inv.assumedShare * 100)}% of it, ${inr(inv.monthly)} a month,` : `Investing ${inr(inv.monthly)} a month`) : ''}${inv.monthly > 0 && inv.held > 0 ? ' plus ' : ''}${inv.held > 0 ? `the ${inr(inv.held)} you hold` : ''} at a ${inv.equityPct}% equity mix (about ${inv.ratePct.toFixed(1)}% a year); ${inrShort(inv.fvBad)} in a bad stretch.`, '/calculators/compare', 'Where to put it →') : null,
@@ -85,7 +91,7 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
     const range = el('input', { type: 'range', min: 0, max: 100, step: 10, value: equityPct, 'aria-label': 'Equity share' });
     range.addEventListener('input', () => { equityPct = +range.value; try { localStorage.setItem(EQ_KEY, String(equityPct)); } catch {} paint(getProfile()); });
     return el('div', { class: 'card snap' }, [
-      el('div', { class: 'snap-head' }, [el('div', { class: 'snap-title' }, 'Your money at a glance'), el('div', { class: 'muted small' }, `On ${s.kind === 'salary' ? `a CTC of ${inr(s.ctc)}` : s.kind === 'business' ? `receipts of ${inr(s.business.receipts)}` : `a CTC of ${inr(s.ctc)} and receipts of ${inr(s.business.receipts)}`}. Every line opens the tool that works it out in full.`)]),
+      el('div', { class: 'snap-head' }, [el('div', { class: 'snap-title' }, extrasOnly ? 'What else this salary means' : 'Your money at a glance'), el('div', { class: 'muted small' }, `On ${s.kind === 'salary' ? `a CTC of ${inr(s.ctc)}` : s.kind === 'business' ? `receipts of ${inr(s.business.receipts)}` : `a CTC of ${inr(s.ctc)} and receipts of ${inr(s.business.receipts)}`}. Every line opens the tool that works it out in full.`)]),
       el('div', { class: 'snap-rows' }, rows),
       el('div', { class: 'snap-foot' }, [
         el('label', { class: 'snap-mix' }, [`Equity share for the ten-year line: ${equityPct}%`, range]),

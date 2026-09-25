@@ -8,7 +8,7 @@ export const SITE = 'TaxCompass India';
 export const ORIGIN = 'https://taxcompass.org';
 
 export const PAGES = {
-  home: { title: 'TaxCompass India: know the number, make the decision', desc: 'Tax regime, salary after tax, EMI, home buying, investing, goals and retirement, worked out for your situation in about two minutes. Free, independent, and nothing you type leaves your browser.' },
+  home: { title: 'TaxCompass India: in-hand salary and old vs new tax regime from your CTC', desc: 'Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.' },
   tax: { title: 'Old vs new tax regime calculator', desc: 'Compare the old and new income tax regimes line by line for FY 2025-26 and FY 2026-27, see how far you are from the other regime winning, and what unused deductions would save.' },
   calculators: { title: 'Money tools: tax, salary, loans, investing and goals', desc: 'Practical calculators for salary, expenses, EMI, SIP, home buying, capital gains, debt, retirement and goals, connected by one private profile in your browser.' },
   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },

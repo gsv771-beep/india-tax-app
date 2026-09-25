@@ -4,6 +4,7 @@ import { renderFundPanel } from './funds.js';
 import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
+import { mountQuick, detailFold } from './quick.js';
 import { fromLoanInputs } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { resultLayout } from './result-layout.js';
@@ -149,7 +150,9 @@ export function initCalculators(data) {
   appData = data;
   // A change to the shared profile made anywhere else rebuilds the calculator on screen so it pre-fills afresh.
   onProfileChange(debounce((p, source) => {
-    if (currentCalc && currentCalc !== 'index' && source !== 'calc:' + currentCalc) mount(currentCalc);
+    if (!currentCalc || currentCalc === 'index' || source === 'calc:' + currentCalc) return;
+    // the quick answer on the same page keeps its input (and focus); only the detailed tool under it re-fills
+    mount(currentCalc, { detailOnly: source === 'quick:' + currentCalc });
   }, 200));
 }
 
@@ -178,14 +181,18 @@ export function showCalc(name) {
   mount(key);
 }
 /** Render a view into the calculator body; the heavier views load their module on first use. */
-function mount(key) {
-  const body = document.getElementById('calc-body');
+function mount(key, { detailOnly = false } = {}) {
+  const page = document.getElementById('calc-body');
+  const detail = detailOnly && page.querySelector(':scope > .quick-page > .detail-body');
+  const body = detail || page;
+  const place = (node) => { if (detail) detail.replaceChildren(node); else page.replaceChildren(withQuick(key, node)); };
   const view = VIEWS[key]();
   if (typeof view.then === 'function') {
-    body.replaceChildren(el('div', { class: 'skeleton calc-skeleton', 'aria-busy': 'true' }));
-    view.then((node) => { if (currentCalc === key) { body.replaceChildren(withReset(key, node)); enhanceMoneyInputs(body); } }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
-  } else body.replaceChildren(withReset(key, view));
+    if (!detail) body.replaceChildren(el('div', { class: 'skeleton calc-skeleton', 'aria-busy': 'true' }));
+    view.then((node) => { if (currentCalc === key) { place(withReset(key, node)); enhanceMoneyInputs(body); } }).catch((e) => { body.replaceChildren(el('div', { class: 'notice error' }, 'Could not load this calculator. ' + e.message)); });
+  } else place(withReset(key, view));
   enhanceMoneyInputs(body);
+  if (detailOnly) return;
   // a calculation counts once per session per calculator, on the first edit
   if (key !== 'index') body.addEventListener('input', () => countEvent(`calc:${key}`), { once: true });
 }
@@ -213,6 +220,25 @@ function resetCalc(key) {
   currentCalc = null;
   showCalc(key);
 }
+/**
+ * The in-hand salary page leads with the quick answer (CTC in, in-hand and regime out); the full
+ * calculator sits folded under it for anyone who wants their real Basic, HRA and allowances.
+ */
+function withQuick(key, node) {
+  if (key !== 'salary') return node;
+  const slot = el('div', { class: 'quick-slot' });
+  const detail = el('div', { class: 'detail-body' }, node);
+  const page = el('div', { class: 'quick-page' }, [slot, detail]);
+  const fold = detailFold('salary', page, { label: 'Get it exact: your real Basic, HRA, allowances and bonus ▾', openLabel: 'Hide the detailed calculator ▴' });
+  page.insertBefore(fold.button, detail);
+  mountQuick(slot, {
+    rates: appData.rates, source: 'quick:salary',
+    salaryLink: { href: '#detail', text: 'See the full payslip split →', onclick: (e) => { e.preventDefault(); fold.open(); } },
+    taxLink: { href: '/tax', text: 'Every line of the tax, both regimes →' },
+  });
+  return page;
+}
+
 /** Append a Reset button to the calculator's inputs card (or the view itself if it has none). */
 function withReset(key, view) {
   if (key === 'index') return view;

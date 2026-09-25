@@ -7,6 +7,7 @@ import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
 import { initHome } from './home.js';
 import { initSnapshot } from './snapshot.js';
+import { mountQuick, detailFold } from './quick.js';
 import { initProfileUndo } from './profile-undo.js';
 import { ensureFresh, checkLiveBuild } from './fresh.js';
 import { isProduction } from './env.js';
@@ -40,9 +41,11 @@ function primeCalcHeading(tab, sub) {
   if (body && !body.firstChild) body.append(Object.assign(document.createElement('div'), { className: 'skeleton calc-skeleton' }));
 }
 
-function showTab(tab) {
+function showTab(tab, sub) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
-  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === tab));
+  // the in-hand salary page lives under /calculators but belongs with the tax page in the menu
+  const navTab = tab === 'calculators' && sub === 'salary' ? 'tax' : tab;
+  document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === navTab));
   if (tab !== currentTab) {
     const panel = document.getElementById(tab);
     panel.classList.remove('enter'); void panel.offsetWidth; panel.classList.add('enter');
@@ -78,7 +81,7 @@ function route() {
   if (location.pathname === '/index.html') history.replaceState({}, '', '/' + location.search);
   else if (location.pathname.startsWith('/schemes')) history.replaceState({}, '', '/nps');
   const { tab, sub } = parsePath(location.pathname);
-  showTab(tab);
+  showTab(tab, sub);
   setMeta(location.pathname);
   primeCalcHeading(tab, sub);
   // The rest needs the data files; until they arrive the section heading and static form are already on screen.
@@ -106,6 +109,25 @@ document.addEventListener('wheel', (e) => {
   if (a && a.type === 'number' && a.contains(e.target)) a.blur();
 }, { passive: true });
 
+/** The quick answer on the home and tax pages; the salary page mounts its own (calculators.js). */
+function initQuick({ rates }) {
+  const tax = document.getElementById('tax');
+  const fold = detailFold('tax', tax, { label: 'Get it exact: every allowance, exemption and deduction ▾', openLabel: 'Hide the detailed calculator ▴' });
+  tax.querySelector(':scope > .detail-body').before(fold.button);
+  // a #detail link to the tax page opens the full calculator under the quick answer
+  window.addEventListener('routechange', (e) => { if (e.detail.tab === 'tax' && location.hash === '#detail') fold.open(); });
+  mountQuick(document.getElementById('tax-quick'), {
+    rates, source: 'quick:tax',
+    salaryLink: { href: '/calculators/salary', text: 'See the full payslip split →' },
+    taxLink: { href: '#detail', text: 'Every line of the tax, both regimes →', onclick: (e) => { e.preventDefault(); fold.open(); } },
+  });
+  mountQuick(document.getElementById('home-quick'), {
+    rates, source: 'quick:home',
+    salaryLink: { href: '/calculators/salary', text: 'See the full payslip split →' },
+    taxLink: { href: '/tax#detail', text: 'Every line of the tax, both regimes →' },
+  });
+}
+
 async function boot() {
   // A fresh page with stale scripts is the one failure the site cannot explain to the user; check first.
   if (await ensureFresh()) return;
@@ -131,6 +153,7 @@ async function boot() {
     initHome(appData);
     initSnapshot(appData);
     initTax(appData);
+    initQuick(appData);
     initCalculators(appData);
     initFeedback();
     initCounter();
