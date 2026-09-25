@@ -16,7 +16,7 @@ const LABEL = {
   tax: 'the tax comparison', 'calc:salary': 'the in-hand salary calculator', 'calc:emi': 'the EMI calculator',
   'calc:home': 'the home-buying tool', 'calc:goal': 'the goal planner', 'calc:retirement': 'the retirement planner',
   snapshot: 'the home page', 'calc:budget': 'the budget',
-  'quick:home': 'the home page', 'quick:tax': 'the tax page', 'quick:salary': 'the in-hand salary page',
+  'quick:home': 'the home page', 'quick:tax': 'the tax page', 'quick:salary': 'the in-hand salary page', 'quick:salarypage': 'the salary page',
 };
 const QUIET = new Set(['panel', 'undo', 'wipe', 'import', 'fixture', 'unknown']);
 const BURST_MS = 2500;        // writes closer together than this are one change

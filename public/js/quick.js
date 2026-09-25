@@ -11,6 +11,7 @@ import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { fromSalaryStore, toTaxInputs, ctcOf, isEmptyProfile, CITIES, METRO_CITIES } from '../engine/profile.js';
 import { quickAnswer, ladder, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
+import { SALARY_CTCS, salarySlug } from './routes.js';
 
 const DETAIL = 'taxcompass.detail-open.v1';
 const live = new Map();   // one listener per mount point, replaced when a page re-renders its copy
@@ -45,11 +46,12 @@ const DEDUCTIONS = [
  *   taxLink, salaryLink   { href, text, onclick? } under each result tile; onclick opens the detailed
  *               tool on a page that has it below instead of navigating away
  */
-export function mountQuick(slot, { rates, source, taxLink, salaryLink }) {
+export function mountQuick(slot, { rates, source, taxLink, salaryLink, ctc = null, showLadder = true }) {
   if (!slot || !rates) return;
   if (live.has(source)) live.get(source)();
-  let q = fromProfile(getProfile());
-  const ladderRows = ladder(rates);
+  // a salary page starts from its own CTC with the person's deductions; nothing is saved until they change something
+  let q = { ...fromProfile(getProfile()), ...(ctc ? { ctc } : {}) };
+  const ladderRows = showLadder ? ladder(rates) : [];
   const ticked = new Set(DEDUCTIONS.filter((d) => q[d.key] > 0).map((d) => d.key));
 
   // ---- the input ----
@@ -160,18 +162,20 @@ export function mountQuick(slot, { rates, source, taxLink, salaryLink }) {
   }
 
   function paintLadder(a) {
+    if (!showLadder) return;
     const rowsData = ladderRows;
     const near = a ? rowsData.reduce((b, r) => (Math.abs(r.ctc - a.ctc) < Math.abs(b.ctc - a.ctc) ? r : b), rowsData[0]) : null;
     setChildren(table, [
       el('div', { class: 'quick-ladder-head' }, [
         el('h2', {}, a ? 'Salaries around yours' : 'In-hand pay and tax at common salaries'),
-        el('p', { class: 'muted small' }, 'FY 2026-27, the default split below, no deductions beyond PF. Tap a row to use that CTC.'),
+        el('p', { class: 'muted small' }, ['FY 2026-27, the default split below, no deductions beyond PF. Tap a row to use that CTC, or a salary for its full page. ', el('a', { href: '/salary' }, 'Every salary from ₹3 lakh to ₹2 crore →')]),
       ]),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare quick-table' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'CTC'), el('th', {}, 'In hand a month'), el('th', {}, 'Tax, new regime'), el('th', {}, 'Tax, old regime'), el('th', {}, 'Old wins only above')]),),
         el('tbody', {}, rowsData.map((r) => {
           const tr = el('tr', { class: r === near ? 'near' : '', tabindex: 0, role: 'button', 'aria-label': `Use a CTC of ${inrShort(r.ctc)}` }, [
-            el('td', {}, inrShort(r.ctc)), el('td', {}, inr(r.monthly)), el('td', {}, inr(r.newTax)), el('td', {}, inr(r.oldTax)),
+            // the CTC opens that salary's own page; the rest of the row fills the box above
+            el('td', {}, SALARY_CTCS.includes(r.ctc) ? el('a', { href: `/salary/${salarySlug(r.ctc)}`, onclick: (e) => e.stopPropagation() }, inrShort(r.ctc)) : inrShort(r.ctc)), el('td', {}, inr(r.monthly)), el('td', {}, inr(r.newTax)), el('td', {}, inr(r.oldTax)),
             el('td', {}, r.oldNeeds ? `${inr(r.oldNeeds)} of deductions` : 'no tax either way'),
           ]);
           const use = () => { ctcInput.value = r.ctc; set({ ctc: r.ctc }); slot.scrollIntoView({ block: 'start', behavior: 'smooth' }); };
@@ -206,7 +210,7 @@ export function mountQuick(slot, { rates, source, taxLink, salaryLink }) {
 
   const off = onProfileChange((p) => {
     if (slot.contains(document.activeElement)) return;
-    q = fromProfile(p);
+    q = { ...fromProfile(p), ...(ctc && !p.income.ctc ? { ctc } : {}) };
     ctcInput.value = q.ctc || '';
     basicInput.value = q.basicPct;
     for (const r of rows) { r.box.checked = q[r.d.key] > 0; r.row.classList.toggle('on', r.box.checked); r.row.querySelector('.quick-amount').hidden = !r.box.checked; }

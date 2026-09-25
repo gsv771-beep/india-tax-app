@@ -336,6 +336,32 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .detail-toggle { display: block; width: 100%; margin: 22px 0 14px; padding: 13px 16px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--accent-2); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
 .detail-toggle:hover { border-color: var(--accent-3); background: var(--accent-soft); }
 .detail-closed .detail-body { display: none; }
+/* ---- salary pages (/salary, /salary/<n>-lakh): engine/salary-page.js ---- */
+.sp-answer { font-size: 1.05rem; color: var(--text); max-width: 72ch; }
+.sp-nav { font-size: .92rem; color: var(--muted); margin: 10px 0 0; line-height: 1.9; }
+.sp-nav a { font-weight: 600; white-space: nowrap; }
+.sp-block { margin-top: 18px; }
+.sp-block h2, .sp-h2 { font-size: 1.15rem; margin: 0 0 10px; }
+.sp-h2 { margin-top: 26px; }
+.sp-table td:not(:first-child), .sp-table th:not(:first-child) { white-space: nowrap; }
+.sp-table tr.sum td { font-weight: 600; border-top: 1px solid var(--line-strong); }
+.sp-table tr.muted td { color: var(--muted); font-size: .9rem; }
+.sp-table tr.total td { font-weight: 800; background: var(--accent-soft); font-size: 1.02rem; }
+.sp-table th.win { color: var(--accent-2); }
+.sp-faq h3 { font-size: 1rem; margin: 16px 0 4px; }
+.sp-faq h3:first-of-type { margin-top: 4px; }
+.sp-faq p { margin: 0; color: var(--text); }
+.sp-index td:first-child a { font-weight: 700; }
+#salary .quick-slot { margin-top: 8px; }
+@media (max-width: 560px) {
+  /* all three columns on a phone: the month is the figure people come for */
+  .card.sp-block { padding: 14px 10px; }
+  table.compare.sp-table th, table.compare.sp-table td { padding: 8px 6px; font-size: .84rem; }
+  table.compare.sp-table thead th { font-size: .64rem; letter-spacing: .03em; }
+  table.compare.sp-table td:first-child { padding-left: 9px; }
+  .sp-index th:nth-child(3), .sp-index td:nth-child(3), .sp-index th:nth-child(4), .sp-index td:nth-child(4) { display: none; }
+}
+@media (max-width: 380px) { table.compare.sp-table th, table.compare.sp-table td { padding: 7px 4px; font-size: .78rem; } }
 @media (max-width: 700px) {
   .hero-quick .eyebrow { display: none; }
   .hero-quick { padding-top: 0; }
@@ -346,7 +372,8 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
   .quick-bar { grid-template-columns: 82px 1fr auto; }
   .quick-table th:nth-child(4), .quick-table td:nth-child(4) { display: none; }
   /* once there is an answer, the answer gets the first screen */
-  .panel:has(.quick-slot.has-answer) .hero-quick p, .panel:has(.quick-slot.has-answer) .panel-head p { display: none; }
+  /* (not on a salary page, where the paragraph under the heading is the answer itself) */
+  .panel:not(#salary):has(.quick-slot.has-answer) .hero-quick p, .panel:not(#salary):has(.quick-slot.has-answer) .panel-head p { display: none; }
   .quick-slot.has-answer .quick-in small { display: none; }
   .quick-slot.has-answer .quick-results { margin-top: 12px; }
   .quick-v { font-size: 1.9rem; }
