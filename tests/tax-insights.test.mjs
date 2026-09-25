@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import ExcelJS from 'exceljs';
 import { compareRegimes, DEFAULT_FLAGS } from '../public/js/tax-engine.js';
-import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers } from '../public/js/tax-insights.js';
+import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, claimedOldRegime } from '../public/js/tax-insights.js';
 import { buildTaxWorkbookBase64 } from '../public/js/tax-export.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -37,6 +37,15 @@ const near = (name, a, e, tol = 1) => ok(name, Math.abs(a - e) <= tol, `got ${Ma
   const be = breakEven(inputs, rates);
   ok('kind is cushion or always', be.kind === 'cushion' || be.kind === 'always', be.kind);
   if (be.kind === 'cushion') ok('cushion is less than claimed', be.cushion > 0 && be.cushion < be.claimed, `${be.cushion} of ${be.claimed}`);
+}
+
+// Self-occupied home-loan interest is one deduction, counted once in what the old regime claims
+{
+  const base = { salary: { gross: 1800000, basicDa: 720000 }, deductions: { s80c: 0 } };
+  const withLoan = { ...base, houseProperty: { selfOccupiedInterest: 200000 } };
+  const without = claimedOldRegime(compareRegimes(base, rates).old.income);
+  const withIt = claimedOldRegime(compareRegimes(withLoan, rates).old.income);
+  near('2 lakh of home-loan interest adds 2 lakh to what is claimed, not 4', withIt - without, 200000);
 }
 
 ok('no income: kind none', breakEven({}, rates).kind === 'none');
