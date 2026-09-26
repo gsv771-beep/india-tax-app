@@ -8,6 +8,7 @@ import {
   toTaxInputs, fromTaxInputs, toSalaryStore, fromSalaryStore, fromLoanInputs, SCHEMA_VERSION,
 } from '../public/engine/profile.js';
 import { salaryBreakdown } from '../public/js/salary.js';
+import { clearSalary as clearSalaryFn, fromTaxInputs as fromTaxInputsFn, ctcOf as ctcOfFn, emptyProfile as emptyProfileFn } from '../public/engine/profile.js';
 import { computeRegime } from '../public/js/tax-engine.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -106,6 +107,24 @@ const fixture = (f) => migrateProfile(JSON.parse(readFileSync(path.join(here, '.
   const s = profileSummary(fixture('old-regime-45L-homeloan.json'), (n) => 'R' + n);
   ok('summary names CTC, regime, city, loans and surplus', /R4500000 CTC/.test(s) && /old regime/.test(s) && /Mumbai/.test(s) && /1 loan/.test(s) && /R60000\/month/.test(s), s);
   ok('empty summary explains itself', /Nothing saved yet/.test(profileSummary(emptyProfile())));
+}
+
+// ---- Reset and Start over on the tax and salary pages ----
+{
+  const p = emptyProfileFn();
+  Object.assign(p.income, { ctc: 1800000, basic: 720000, hra: 360000, otherAllowances: 598968, employerPf: 86400, gratuity: 34632 });
+  Object.assign(p.tax, { regime: 'old', s80cUsed: 63600, s80dUsed: 25000, nps1bUsed: 50000, homeLoanInterest: 200000, professionalTax: 2500 });
+  Object.assign(p.location, { city: 'Mumbai', rentPaid: 300000 });
+  p.loans = [{ type: 'car', outstanding: 500000, rate: 9, remainingMonths: 40, emi: 14000, propertyUse: 'none' }];
+  p.horizon.goals = [{ name: 'House', years: 5, target: 5000000 }];
+  const c = clearSalaryFn(p);
+  ok('start over: no salary left', ctcOfFn(c.income) === 0 && Object.values(c.income).every((v) => v === 0));
+  ok('start over: deductions, rent and home-loan interest cleared, regime back to new', c.tax.s80cUsed === 0 && c.tax.s80dUsed === 0 && c.tax.nps1bUsed === 0 && c.tax.homeLoanInterest === 0 && c.location.rentPaid === 0 && c.tax.regime === 'new');
+  ok('start over: city, professional tax, loans and goals kept', c.location.city === 'Mumbai' && c.tax.professionalTax === 2500 && c.loans.length === 1 && c.horizon.goals.length === 1);
+  ok('start over: the original is not changed', ctcOfFn(p.income) > 0);
+  // the tax form's Reset used to leave gratuity behind, which then showed as a ₹34,632 "CTC"
+  const emptied = fromTaxInputsFn(p, { salary: { gross: 0, basicDa: 0 }, employer: {}, deductions: {}, houseProperty: {} });
+  ok('an emptied tax form leaves no salary behind (not even gratuity)', ctcOfFn(emptied.income) === 0);
 }
 
 console.log(failures === 0 ? '\nAll profile tests passed.' : `\n${failures} profile test(s) FAILED.`);

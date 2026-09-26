@@ -10,7 +10,7 @@ import { shareCard } from './share-card.js';
 import { termify } from './tooltips.js';
 import { countEvent } from './feedback.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
-import { toTaxInputs, fromTaxInputs, isEmptyProfile } from '../engine/profile.js';
+import { toTaxInputs, fromTaxInputs, isEmptyProfile, clearSalary } from '../engine/profile.js';
 
 const OLD_COLOR = '#b7861c', NEW_COLOR = '#1d6b3d';
 const FY_SHORT = { 'FY2026-27': 'FY 2026-27', 'FY2025-26': 'FY 2025-26' };
@@ -35,7 +35,7 @@ export function initTax({ rates, onboarding }) {
   syncSalaryBalance(form);
   form.addEventListener('input', () => syncSalaryBalance(form));
   document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
-    title: 'Email me this comparison',
+    title: 'Save this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
     source: 'tax',
     fileName: (who) => `taxcompass-tax-comparison-${String(who || '').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() || 'workbook'}-${new Date().toISOString().slice(0, 10)}.xlsx`,
@@ -48,12 +48,18 @@ export function initTax({ rates, onboarding }) {
   initTopics(form, run);
   initIncomeType(form, run);
   rememberFold(document.getElementById('tax-working-fold'), 'tax');
-  document.getElementById('tax-reset').addEventListener('click', () => {
+  // Reset starts the page over: the form, and the salary and deductions it shares with the quick answer
+  // above it (one step, so the Undo it announces restores both). A "Start over" in the quick answer
+  // clears the profile itself and asks only for the form to follow.
+  const clearForm = () => {
     form.reset();
     try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(TOPICS_KEY); } catch {}
     syncTopics(form); syncIncomeType(form);
-    run();
-  });
+    render(readForm(form), rates, flags);
+  };
+  document.getElementById('tax-reset').addEventListener('click', () => { clearForm(); updateProfile(clearSalary, 'reset:tax'); });
+  window.addEventListener('taxcompass:startover', clearForm);
+  window.addEventListener('taxcompass:salarycleared', clearForm);
   // Edits made elsewhere (the profile panel, the salary calculator, a fixture) flow into the form.
   onProfileChange((p) => { applyProfile(form, p); syncTopics(form); syncIncomeType(form); render(readForm(form), rates, flags); }, 'tax');
 
@@ -62,8 +68,11 @@ export function initTax({ rates, onboarding }) {
   syncIncomeType(form);
   const first = readForm(form);
   render(first, rates, flags);
-  // Existing users: a form saved before the shared profile existed seeds it once.
-  if (isEmptyProfile(getProfile()) && (first.salary?.gross > 0)) updateProfile((p) => fromTaxInputs(p, first), 'tax');
+  // Existing users: a form saved before the shared profile existed seeds it once, and only once; a
+  // profile emptied later (Reset, Start over, an emptied CTC box) must not be refilled from here.
+  const SEEDED = 'taxcompass.tax-seeded.v1';
+  let seeded = false; try { seeded = !!localStorage.getItem(SEEDED); localStorage.setItem(SEEDED, '1'); } catch {}
+  if (!seeded && isEmptyProfile(getProfile()) && (first.salary?.gross > 0)) updateProfile((p) => fromTaxInputs(p, first), 'tax');
   // Professional tax and home-loan interest joined the profile later: a figure already typed on this
   // form is kept (applyProfile left it alone above) and becomes the profile's, so every tool agrees.
   else if (!isEmptyProfile(getProfile())) {

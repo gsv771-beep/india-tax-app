@@ -86,7 +86,8 @@ export function initProfileUndo() {
     const next = getProfile();
     const prev = tracked;
     tracked = next;
-    if (QUIET.has(src) || !LABEL[src]) { if (src !== 'undo') { before = null; burstSource = null; } return; }
+    const reset = src.startsWith('reset:');
+    if (QUIET.has(src) || !(LABEL[src] || reset)) { if (src !== 'undo') { before = null; burstSource = null; } return; }
     if (Date.now() - lastInteraction > USER_MS) return;            // nobody did this; a page loading did
     const now = Date.now();
     if (!(burstSource === src && now < burstEnd && before)) before = prev;   // a new change starts here
@@ -95,6 +96,7 @@ export function initProfileUndo() {
     if (!what.length) return;
     // a first figure typed into the quick answer overwrites nothing; the toast would only cover the answer
     if (src.startsWith('quick:') && isEmptyProfile(before)) return;
+    if (reset) { show('Started over: your salary and deductions are cleared. Loans, savings and goals are kept.', true); return; }
     show(`Saved to your profile from ${LABEL[src]}: ${what.slice(0, 2).join(', ')}${what.length > 2 ? ' and more' : ''}.`, true);
   });
 }
