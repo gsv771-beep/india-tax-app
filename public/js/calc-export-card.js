@@ -8,16 +8,16 @@ import { safeFileName } from './xlsx-style.js';
 const calcFileName = (prefix) => (who) => safeFileName(`taxcompass-${prefix}`, who);
 
 const CARD_TEXT = {
-  salary: { title: 'Email me this salary breakdown', intro: 'An Excel workbook with the CTC to in-hand working under both regimes, every figure you entered, and the assumptions.' },
-  emi: { title: 'Email me this loan plan', intro: 'An Excel workbook with the EMI summary, the year-by-year schedule with your step-up and prepayments, every figure you entered, and the assumptions.' },
-  sip: { title: 'Email me this projection', intro: 'An Excel workbook with the projection, the year-by-year growth, your lump sums, every figure you entered, and the assumptions.' },
-  insurance: { title: 'Email me this cover plan', intro: 'An Excel workbook with the life cover worked out line by line, the health cover and premiums, the three options for a policy you hold, and every figure you entered.' },
-  debt: { title: 'Email me this debt plan', intro: 'An Excel workbook with your debts, the two payoff orders side by side, the month-by-month balance, and the prepay-or-invest answer.' },
-  goal: { title: 'Email me this goal plan', intro: 'An Excel workbook with the SIP and one-time amounts that reach the goal, every figure you entered, and the assumptions.' },
-  capgains: { title: 'Email me this working', intro: 'An Excel workbook with the gain computation, both options where they apply, every figure you entered, and the notes, so you can go through it with your CA.' },
-  retirement: { title: 'Email me this retirement picture', intro: 'An Excel workbook with the year-by-year savings and spending, the numbers you entered, and the assumptions.' },
-  compare: { title: 'Email me this comparison', intro: 'An Excel workbook with every instrument side by side after tax, the assumed returns and their sources, every figure you entered, and the notes.' },
-  home: { title: 'Email me this home-buying plan', intro: 'An Excel workbook with the full cost of the property, the funding plan with EMI and the stage-by-stage payments and pre-EMI interest, every figure you entered, and the sources.' },
+  salary: { title: 'Save this salary breakdown', intro: 'An Excel workbook with the CTC to in-hand working under both regimes, every figure you entered, and the assumptions.' },
+  emi: { title: 'Save this loan plan', intro: 'An Excel workbook with the EMI summary, the year-by-year schedule with your step-up and prepayments, every figure you entered, and the assumptions.' },
+  sip: { title: 'Save this projection', intro: 'An Excel workbook with the projection, the year-by-year growth, your lump sums, every figure you entered, and the assumptions.' },
+  insurance: { title: 'Save this cover plan', intro: 'An Excel workbook with the life cover worked out line by line, the health cover and premiums, the three options for a policy you hold, and every figure you entered.' },
+  debt: { title: 'Save this debt plan', intro: 'An Excel workbook with your debts, the two payoff orders side by side, the month-by-month balance, and the prepay-or-invest answer.' },
+  goal: { title: 'Save this goal plan', intro: 'An Excel workbook with the SIP and one-time amounts that reach the goal, every figure you entered, and the assumptions.' },
+  capgains: { title: 'Save this working', intro: 'An Excel workbook with the gain computation, both options where they apply, every figure you entered, and the notes, so you can go through it with your CA.' },
+  retirement: { title: 'Save this retirement picture', intro: 'An Excel workbook with the year-by-year savings and spending, the numbers you entered, and the assumptions.' },
+  compare: { title: 'Save this comparison', intro: 'An Excel workbook with every instrument side by side after tax, the assumed returns and their sources, every figure you entered, and the notes.' },
+  home: { title: 'Save this home-buying plan', intro: 'An Excel workbook with the full cost of the property, the funding plan with EMI and the stage-by-stage payments and pre-EMI interest, every figure you entered, and the sources.' },
 };
 
 /**

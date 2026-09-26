@@ -235,6 +235,8 @@ export function fromTaxInputs(p, t) {
   const onTop = !!t.salary?.variableOnTop;
   i.otherAllowances = Math.max(0, num(t.salary?.gross) - i.basic - i.hra - i.conveyance - (onTop ? 0 : i.variablePay) - i.employerNps - i.esop);
   i.employerPf = Math.max(0, num(t.employer?.totalRetirementContribution) - i.employerNps);
+  // no salary on the form means no package: gratuity is a share of Basic and must not outlive it
+  if (!(num(t.salary?.gross) > 0)) for (const k of Object.keys(i)) i[k] = 0;
   i.ctc = ctcOf(i);
   out.tax.fy = t.fy || out.tax.fy;
   out.tax.ageBand = t.ageBand || out.tax.ageBand;
@@ -250,6 +252,18 @@ export function fromTaxInputs(p, t) {
   const rent = num(t.salary?.rentPaid);
   out.location.rentPaid = rent;
   if (rent > 0) out.location.housing = 'rent';
+  return out;
+}
+
+/**
+ * Start over on pay: the salary split, the deductions the tax and salary pages own, rent and the regime
+ * go back to empty; professional tax and the city (settings, not amounts), loans, savings and goals stay.
+ */
+export function clearSalary(p) {
+  const out = migrateProfile(p);
+  for (const k of Object.keys(out.income)) out.income[k] = 0;
+  Object.assign(out.tax, { regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, homeLoanInterest: 0 });
+  out.location.rentPaid = 0;
   return out;
 }
 

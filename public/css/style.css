@@ -279,6 +279,11 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .hero-quick h1 { font-size: clamp(1.8rem, 4.2vw, 2.6rem); }
 .quick-slot { margin-top: 18px; }
 .quick { padding: 20px 22px; }
+.quick-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.quick-top .quick-in { flex: 1; min-width: 0; }
+.quick-reset { flex: none; background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 14px; color: var(--muted); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
+.quick-reset:hover { color: var(--danger); border-color: var(--danger); }
+.quick-slot:not(.has-answer) .quick-reset { display: none; }
 .quick-in { display: grid; gap: 6px; }
 .quick-in-label { font-weight: 800; font-size: 1.05rem; }
 .quick-in-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -883,3 +888,7 @@ details.section[open] summary::after { content: "–"; }
 #tax-next .insights { box-shadow: none; border: 0; padding: 0; margin: 0 0 12px; background: none; }
 #tax-next .insights h3 { font-size: 1rem; }
 #tax-next[hidden], #tax-working-fold[hidden], #tax-email[hidden] { display: none; }
+/* the Excel card: Download first, email folded under it (js/email-card.js) */
+.export-email { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.export-email > summary { cursor: pointer; color: var(--accent-2); font-weight: 600; font-size: .92rem; }
+.export-email[open] > summary { margin-bottom: 10px; }

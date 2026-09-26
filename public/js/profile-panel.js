@@ -184,17 +184,17 @@ export function initProfilePanel() {
       catch (e) { status.textContent = e.message; }
       fileInput.value = '';
     });
-    // Email is the way to keep a copy or move devices: the file that arrives is the one Restore takes back.
+    // Download (or email) is the way to keep a copy or move devices: that file is the one Restore takes back.
     const emailBox = el('div', { hidden: true });
     const emailCard = emailWorkbookCard({
-      title: 'Email me my profile', source: 'profile', buttonLabel: 'Email me my profile',
-      intro: 'A small file with your profile and every calculator’s inputs, sent to you only; TaxCompass keeps no copy. On another device, open Your profile and choose Restore from file.',
+      title: 'Save my profile', source: 'profile', buttonLabel: 'Email me my profile',
+      intro: 'A small file with your profile and every calculator’s inputs. TaxCompass keeps no copy. On another device, open Your profile and choose Restore from file.',
       buildBase64: async () => btoa(unescape(encodeURIComponent(exportSnapshotJSON()))), fileName: () => 'taxcompass-profile.json',
     });
     emailBox.append(emailCard);
     const actions = el('div', { class: 'profile-actions' }, [
-      el('button', { type: 'button', class: 'btn', onclick: () => { emailBox.hidden = !emailBox.hidden; if (!emailBox.hidden) emailBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }, 'Email me my profile'),
-      el('button', { type: 'button', class: 'btn secondary', onclick: () => fileInput.click(), title: 'The file from an earlier email' }, 'Restore from file'),
+      el('button', { type: 'button', class: 'btn', onclick: () => { emailBox.hidden = !emailBox.hidden; if (!emailBox.hidden) emailBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }, 'Save my profile'),
+      el('button', { type: 'button', class: 'btn secondary', onclick: () => fileInput.click(), title: 'A profile file you downloaded or were emailed' }, 'Restore from file'),
       fileInput,
       el('button', { type: 'button', class: 'btn secondary', onclick: () => { resetProfile(SOURCE); status.textContent = 'Profile reset. Other calculators keep their own inputs until you change them.'; renderBody(); } }, 'Reset profile'),
       el('button', { type: 'button', class: 'btn-link danger-link', onclick: () => { if (confirm('Remove your profile and every calculator’s inputs from this browser?')) { wipeEverything(); location.reload(); } } }, 'Wipe everything from this browser'),

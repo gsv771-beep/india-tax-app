@@ -9,7 +9,7 @@
  */
 import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
-import { fromSalaryStore, toTaxInputs, ctcOf, isEmptyProfile, CITIES, METRO_CITIES } from '../engine/profile.js';
+import { fromSalaryStore, toTaxInputs, ctcOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
 import { quickAnswer, ladder, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 import { SALARY_CTCS, salarySlug } from './routes.js';
 
@@ -57,6 +57,7 @@ export function mountQuick(slot, { rates, source, taxLink, salaryLink, ctc = nul
   // ---- the input ----
   const ctcInput = el('input', { type: 'number', min: 0, step: 50000, inputmode: 'numeric', placeholder: 'e.g. 1800000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: q.ctc || '' });
   const echo = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
+  const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Start over');
   const results = el('div', { class: 'quick-results' });
   const flip = el('div', { class: 'quick-flip' });
   const table = el('div', { class: 'quick-ladder' });
@@ -64,6 +65,16 @@ export function mountQuick(slot, { rates, source, taxLink, salaryLink, ctc = nul
   const basicInput = el('input', { type: 'number', min: 10, max: 80, step: 1, class: 'quick-basic', value: q.basicPct, 'aria-label': 'Basic pay as a percentage of CTC' });
 
   const save = debounce(() => {
+    if (!q.ctc) {
+      // an emptied CTC box empties the salary it had saved, and the detailed calculators' own copies of
+      // it, so the old figure does not come back on this page or the next visit
+      if (ctcOf(getProfile().income) > 0) {
+        try { localStorage.removeItem('taxcompass.salary.v1'); } catch {}
+        updateProfile((d) => { for (const k of Object.keys(d.income)) d.income[k] = 0; return d; }, source);
+        window.dispatchEvent(new CustomEvent('taxcompass:salarycleared', { detail: { source } }));
+      }
+      return;
+    }
     const a = quickAnswer(q, rates);
     if (!a || a.error) return;
     updateProfile((d) => {
@@ -197,7 +208,10 @@ export function mountQuick(slot, { rates, source, taxLink, salaryLink, ctc = nul
 
   setChildren(slot, [
     el('div', { class: 'card quick' }, [
-      el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo]), el('small', { class: 'muted' }, ['Cost to company, as on your offer letter. Self-employed or a business? ', el('a', { href: '/tax#detail' }, 'The full tax calculator takes business income'), '.'])]),
+      el('div', { class: 'quick-top' }, [
+        el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo]), el('small', { class: 'muted' }, ['Cost to company, as on your offer letter. Self-employed or a business? ', el('a', { href: '/tax#detail' }, 'The full tax calculator takes business income'), '.'])]),
+        startOver,
+      ]),
       results,
       flip,
       el('p', { class: 'quick-assume muted small' }, [
@@ -208,14 +222,22 @@ export function mountQuick(slot, { rates, source, taxLink, salaryLink, ctc = nul
   ]);
   paint();
 
-  const off = onProfileChange((p) => {
-    if (slot.contains(document.activeElement)) return;
+  const fromSaved = (p) => {
     q = { ...fromProfile(p), ...(ctc && !p.income.ctc ? { ctc } : {}) };
     ctcInput.value = q.ctc || '';
     basicInput.value = q.basicPct;
     for (const r of rows) { r.box.checked = q[r.d.key] > 0; r.row.classList.toggle('on', r.box.checked); r.row.querySelector('.quick-amount').hidden = !r.box.checked; }
     paint();
-  }, source);
+  };
+  // Start over: the salary and deductions go from the profile in one undoable step, and the detailed
+  // calculator on the same page (tax form, in-hand calculator) is told to clear itself too.
+  startOver.addEventListener('click', () => {
+    updateProfile(clearSalary, `reset:${source}`);
+    fromSaved(getProfile());
+    window.dispatchEvent(new CustomEvent('taxcompass:startover', { detail: { source } }));
+    if (!ctc) ctcInput.focus();
+  });
+  const off = onProfileChange((p) => { if (!slot.contains(document.activeElement)) fromSaved(p); }, source);
   live.set(source, off);
 }
 

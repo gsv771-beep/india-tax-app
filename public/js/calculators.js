@@ -5,7 +5,7 @@ import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { mountQuick, detailFold } from './quick.js';
-import { fromLoanInputs } from '../engine/profile.js';
+import { fromLoanInputs, clearSalary } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { resultLayout } from './result-layout.js';
 import { countEvent } from './feedback.js';
@@ -205,7 +205,7 @@ const CALC_KEYS = {
   debt: { keys: ['taxcompass.debt.v1'] },
   'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
-function resetCalc(key) {
+function resetCalc(key, { fromStartOver = false } = {}) {
   const spec = CALC_KEYS[key] || {};
   try {
     for (const k of spec.keys || []) localStorage.removeItem(k);
@@ -215,11 +215,21 @@ function resetCalc(key) {
       localStorage.setItem(CALC_STORE, JSON.stringify(all));
     }
   } catch {}
-  markBlankAfterReset(key);
-  for (const c of spec.calc || []) markBlankAfterReset(c);
+  if (key === 'salary') {
+    // The salary page shows the quick answer above this calculator, both from the profile, so Reset
+    // clears the salary there as well (one undoable step) instead of leaving the old CTC on screen.
+    // Nothing is marked blank: a CTC typed above afterwards should fill the calculator again.
+    if (!fromStartOver) updateProfile(clearSalary, 'reset:salary');
+  } else {
+    markBlankAfterReset(key);
+    for (const c of spec.calc || []) markBlankAfterReset(c);
+  }
+  if (fromStartOver && currentCalc !== key) return;
   currentCalc = null;
   showCalc(key);
 }
+// "Start over" in a quick answer has already cleared the profile; the in-hand calculator follows.
+if (typeof window !== 'undefined') window.addEventListener('taxcompass:startover', () => resetCalc('salary', { fromStartOver: true }));
 /**
  * The in-hand salary page leads with the quick answer (CTC in, in-hand and regime out); the full
  * calculator sits folded under it for anyone who wants their real Basic, HRA and allowances.
