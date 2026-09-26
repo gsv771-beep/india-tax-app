@@ -888,7 +888,3 @@ details.section[open] summary::after { content: "–"; }
 #tax-next .insights { box-shadow: none; border: 0; padding: 0; margin: 0 0 12px; background: none; }
 #tax-next .insights h3 { font-size: 1rem; }
 #tax-next[hidden], #tax-working-fold[hidden], #tax-email[hidden] { display: none; }
-/* the Excel card: Download first, email folded under it (js/email-card.js) */
-.export-email { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 10px; }
-.export-email > summary { cursor: pointer; color: var(--accent-2); font-weight: 600; font-size: .92rem; }
-.export-email[open] > summary { margin-bottom: 10px; }

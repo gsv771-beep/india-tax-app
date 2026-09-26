@@ -45,10 +45,10 @@ export function initAbout({ rates, schemes, capgains }) {
     ]),
     section('Privacy', [
       el('ul', {}, [
-        'Calculator entries stay in your own browser, in its local storage. They leave the device only when you deliberately email a workbook, email your profile or send feedback. The site has no user accounts.',
-        'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Email it to yourself as a small file to move it to another browser, restore it there, or wipe it with one click. It is sent to you only, through our email provider, and TaxCompass keeps no copy.',
-        'If you ask for an Excel workbook by email, your name, email address and the workbook are sent once to our email provider (Brevo) for delivery. With your consent on that form, we keep your name and email to ask for feedback about the app. We do not sell or share them, and you can ask to be removed by replying to any email.',
-        'If you send feedback, we keep your name, your message and the page you were on. Your email is kept only if you type it, and only to reply. Feedback may appear under "What people say" only if you ticked the box allowing it, and then with your first name and an initial. Ratings are averaged across everyone who gave one. A simple counter records aggregate usage; it stores numbers, not people.',
+        'We collect nothing about you. There are no accounts, no sign-up, and no form that asks for your name, email or phone number.',
+        'Calculator entries stay in your own browser, in its local storage, and are never sent anywhere. Excel workbooks and the profile file are made in your browser and saved straight to your device.',
+        'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Download it as a small file to move it to another browser and restore it there, or wipe it with one click. TaxCompass keeps no copy.',
+        'If you choose to send feedback, it is anonymous: we keep your message, the rating and the page you were on, and a first name only if you type one. Feedback appears under "What people say" only if you ticked the box allowing it. A simple counter records aggregate usage (visits, calculations, downloads); it stores numbers, not people.',
         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',
       ].map((t) => el('li', {}, t))),
     ]),

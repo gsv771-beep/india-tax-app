@@ -19,7 +19,7 @@ export const PAGES = {
 
 export const CALCS = {
   salary: { title: 'In-hand salary calculator from CTC', desc: 'Split a CTC into basic, HRA, allowances, PF and gratuity, then take off PF, professional tax and income tax under the lower regime to get the monthly take-home.' },
-  budget: { title: 'Expenses and savings calculator', desc: 'Monthly take-home, expenses by category, SIPs and deposits, and what is left, with an emailed Excel workbook.' },
+  budget: { title: 'Expenses and savings calculator', desc: 'Monthly take-home, expenses by category, SIPs and deposits, and what is left, with an Excel workbook to download.' },
   emi: { title: 'EMI calculator with step-up and prepayment', desc: 'EMI, total interest and a year-by-year schedule, with step-up EMIs, lump-sum and yearly prepayments, and the loan worked out from price and down payment.' },
   sip: { title: 'SIP calculator with step-up and lump sums', desc: 'What a monthly SIP grows into, with yearly step-ups and lump sums added today or at the end of any year, against what fund categories have historically delivered.' },
   home: { title: 'True cost of buying a home, and how to fund it', desc: 'Stamp duty, registration, GST and builder charges in Mumbai, Delhi, Bengaluru, Hyderabad, Chennai, Kolkata and Pune, then the loan, down payment, EMI and the stage-by-stage payment plan with pre-EMI interest.' },

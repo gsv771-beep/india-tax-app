@@ -37,7 +37,7 @@ export async function feedbackWallCard() {
     el('h2', { style: 'margin-top:0' }, 'What people say'),
     head,
     items.length ? el('div', { class: 'wall' }, items) : el('p', { class: 'muted' }, 'Feedback people have agreed to share will appear here.'),
-    el('p', { class: 'muted small' }, 'Feedback shown here was sent through the Feedback button by people who ticked "you may show this on the site", with the first name and an initial. Ratings count everyone who gave one.'),
+    el('p', { class: 'muted small' }, 'Feedback shown here was sent through the Feedback button by people who ticked "you may show this on the site", with a first name if they gave one. Ratings count everyone who gave one.'),
   ]);
 }
 
