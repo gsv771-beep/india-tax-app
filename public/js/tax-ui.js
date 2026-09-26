@@ -4,7 +4,7 @@ import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, advanceTaxSche
 import { hasBusiness, businessIncome } from './tax-engine.js';
 import { attachSlider, pctToggle, enhanceMoneyInputs } from './amount-input.js';
 import { rememberFold } from './result-layout.js';
-import { emailWorkbookCard } from './email-card.js';
+import { saveFileCard } from './save-card.js';
 import { lineChart, shortINR } from './charts.js';
 import { shareCard } from './share-card.js';
 import { termify } from './tooltips.js';
@@ -34,7 +34,7 @@ export function initTax({ rates, onboarding }) {
   enhanceMoneyInputs(form);
   syncSalaryBalance(form);
   form.addEventListener('input', () => syncSalaryBalance(form));
-  document.getElementById('tax-email').replaceChildren(emailWorkbookCard({
+  document.getElementById('tax-email').replaceChildren(saveFileCard({
     title: 'Save this comparison',
     intro: 'A formatted Excel workbook with the line-by-line comparison, the break-even analysis, and every figure you entered, so you can go through it with your CA.',
     source: 'tax',
@@ -595,7 +595,7 @@ function renderHeadline(r, inputs, rates, flags) {
 
 /**
  * What to do next, and the parts that only make sense once there is an answer: the what-if card sits in
- * the "What to do next" section, the working folds away, and the email form waits until there is
+ * the "What to do next" section, the working folds away, and the download card waits until there is
  * something to send.
  */
 function renderNext(inputs, cmp) {

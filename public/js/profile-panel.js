@@ -5,7 +5,7 @@
  */
 import { el, setChildren, inr } from './util.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
-import { emailWorkbookCard } from './email-card.js';
+import { downloadBase64 } from './save-card.js';
 import { getProfile, updateProfile, resetProfile, wipeEverything, exportSnapshotJSON, importProfileJSON, onProfileChange } from './profile-store.js';
 import { profileSummary, isEmptyProfile, ctcOf, emiFor, CITIES, METRO_CITIES, LOAN_TYPES, PROPERTY_USE, INVESTMENT_BUCKETS } from '../engine/profile.js';
 
@@ -24,8 +24,8 @@ export function initProfilePanel() {
   const toggle = el('button', { type: 'button', class: 'profile-toggle', 'aria-expanded': 'false', 'aria-controls': 'profile-body' }, [
     el('span', { class: 'profile-title' }, 'Your profile'), summary, chev,
   ]);
-  const badge = el('span', { class: 'privacy-badge', title: 'Saved in this browser. TaxCompass has no account system and no database of users; these figures are sent only when you choose to email your profile or a workbook to yourself.' }, [
-    el('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒'), el('span', { class: 'badge-long' }, 'Stays on this device unless you email it to yourself.'), el('span', { class: 'badge-short' }, 'Stays on this device'),
+  const badge = el('span', { class: 'privacy-badge', title: 'Saved in this browser. TaxCompass has no accounts and no database of users, and these figures are never sent anywhere.' }, [
+    el('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒'), el('span', { class: 'badge-long' }, 'Stays on this device. Nothing is sent anywhere.'), el('span', { class: 'badge-short' }, 'Stays on this device'),
   ]);
   const body = el('div', { id: 'profile-body', class: 'profile-body', hidden: true });
   root.append(el('div', { class: 'profile-bar' }, [toggle, badge]), body);
@@ -184,17 +184,14 @@ export function initProfilePanel() {
       catch (e) { status.textContent = e.message; }
       fileInput.value = '';
     });
-    // Download (or email) is the way to keep a copy or move devices: that file is the one Restore takes back.
-    const emailBox = el('div', { hidden: true });
-    const emailCard = emailWorkbookCard({
-      title: 'Save my profile', source: 'profile', buttonLabel: 'Email me my profile',
-      intro: 'A small file with your profile and every calculator’s inputs. TaxCompass keeps no copy. On another device, open Your profile and choose Restore from file.',
-      buildBase64: async () => btoa(unescape(encodeURIComponent(exportSnapshotJSON()))), fileName: () => 'taxcompass-profile.json',
-    });
-    emailBox.append(emailCard);
+    // A downloaded file is the way to keep a copy or move devices: that file is the one Restore takes back.
+    const saveProfile = () => {
+      downloadBase64(btoa(unescape(encodeURIComponent(exportSnapshotJSON()))), 'taxcompass-profile.json');
+      status.textContent = 'Saved as taxcompass-profile.json. On another device, open Your profile and choose Restore from file.';
+    };
     const actions = el('div', { class: 'profile-actions' }, [
-      el('button', { type: 'button', class: 'btn', onclick: () => { emailBox.hidden = !emailBox.hidden; if (!emailBox.hidden) emailBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }, 'Save my profile'),
-      el('button', { type: 'button', class: 'btn secondary', onclick: () => fileInput.click(), title: 'A profile file you downloaded or were emailed' }, 'Restore from file'),
+      el('button', { type: 'button', class: 'btn', onclick: saveProfile, title: 'Your profile and every calculator’s inputs, as one small file' }, 'Download my profile'),
+      el('button', { type: 'button', class: 'btn secondary', onclick: () => fileInput.click(), title: 'A profile file you downloaded earlier' }, 'Restore from file'),
       fileInput,
       el('button', { type: 'button', class: 'btn secondary', onclick: () => { resetProfile(SOURCE); status.textContent = 'Profile reset. Other calculators keep their own inputs until you change them.'; renderBody(); } }, 'Reset profile'),
       el('button', { type: 'button', class: 'btn-link danger-link', onclick: () => { if (confirm('Remove your profile and every calculator’s inputs from this browser?')) { wipeEverything(); location.reload(); } } }, 'Wipe everything from this browser'),
@@ -203,12 +200,12 @@ export function initProfilePanel() {
     setChildren(body, [
       el('p', { class: 'privacy-note' }, [
         el('strong', {}, 'Private by design. '),
-        'Everything below is stored in this browser’s local storage and read by every tool on this site. There is no account, and TaxCompass keeps no copy. It leaves the device only when you deliberately send it: emailing your profile or a workbook passes it once through our email provider to reach your inbox, and feedback you send carries what you typed into the feedback box. Clear it any time with the wipe link. ',
+        'Everything below is stored in this browser’s local storage and read by every tool on this site. There is no account, and TaxCompass keeps no copy: nothing here is sent anywhere. Downloads are made in your browser. Clear it any time with the wipe link. ',
         el('a', { href: '/about' }, 'How the site handles data'),
       ]),
       isEmptyProfile(p) ? el('p', { class: 'small muted' }, 'Tip: fill in the tax comparison or the in-hand salary calculator and this fills itself in.') : null,
       el('div', { class: 'profile-grid' }, [income, business, tax, person, location, loans, investments, cashflow, household]),
-      actions, status, emailBox,
+      actions, status,
     ]);
     enhanceMoneyInputs(body);
   }

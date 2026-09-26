@@ -1,8 +1,8 @@
 /**
- * The "email me the workbook" card for a calculator. Small on purpose: the spec and the workbook
+ * The "save this as Excel" card for a calculator. Small on purpose: the spec and the workbook
  * builder (calc-export.js, plus ExcelJS) load only when someone actually asks for the workbook.
  */
-import { emailWorkbookCard } from './email-card.js';
+import { saveFileCard } from './save-card.js';
 import { safeFileName } from './xlsx-style.js';
 
 const calcFileName = (prefix) => (who) => safeFileName(`taxcompass-${prefix}`, who);
@@ -21,17 +21,17 @@ const CARD_TEXT = {
 };
 
 /**
- * The "email me the workbook" card for a calculator. `getLast()` returns the numbers the calculator
+ * The "save this as Excel" card for a calculator. `getLast()` returns the numbers the calculator
  * most recently computed (or null before anything is entered); the spec is built only when sending.
  */
 export function calcExportCard(source, getLast) {
   const t = CARD_TEXT[source];
   let sheets = [];
-  const card = emailWorkbookCard({
+  const card = saveFileCard({
     title: t.title, intro: t.intro, source, fileName: calcFileName(source),
     buildBase64: async (who) => {
       const last = getLast();
-      if (!last) throw new Error('Enter your figures first; there is nothing to send yet.');
+      if (!last) throw new Error('Enter your figures first; there is nothing to save yet.');
       const { SPECS, buildCalcWorkbookBase64 } = await import('./calc-export.js');
       const spec = SPECS[source](last);
       sheets = [...spec.sheets.map((sh) => sh.name), 'Inputs', 'Notes'];
@@ -39,7 +39,7 @@ export function calcExportCard(source, getLast) {
     },
     sheetNames: () => sheets,
   });
-  // An email form above an empty result is noise: show it only once there is something to send.
+  // A download above an empty result is noise: show it only once there is something to save.
   // Calculators recompute a moment after each edit, so look again shortly after any input or change.
   card.hidden = true;
   let timer = null, seen = false;

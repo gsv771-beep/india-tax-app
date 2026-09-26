@@ -1,12 +1,12 @@
 /**
- * Floating feedback button and panel. Name and message required; email optional; a 1 to 5 rating.
+ * Floating feedback button and panel. Anonymous: a message and an optional 1 to 5 rating; a first name
+ * only if someone wants it shown with their words. No email, nothing that identifies the sender.
  * Posts to /api/feedback. Also the tiny usage counter shown on the tax page and in the footer.
  */
 import { el, setChildren } from './util.js';
 
 export function initFeedback() {
-  const name = el('input', { type: 'text', placeholder: 'Your name', maxlength: 80, autocomplete: 'name', required: true });
-  const email = el('input', { type: 'email', placeholder: 'Email (optional, only if you want a reply)', maxlength: 120, autocomplete: 'email' });
+  const name = el('input', { type: 'text', placeholder: 'Optional', maxlength: 40, autocomplete: 'given-name' });
   const message = el('textarea', { rows: 4, maxlength: 2000, placeholder: 'What worked, what did not, what is wrong or missing?', required: true });
   const honey = el('input', { type: 'text', name: 'website', tabindex: -1, autocomplete: 'off', style: 'position:absolute;left:-9999px;width:1px;height:1px;opacity:0' });
   const publicOk = el('input', { type: 'checkbox' });
@@ -18,13 +18,12 @@ export function initFeedback() {
 
   const send = el('button', { type: 'submit', class: 'btn' }, 'Send feedback');
   const form = el('form', { class: 'fb-form' }, [
-    el('label', {}, ['Name', name]),
-    el('label', {}, ['Email', email]),
     el('label', {}, ['How useful was this?', stars]),
     el('label', {}, ['Your feedback', message]),
+    el('label', {}, ['First name, if you want it shown with your words', name]),
     honey,
-    el('label', { class: 'check' }, [publicOk, 'You may show this on the site, with my first name']),
-    el('p', { class: 'muted small' }, 'We keep your name and message to improve the site. Your email is kept only if you give it, and only to reply. Nothing is shown publicly unless you tick the box above.'),
+    el('label', { class: 'check' }, [publicOk, 'You may show this on the site']),
+    el('p', { class: 'muted small' }, 'Anonymous: we keep your message, the rating and the page you were on, nothing else. Nothing is shown publicly unless you tick the box above.'),
     el('div', { class: 'btn-row' }, [send]),
     status,
   ]);
@@ -32,7 +31,7 @@ export function initFeedback() {
     e.preventDefault();
     send.disabled = true; status.textContent = 'Sending…';
     try {
-      const res = await fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: name.value.trim(), email: email.value.trim(), rating, message: message.value.trim(), page: location.pathname, publicOk: publicOk.checked, website: honey.value }) });
+      const res = await fetch('/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: name.value.trim(), rating, message: message.value.trim(), page: location.pathname, publicOk: publicOk.checked, website: honey.value }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Could not send (${res.status})`);
       status.textContent = 'Thank you. Your feedback has been received.';
@@ -49,7 +48,7 @@ export function initFeedback() {
     form,
   ]);
   const toggle = el('button', { type: 'button', class: 'fb-toggle', 'aria-expanded': 'false' }, 'Feedback');
-  toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) name.focus(); });
+  toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) message.focus(); });
   close.addEventListener('click', () => { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); } });
   document.body.append(el('div', { class: 'fb' }, [panel, toggle]));

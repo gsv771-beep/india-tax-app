@@ -1,6 +1,6 @@
 /**
  * Expenses and savings calculator: monthly income, categorised expenses, SIP and recurring
- * deposit investments, a summary with charts, and an Excel export (download or email).
+ * deposit investments, a summary with charts, and an Excel download.
  *
  * Pure functions at the top (tested in tests/budget.test.mjs); DOM code below.
  */
@@ -8,7 +8,7 @@ import { inr, pct, el, setChildren, disclaimer, isBlankAfterReset, clearBlankAft
 import { resultLayout } from './result-layout.js';
 import { sipFV } from './calculators.js';
 import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName } from './xlsx-style.js';
-import { emailWorkbookCard } from './email-card.js';
+import { saveFileCard } from './save-card.js';
 import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, isEmptyProfile } from '../engine/profile.js';
@@ -358,7 +358,7 @@ export function renderBudget(appData) {
     save();
     const s = summarise(state);
     const spare = Math.floor(s.surplus / 500) * 500;
-    exportBox.hidden = !(s.income > 0);       // nothing to email until there is an income
+    exportBox.hidden = !(s.income > 0);       // nothing to save until there is an income
     if (!(s.income > 0)) { setChildren(result, [beginPrompt('Enter your monthly take-home to begin.')]); return; }
     setChildren(result, resultLayout({
       key: 'budget',
@@ -421,15 +421,15 @@ function statTile(k, v, hi = false, extra = '') {
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
-    if (s && Array.isArray(s.expenses) && Array.isArray(s.investments)) return { ...defaultState(), ...s, person: { name: '', email: '', ...(s.person || {}) } };
+    if (s && Array.isArray(s.expenses) && Array.isArray(s.investments)) return { ...defaultState(), ...s, person: { name: '', email: '' } };   // a name or email typed for the old email form is not kept
   } catch {}
   return defaultState();
 }
 
 function exportCard(getState, getSummary, getCharts) {
-  return emailWorkbookCard({
+  return saveFileCard({
     title: 'Get this as an Excel workbook',
-    intro: 'We will email you the summary, your expenses by category, the investment projections and the charts as a formatted spreadsheet.',
+    intro: 'A formatted spreadsheet with the summary, your expenses by category, the investment projections and the charts.',
     source: 'budget',
     fileName: (who) => safeFileName('taxcompass-budget', who),
     buildBase64: async (who) => { const state = getState(); state.person.name = who; return buildWorkbookBase64(state, getSummary(), getCharts()); },

@@ -38,9 +38,11 @@ const post = (fn, body, env = {}) => fn({ request: new Request('http://x/api', {
   let r = await post(feedbackPost, { name: 'A', message: 'hello there' }, {});
   ok('feedback: 503 when nothing configured', r.status === 503);
   const env = { DB: fakeDb() };
-  r = await post(feedbackPost, { name: '', message: 'hello there' }, env); ok('feedback: name required', r.status === 400);
+  r = await post(feedbackPost, { name: '', message: 'hello there' }, env); ok('feedback: anonymous is fine, stored as Anonymous', r.status === 200 && env.DB._feedback.at(-1).name === 'Anonymous');
+  env.DB._feedback.length = 0;
   r = await post(feedbackPost, { name: 'A', message: 'hi' }, env); ok('feedback: message too short', r.status === 400);
-  r = await post(feedbackPost, { name: 'A', message: 'hello there', email: 'nope' }, env); ok('feedback: bad email rejected', r.status === 400);
+  r = await post(feedbackPost, { name: 'A', message: 'hello there', email: 'someone@example.com' }, env); ok('feedback: an email sent anyway is not stored', r.status === 200 && env.DB._feedback.at(-1).email === null && env.DB._feedback.at(-1).ua === null);
+  env.DB._feedback.length = 0;
   r = await post(feedbackPost, { name: 'A', message: 'hello there', website: 'spam' }, env); ok('feedback: honeypot returns ok without storing', r.status === 200 && env.DB._feedback.length === 0);
   r = await post(feedbackPost, { name: 'Asha', message: 'The HRA field confused me', rating: 4, page: '/tax' }, env);
   const j = await r.json();
