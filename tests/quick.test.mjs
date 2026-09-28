@@ -5,6 +5,7 @@ import path from 'node:path';
 import { quickAnswer, ladder, LADDER_CTCS } from '../public/js/quick-engine.js';
 import { salaryBreakdown } from '../public/js/salary.js';
 import { compareRegimes } from '../public/js/tax-engine.js';
+import { salaryMonthly } from '../public/js/budget-sync.js';
 import { emptyProfile, fromSalaryStore, toSalaryStore, toTaxInputs } from '../public/engine/profile.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -77,6 +78,8 @@ ok('Basic of 80% with PF and gratuity: components exceed CTC is reported', !!qui
   ok('salary page picks the same regime', onSalaryPage.regime === a.better, onSalaryPage.regime);
   near('salary page: same monthly in-hand', onSalaryPage.monthly, a.monthly.best);
   ok('professional tax defaults to 2,400 in a new profile', emptyProfile().tax.professionalTax === 2400);
+  near('the budget takes the same monthly in-hand from the saved profile', salaryMonthly(p, rates), a.monthly.best);
+  ok('no salary, no budget income', salaryMonthly(emptyProfile(), rates) === 0);
 }
 
 // the table shown before anything is typed

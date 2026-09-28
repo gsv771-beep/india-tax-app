@@ -888,3 +888,7 @@ details.section[open] summary::after { content: "–"; }
 #tax-next .insights { box-shadow: none; border: 0; padding: 0; margin: 0 0 12px; background: none; }
 #tax-next .insights h3 { font-size: 1rem; }
 #tax-next[hidden], #tax-working-fold[hidden], #tax-email[hidden] { display: none; }
+/* budget: where the income came from (js/budget.js) */
+.income-note { margin: -4px 0 10px; }
+.income-note:empty { display: none; }
+.income-note .btn-link { font-weight: 700; }
