@@ -11,8 +11,7 @@ import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName 
 import { saveFileCard } from './save-card.js';
 import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
 import { getProfile, updateProfile } from './profile-store.js';
-import { toSalaryStore, isEmptyProfile } from '../engine/profile.js';
-import { salaryBreakdown } from './salary.js';
+import { salaryMonthly } from './budget-sync.js';
 
 export const CATEGORIES = [
   'Rent / housing', 'Groceries & food', 'Education', 'Medical & health', 'Electricity & utilities',
@@ -286,20 +285,32 @@ async function svgToPng(svg, width) {
 
 export function renderBudget(appData) {
   let state = load();
+  // Where the income came from: 'salary' follows the CTC (budget-sync.js keeps it current even while
+  // this page is closed), 'typed' is the person's own figure, 'none' means they cleared the budget
+  // (Reset, Start over) and it stays empty until they type or take the salary's figure. A budget saved
+  // before this existed has no source: it links if it is empty or already matches the salary.
+  const fromSalary = salaryMonthly(getProfile(), appData?.rates);
+  if (isBlankAfterReset('budget')) state.incomeFrom = 'none';   // read now: the first save clears the marker
   const handoff = takeHandoff('budget');
-  if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
-  // First visit with a profile but no budget yet: start from the monthly in-hand the profile implies.
-  if (!state.income && appData?.rates && !isBlankAfterReset('budget')) {
-    const p = getProfile();
-    if (!isEmptyProfile(p) && p.income.ctc > 0) { const r = salaryBreakdown(toSalaryStore(p), appData.rates); if (!r.error && r.monthly > 0) state.income = Math.round(r.monthly); }
-  }
+  if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; state.incomeFrom = 'salary'; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+  else if (fromSalary && (state.incomeFrom === 'salary' || (state.incomeFrom == null && (!state.income || Math.round(+state.income) === fromSalary)))) { state.income = fromSalary; state.incomeFrom = 'salary'; }
   const root = el('div', { class: 'calc budget' });
   const left = el('div', { class: 'card inputs' });
   const right = el('div');
   root.append(left, right);
 
   const incomeInput = el('input', { 'aria-label': 'Monthly take-home income in rupees', type: 'number', min: 0, step: 1000, value: state.income || '', placeholder: 'e.g. 120000' });
-  incomeInput.addEventListener('input', () => { state.income = +incomeInput.value || 0; refresh(); });
+  // where the income came from, and the salary's figure when someone typed a different one
+  const incomeNote = el('div', { class: 'income-note small' });
+  const paintIncomeNote = () => {
+    const linked = state.incomeFrom === 'salary' && fromSalary > 0 && Math.round(+state.income) === fromSalary;
+    const offer = fromSalary > 0 && !linked && Math.round(+state.income || 0) !== fromSalary;
+    setChildren(incomeNote, linked
+      ? [el('span', { class: 'muted' }, 'Your in-hand pay from your CTC. It updates when your salary changes; type here to use a different figure.')]
+      : offer ? [`Your salary works out to ${inr(fromSalary)} a month in hand. `, el('button', { type: 'button', class: 'btn-link', onclick: () => { state.income = fromSalary; state.incomeFrom = 'salary'; incomeInput.value = fromSalary; refresh(); } }, 'Use it')]
+      : []);
+  };
+  incomeInput.addEventListener('input', () => { state.income = +incomeInput.value || 0; state.incomeFrom = Math.round(state.income) === fromSalary ? 'salary' : 'typed'; refresh(); });
 
   const expenseList = el('div', { class: 'rows' });
   const investList = el('div', { class: 'rows' });
@@ -342,11 +353,12 @@ export function renderBudget(appData) {
   setChildren(left, [
     handoff ? handoffNote(handoff.from, `Income set to ${inr(state.income)} a month from `) : null,
     el('label', {}, ['Monthly take-home income (₹)', el('small', {}, ['after tax and deductions, as credited to your bank. ', el('a', { href: '/calculators/salary' }, 'Work it out from your CTC')]), incomeInput]),
+    incomeNote,
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), el('div', { class: 'row-head' }, ['Category', 'Note', 'Amount', ''].map((t) => el('span', {}, t))), expenseList,
       el('div', { class: 'chips' }, CATEGORIES.map((c) => el('button', { type: 'button', onclick: () => addExpense(c) }, '+ ' + c)))]),
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly investments'), el('div', { class: 'row-head invest-head' }, ['Type', 'Name', 'Amount', 'Return', 'Term', ''].map((t) => el('span', {}, t))), investList,
       el('div', { class: 'chips' }, [el('button', { type: 'button', onclick: () => addInvest('sip') }, '+ SIP'), el('button', { type: 'button', onclick: () => addInvest('rd') }, '+ Recurring deposit')])]),
-    el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => { state = defaultState(); save(); root.replaceWith(renderBudget()); } }, 'Start over')),
+    el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => { state = { ...defaultState(), incomeFrom: 'none' }; save(); root.replaceWith(renderBudget(appData)); } }, 'Start over')),
   ]);
 
   // right side: the answer, why, what to do next, then the working
@@ -356,6 +368,7 @@ export function renderBudget(appData) {
 
   function refresh() {
     save();
+    paintIncomeNote();
     const s = summarise(state);
     const spare = Math.floor(s.surplus / 500) * 500;
     exportBox.hidden = !(s.income > 0);       // nothing to save until there is an income
