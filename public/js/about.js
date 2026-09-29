@@ -47,6 +47,7 @@ export function initAbout({ rates, schemes, capgains }) {
       el('ul', {}, [
         'We collect nothing about you. There are no accounts, no sign-up, and no form that asks for your name, email or phone number.',
         'Calculator entries stay in your own browser, in its local storage, and are never sent anywhere. Excel workbooks and the profile file are made in your browser and saved straight to your device.',
+        'Ask TaxCompass (the Ask button) answers on the page itself, from the glossary and the list of calculators. Your question is not sent anywhere and is gone when you close the page; the only thing counted is that Ask was used.',
         'The "Your profile" panel at the top of every page is that same local storage, shown in one place so every tool can start from the same figures. Download it as a small file to move it to another browser and restore it there, or wipe it with one click. TaxCompass keeps no copy.',
         'If you choose to send feedback, it is anonymous: we keep your message, the rating and the page you were on, and a first name only if you type one. Feedback appears under "What people say" only if you ticked the box allowing it. A simple counter records aggregate usage (visits, calculations, downloads); it stores numbers, not people.',
         'The site uses no advertising or tracking cookies. If aggregate visitor statistics are enabled, they come from Cloudflare Web Analytics, which does not use cookies or identify individuals.',

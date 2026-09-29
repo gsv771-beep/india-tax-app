@@ -51,7 +51,8 @@ export function initFeedback() {
   toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) message.focus(); });
   close.addEventListener('click', () => { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); } });
-  document.body.append(el('div', { class: 'fb' }, [panel, toggle]));
+  // the corner holds the panels above a row of buttons; Ask TaxCompass (ask.js) adds its own to both
+  document.body.append(el('div', { class: 'fb' }, [panel, el('div', { class: 'fb-row' }, [toggle])]));
 }
 
 // ---------- usage counter ----------
