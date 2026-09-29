@@ -702,7 +702,9 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .ask-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 5px 16px 5px 5px; background: var(--surface); color: var(--accent); border: 2px solid var(--accent-3); animation: ask-bob 3.6s ease-in-out 4; }
 .ask-toggle:hover { background: var(--accent-soft); }
 .ask-toggle .mascot { width: 40px; height: 40px; }
-.ask-toggle-label { font-weight: 800; }
+.ask-toggle-label { display: grid; text-align: left; line-height: 1.15; }
+.ask-toggle-label small { font-size: .7rem; font-weight: 600; color: var(--muted); }
+.ask-toggle-label span { font-weight: 800; white-space: nowrap; }
 .ask-toggle[aria-expanded="true"] { animation: none; }
 .mascot { display: block; flex: none; overflow: visible; }
 .mascot .m-rim { fill: var(--accent); }
@@ -770,13 +772,16 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .stars button.on { color: var(--gold); }
 .stars button:hover { color: var(--gold); }
 @media (max-width: 560px) {
-  .fb { right: 12px; bottom: 12px; }
-  /* on phones the corner is Ask's alone: Feedback lives in the footer, and Ask is just the mascot */
+  /* clear of the browser's own bar and of the screen edge, so it reads as part of the page */
+  .fb { right: 16px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  /* on phones the corner is Ask's alone: Feedback lives in the footer. Ask keeps its label until it
+     has been opened once, then it is the mascot alone. */
   .fb-feedback { display: none; }
-  .ask-toggle { padding: 4px; border-radius: 50%; }
-  .ask-toggle .mascot { width: 48px; height: 48px; }
-  .ask-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .site-footer { padding-bottom: 96px; }
+  .ask-toggle { padding: 4px 16px 4px 4px; }
+  .ask-toggle:not(.ask-labelled) { padding: 4px; border-radius: 50%; }
+  .ask-toggle:not(.ask-labelled) .mascot { width: 48px; height: 48px; }
+  .ask-toggle:not(.ask-labelled) .ask-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .site-footer { padding-bottom: 112px; }
 }
 /* the footer's way in to Feedback, on every screen */
 .footer-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding: 14px 16px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--radius-sm); background: rgba(255, 255, 255, .05); }

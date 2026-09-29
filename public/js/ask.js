@@ -42,6 +42,9 @@ function nextTip(list) {
 }
 const seenThisVisit = () => { try { return sessionStorage.getItem(TIP_SEEN) === '1'; } catch { return false; } };
 const markSeen = () => { try { sessionStorage.setItem(TIP_SEEN, '1'); } catch {} };
+const OPENED = 'taxcompass.ask-opened.v1';  // localStorage: this browser has opened Ask at least once
+const everOpened = () => { try { return localStorage.getItem(OPENED) === '1'; } catch { return false; } };
+const markOpened = () => { try { localStorage.setItem(OPENED, '1'); } catch {} };
 
 export function initAsk({ glossary, rates }) {
   const corner = document.querySelector('.fb');
@@ -64,7 +67,11 @@ export function initAsk({ glossary, rates }) {
     log,
     form,
   ]);
-  const toggle = el('button', { type: 'button', class: 'fb-toggle ask-toggle', 'aria-expanded': 'false', 'aria-label': 'Ask TaxCompass' }, [mascot(), el('span', { class: 'ask-toggle-label' }, 'Ask')]);
+  // Labelled until someone has opened it once; after that, on a phone, the mascot alone is enough.
+  const toggle = el('button', { type: 'button', class: `fb-toggle ask-toggle${everOpened() ? '' : ' ask-labelled'}`, 'aria-expanded': 'false', 'aria-label': 'Ask TaxCompass' }, [
+    mascot(),
+    el('span', { class: 'ask-toggle-label', 'aria-hidden': 'true' }, [el('small', {}, 'Need help?'), el('span', {}, 'Ask TaxCompass')]),
+  ]);
 
   // a worked example: a hook, one sentence, and a link that opens the calculator with its figures
   const tipLink = (t, onGo) => el('a', {
@@ -135,7 +142,9 @@ export function initAsk({ glossary, rates }) {
   function setOpen(v) {
     panel.hidden = !v;
     toggle.setAttribute('aria-expanded', String(v));
+    if (!v && toggle.classList.contains('ask-labelled') && everOpened()) toggle.classList.remove('ask-labelled');
     if (v) {
+      markOpened();
       hideTease();
       if (fbPanel) { fbPanel.hidden = true; fbToggle?.setAttribute('aria-expanded', 'false'); }
       if (!log.children.length) greet();
