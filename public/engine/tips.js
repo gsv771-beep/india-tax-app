@@ -24,47 +24,55 @@ export function sipValue(monthly, ratePct, years, stepUpPct = 0) {
   return bal;
 }
 
-/** A loan paid month by month, with an extra payment at the end of every year: { months, interest }. */
-export function loanWithYearlyExtra(principal, ratePct, years, extra = 0) {
+/**
+ * A loan paid month by month, as the EMI calculator does it: the EMI can rise by a percentage at the
+ * start of every year after the first, and an extra payment can go in at the end of every year.
+ * Returns { emi (the first), months, interest, finalEmi }.
+ */
+export function loanSim(principal, ratePct, years, { stepUpPct = 0, extra = 0 } = {}) {
   const r = ratePct / 1200, n = years * 12;
   const emi = (principal * r * (1 + r) ** n) / ((1 + r) ** n - 1);
-  let bal = principal, m = 0, interest = 0;
+  let bal = principal, cur = emi, m = 0, interest = 0;
   while (bal > 0.5 && m < n + 600) {
     m++;
+    if (m > 1 && (m - 1) % 12 === 0 && stepUpPct > 0) cur *= 1 + stepUpPct / 100;
     const int = bal * r;
-    bal -= Math.min(emi, bal + int) - int;
+    bal -= Math.min(cur, bal + int) - int;
     interest += int;
     if (extra > 0 && m % 12 === 0 && bal > 0.5) bal -= Math.min(extra, bal);
   }
-  return { emi, months: m, interest };
+  return { emi, months: m, interest, finalEmi: cur };
 }
 
+const span = (months) => { const y = Math.floor(months / 12), m = months % 12; return `${y} years${m ? ` ${m} month${m > 1 ? 's' : ''}` : ''}`; };
+
 function sipTip() {
-  const target = 1e7, years = 7, rate = 12;
-  const monthly = up(target / sipValue(1, rate, years), 100);
+  const target = 1e7, years = 10, rate = 12, monthly = 35000;
+  // the smallest whole-number yearly raise that takes ₹35,000 a month past ₹1 crore
+  let step = 0;
+  while (sipValue(monthly, rate, years, step) < target && step < 30) step++;
   return {
-    id: 'sip-crore', hook: '₹1 crore in 7 years?',
-    text: `A SIP of about ${inr(monthly)} a month gets there, if it earns ${rate}% a year. Returns are not guaranteed.`,
+    id: 'sip-crore', hook: '₹1 crore in 10 years?',
+    text: `Start a SIP of ${inr(monthly)} a month and raise it ${step}% every year: at ${rate}% a year it crosses ${words(sipValue(monthly, rate, years, step))} in ${years} years. Without the raise, about ${words(sipValue(monthly, rate, years))}. Returns are not guaranteed.`,
     cta: 'See how it adds up', href: '/calculators/sip',
-    handoff: { to: 'sip', values: { monthly, years, ratePct: rate, stepUpPct: 0, fresh: true, note: 'the ₹1 crore in 7 years example' } },
-    check: { value: sipValue(monthly, rate, years) },
+    handoff: { to: 'sip', values: { monthly, years, ratePct: rate, stepUpPct: step, fresh: true, note: 'the ₹1 crore in 10 years example' } },
+    check: { step, value: sipValue(monthly, rate, years, step) },
   };
 }
 
 function loanTip() {
-  const principal = 5e6, rate = 8.5, years = 20, target = years - 5;
-  const base = loanWithYearlyExtra(principal, rate, years);
-  // the smallest yearly extra, in steps of ₹5,000, that closes the loan in 15 years
-  let lo = 0, hi = principal;
-  while (hi - lo > 5000) { const mid = (lo + hi) / 2; if (loanWithYearlyExtra(principal, rate, years, mid).months <= target * 12) hi = mid; else lo = mid; }
-  const extra = up(hi, 5000);
-  const withExtra = loanWithYearlyExtra(principal, rate, years, extra);
+  const principal = 5e6, rate = 8.5, years = 20;
+  const base = loanSim(principal, rate, years);
+  // the smallest whole-number yearly EMI raise that closes the loan at least 5 years early
+  let step = 1;
+  while (loanSim(principal, rate, years, { stepUpPct: step }).months > (years - 5) * 12 && step < 20) step++;
+  const up5 = loanSim(principal, rate, years, { stepUpPct: step });
   return {
     id: 'loan-early', hook: 'Close your home loan 5 years early',
-    text: `On a ₹50 lakh, 20-year loan at ${rate}%, paying ${inr(extra)} extra once a year (a bonus is enough) closes it in ${target} years and saves ${words(base.interest - withExtra.interest)} of interest.`,
+    text: `Raise your EMI by ${step}% a year, as your pay grows, and a ₹50 lakh, 20-year loan at ${rate}% closes in ${span(up5.months)}, saving ${words(base.interest - up5.interest)} of interest. The EMI starts at ${inr(base.emi)}.`,
     cta: 'See how', href: '/calculators/emi',
-    handoff: { to: 'emi', values: { principal, ratePct: rate, years, annualPrepay: extra, fresh: true, note: 'the close-5-years-early example' } },
-    check: { months: withExtra.months, saved: base.interest - withExtra.interest },
+    handoff: { to: 'emi', values: { principal, ratePct: rate, years, stepUpPct: step, fresh: true, note: 'the close-5-years-early example' } },
+    check: { step, months: up5.months, saved: base.interest - up5.interest },
   };
 }
 

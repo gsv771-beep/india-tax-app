@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { tips, sipValue, loanWithYearlyExtra } from '../public/engine/tips.js';
+import { tips, sipValue, loanSim } from '../public/engine/tips.js';
 import { sipFV, simulateLoan, emi } from '../public/js/calculators.js';
 import { quickAnswer } from '../public/js/quick-engine.js';
 
@@ -21,30 +21,34 @@ ok('no example has a broken number', list.every((t) => !/NaN|undefined|Infinity|
 // the arithmetic agrees with the calculators' own
 ok('SIP maths is the SIP calculator\'s', Math.abs(sipValue(10000, 12, 10) - sipFV(10000, 12, 10).fv) < 1 && Math.abs(sipValue(10000, 12, 10, 10) - sipFV(10000, 12, 10, 10).fv) < 1);
 {
-  const mine = loanWithYearlyExtra(5e6, 8.5, 20, 100000), theirs = simulateLoan({ principal: 5e6, annualRatePct: 8.5, tenureMonths: 240, annualPrepay: 100000 });
-  ok('loan maths is the EMI calculator\'s', mine.months === theirs.months && Math.abs(mine.interest - theirs.totalInterest) < 1, `${mine.months} vs ${theirs.months}`);
+  for (const opts of [{ extra: 100000 }, { stepUpPct: 3 }, { stepUpPct: 7 }]) {
+    const mine = loanSim(5e6, 8.5, 20, opts), theirs = simulateLoan({ principal: 5e6, annualRatePct: 8.5, tenureMonths: 240, annualPrepay: opts.extra || 0, stepUpPct: opts.stepUpPct || 0 });
+    ok(`loan maths is the EMI calculator's (${JSON.stringify(opts)})`, mine.months === theirs.months && Math.abs(mine.interest - theirs.totalInterest) < 1, `${mine.months} vs ${theirs.months}`);
+  }
 }
 
-// ₹1 crore in 7 years
+// ₹1 crore in 10 years from ₹35,000 a month, raised every year
 {
   const t = by['sip-crore'], v = t.handoff.values;
-  const fv = sipFV(v.monthly, v.ratePct, v.years).fv;
-  ok('1 crore: the SIP reaches ₹1 crore in 7 years at 12%', fv >= 1e7 && v.years === 7 && v.ratePct === 12, inr(fv));
-  ok('1 crore: and ₹100 less a month does not', sipFV(v.monthly - 100, 12, 7).fv < 1e7);
-  ok('1 crore: the sentence names the SIP the calculator is given', t.text.includes(inr(v.monthly)) && /not guaranteed/.test(t.text), t.text);
-  ok('1 crore: hands the SIP calculator its figures, clean', t.handoff.to === 'sip' && v.fresh === true && v.stepUpPct === 0);
+  const fv = sipFV(v.monthly, v.ratePct, v.years, v.stepUpPct).fv;
+  ok('1 crore: ₹35,000 a month for 10 years at 12%', v.monthly === 35000 && v.years === 10 && v.ratePct === 12);
+  ok('1 crore: with the yearly raise it reaches ₹1 crore in the SIP calculator', fv >= 1e7, `${v.stepUpPct}% -> ${inr(fv)}`);
+  ok('1 crore: a raise one point smaller does not', sipFV(v.monthly, 12, 10, v.stepUpPct - 1).fv < 1e7);
+  ok('1 crore: says what the flat SIP reaches, and that returns are not guaranteed', t.text.includes(`₹${+(sipFV(35000, 12, 10).fv / 1e5).toFixed(1)} lakh`) && t.text.includes(`${v.stepUpPct}% every year`) && /not guaranteed/.test(t.text), t.text);
+  ok('1 crore: hands the SIP calculator its figures, clean', t.handoff.to === 'sip' && v.fresh === true);
 }
 
-// a home loan closed 5 years early
+// a home loan closed 5 years early by raising the EMI every year
 {
   const t = by['loan-early'], v = t.handoff.values;
   const base = simulateLoan({ principal: v.principal, annualRatePct: v.ratePct, tenureMonths: v.years * 12 });
-  const early = simulateLoan({ principal: v.principal, annualRatePct: v.ratePct, tenureMonths: v.years * 12, annualPrepay: v.annualPrepay, annualPrepayStartYear: 1, mode: 'reduce_tenure' });
-  ok('loan: the yearly extra closes it within 15 years in the EMI calculator', early.months <= 180 && early.months > 168, `${early.months} months`);
-  ok('loan: ₹5,000 less a year does not', simulateLoan({ principal: v.principal, annualRatePct: v.ratePct, tenureMonths: 240, annualPrepay: v.annualPrepay - 5000 }).months > 180);
-  const saved = base.totalInterest - early.totalInterest;
+  const up = simulateLoan({ principal: v.principal, annualRatePct: v.ratePct, tenureMonths: v.years * 12, stepUpPct: v.stepUpPct });
+  ok('loan: the step-up EMI closes it at least 5 years early in the EMI calculator', up.months <= 180, `${v.stepUpPct}% -> ${up.months} months`);
+  ok('loan: a step-up one point smaller does not', simulateLoan({ principal: v.principal, annualRatePct: v.ratePct, tenureMonths: 240, stepUpPct: v.stepUpPct - 1 }).months > 180);
+  const saved = base.totalInterest - up.totalInterest;
   ok('loan: the interest saved is the calculator\'s, to a tenth of a lakh', t.text.includes(`₹${+(saved / 1e5).toFixed(1)} lakh`), `${inr(saved)} | ${t.text}`);
-  ok('loan: the sentence names the extra and the EMI calculator gets it', t.text.includes(inr(v.annualPrepay)) && t.handoff.to === 'emi' && v.fresh === true);
+  ok('loan: says how long it takes and where the EMI starts', t.text.includes(`${Math.floor(up.months / 12)} years`) && t.text.includes(inr(base.emi)));
+  ok('loan: hands the EMI calculator the step-up, clean, with no prepayment', t.handoff.to === 'emi' && v.fresh === true && v.stepUpPct > 0 && !v.annualPrepay);
   ok('loan: a ₹50 lakh, 20-year loan at 8.5% has the textbook EMI', Math.round(emi(v.principal, v.ratePct, v.years).emi) === 43391);
 }
 
