@@ -478,6 +478,8 @@ const VIEWS = {
     if (loan && loan.outstanding > 0 && !(v(PR) > 0)) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
     const emiHandoff = takeHandoff('emi');
     if (emiHandoff) {
+      // a worked example starts clean, so the loan shows exactly the example's figures
+      if (emiHandoff.values.fresh) { [PR, DP, CM].forEach((f) => fill(f.input, '')); fill(step.inputs[0], 'none'); fill(L.input, 0); fill(A.input, emiHandoff.values.annualPrepay || 0); fill(AS.input, 1); fill(M.input, 'reduce_tenure'); }
       fill(R.input, +(+emiHandoff.values.ratePct).toFixed(2)); fill(Y.input, emiHandoff.values.years);
       if (emiHandoff.values.price > 0) { fill(PR.input, emiHandoff.values.price); fill(DP.input, emiHandoff.values.downPayment || 0); fill(CM.input, emiHandoff.values.constructionMonths || 0); }
       else fill(P.input, emiHandoff.values.principal);
@@ -620,6 +622,9 @@ const VIEWS = {
     if (!isBlankAfterReset('sip')) { const p = getProfile(); if (p.cashflow.monthlySurplus > 0) A.input.value = Math.round(p.cashflow.monthlySurplus); if (p.horizon.goals[0]?.years > 0) Y.input.value = p.horizon.goals[0].years; }
     const handoff = takeHandoff('sip') || takeHandoff('lumpsum');
     if (handoff) {
+      if (handoff.values.fresh) { lumpList.replaceChildren(); lumps.length = 0; persistLumps(); }
+      if (handoff.values.ratePct != null) fill(R.input, handoff.values.ratePct);
+      if (handoff.values.stepUpPct != null) { fill(step.inputs[0], handoff.values.stepUpPct > 0 ? 'pct' : 'none'); if (handoff.values.stepUpPct > 0) fill(step.inputs[1], handoff.values.stepUpPct); }
       if (handoff.values.monthly != null) fill(A.input, handoff.values.monthly);
       if (handoff.values.amount > 0) { fill(A.input, 0); lumpList.replaceChildren(); lumps.length = 0; addLump(handoff.values.amount, 0); persistLumps(); }
       if (handoff.values.years) fill(Y.input, handoff.values.years);
