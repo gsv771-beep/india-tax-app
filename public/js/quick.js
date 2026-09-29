@@ -46,9 +46,25 @@ const DEDUCTIONS = [
  *   taxLink, salaryLink   { href, text, onclick? } under each result tile; onclick opens the detailed
  *               tool on a page that has it below instead of navigating away
  */
-export function mountQuick(slot, { rates, source, taxLink, salaryLink, ctc = null, showLadder = true }) {
+/** A CTC passed in the address (/tax?ctc=2500000, from Ask TaxCompass): shown, not saved until edited. */
+export function ctcFromUrl() {
+  if (typeof location === 'undefined') return null;
+  const v = Math.round(+new URLSearchParams(location.search).get('ctc'));
+  return v >= 100000 && v <= 1e9 ? v : null;
+}
+const mounts = new Map();   // source -> the slot and options, so a ?ctc= link can refill a card already on the page
+if (typeof window !== 'undefined') window.addEventListener('routechange', () => {
+  const c = ctcFromUrl();
+  if (!c) return;
+  for (const { slot, opts } of mounts.values()) if (slot.isConnected && slot.offsetParent !== null && opts.ctc !== c) mountQuick(slot, { ...opts, ctc: c });
+});
+
+export function mountQuick(slot, opts) {
+  const { rates, source, taxLink, salaryLink, showLadder = true } = opts;
+  const ctc = opts.ctc ?? ctcFromUrl();
   if (!slot || !rates) return;
   if (live.has(source)) live.get(source)();
+  mounts.set(source, { slot, opts: { ...opts, ctc } });
   // a salary page starts from its own CTC with the person's deductions; nothing is saved until they change something
   let q = { ...fromProfile(getProfile()), ...(ctc ? { ctc } : {}) };
   const ladderRows = showLadder ? ladder(rates) : [];

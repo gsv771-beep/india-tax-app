@@ -1,12 +1,13 @@
 /**
- * GET  /api/counter                -> { available, counts: { visits, comparisons, workbooks, calculations (comparisons included) }, calculators: { emi: n, ... }, cf: { requests, pageViews, since } | null }
- * POST /api/counter { event }      -> increments one of: visit | compare | workbook | calc:<calculator>
+ * GET  /api/counter                -> { available, counts: { visits, comparisons, workbooks, asks, calculations (comparisons included) }, calculators: { emi: n, ... }, cf: { requests, pageViews, since } | null }
+ * POST /api/counter { event }      -> increments one of: visit | compare | workbook | ask | calc:<calculator>
+ *                                     (ask: a visit that used Ask TaxCompass; the question itself is never sent)
  * Backed by D1 (binding `DB`). Without the binding, GET reports available:false and POST is a no-op.
  */
 import { json, ensureSchema, bump } from '../_lib.js';
 import { cfTotals } from '../_cf-analytics.js';
 
-const EVENTS = { visit: 'visits', compare: 'comparisons', workbook: 'workbooks' };
+const EVENTS = { visit: 'visits', compare: 'comparisons', workbook: 'workbooks', ask: 'asks' };
 const CALCS = ['salary', 'budget', 'emi', 'sip', 'home', 'compare', 'capital-gains', 'retirement', 'goal', 'insurance', 'debt'];
 const counterName = (event) => EVENTS[event] || (typeof event === 'string' && event.startsWith('calc:') && CALCS.includes(event.slice(5)) ? event : null);
 
@@ -15,7 +16,7 @@ export async function onRequestGet({ env }) {
   try {
     await ensureSchema(env.DB);
     const { results } = await env.DB.prepare('SELECT name, value FROM counters').all();
-    const counts = { visits: 0, comparisons: 0, workbooks: 0, calculations: 0 };
+    const counts = { visits: 0, comparisons: 0, workbooks: 0, asks: 0, calculations: 0 };
     const calculators = {};
     for (const r of results || []) {
       if (r.name in counts) counts[r.name] = r.value;

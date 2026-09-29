@@ -9,6 +9,7 @@ import { initHome } from './home.js';
 import { initSnapshot } from './snapshot.js';
 import { mountQuick, detailFold } from './quick.js';
 import { initBudgetSync } from './budget-sync.js';
+import { initAsk } from './ask.js';
 import { initProfileUndo } from './profile-undo.js';
 import { ensureFresh, checkLiveBuild } from './fresh.js';
 import { isProduction } from './env.js';
@@ -159,6 +160,7 @@ async function boot() {
     initBudgetSync(appData);
     initCalculators(appData);
     initFeedback();
+    initAsk(appData);
     initCounter();
     initFeedbackBadge();
     document.body.classList.add('ready');

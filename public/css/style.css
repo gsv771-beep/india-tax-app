@@ -696,6 +696,26 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .fb { position: fixed; right: 18px; bottom: 18px; z-index: 40; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
 .fb-toggle { padding: 10px 16px; border-radius: 999px; border: none; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-lg); }
 .fb-toggle:hover { background: var(--accent-2); }
+.fb-row { display: flex; gap: 8px; }
+/* Ask TaxCompass (js/ask.js): the chat panel beside Feedback */
+.ask-toggle { background: var(--surface); color: var(--accent-2); border: 2px solid var(--accent-3); }
+.ask-toggle:hover { background: var(--accent-soft); }
+.ask-panel { width: min(420px, calc(100vw - 24px)); display: flex; flex-direction: column; max-height: min(640px, calc(100vh - 110px)); }
+.ask-intro { margin: 4px 0 10px; }
+.ask-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 2px 8px; min-height: 120px; }
+.ask-msg { border-radius: 12px; padding: 9px 12px; font-size: .92rem; max-width: 92%; }
+.ask-msg p { margin: 0; }
+.ask-msg strong { display: block; margin-bottom: 3px; }
+.ask-you { align-self: flex-end; background: var(--accent); color: #fff; }
+.ask-bot { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); }
+.ask-links { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+.ask-links .btn { text-decoration: none; }
+.ask-link { font-weight: 600; font-size: .88rem; }
+.ask-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.ask-chips button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--text); text-align: left; }
+.ask-chips button:hover { border-color: var(--accent-3); color: var(--accent); }
+.ask-form { display: flex; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.ask-form input { flex: 1; min-width: 0; }
 .fb-panel { width: min(380px, calc(100vw - 36px)); padding: 16px; box-shadow: var(--shadow-lg); }
 .fb-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .fb-form { display: grid; gap: 10px; }
