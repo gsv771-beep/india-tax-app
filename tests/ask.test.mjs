@@ -61,6 +61,24 @@ for (const [q, want] of defs) { const r = A(q); ok(`define: "${q}" -> ${want}`, 
 ok('term matching prefers the longer name', findTerm('what is nps tier ii', glossary)?.term === 'NPS Tier II');
 ok('short names match whole words only ("pan" is not in "company")', findTerm('my company pays well', glossary) === null);
 
+// ---- a salary and nothing else asked: in-hand pay and the regime, with the figure filled in ----
+const salaries = [
+  ['Ctc is 70 lakh', '/tax?ctc=7000000'], ['CTC 70L', '/tax?ctc=7000000'], ['my salary is 1.2 crore', '/tax?ctc=12000000'], ['package 30 lpa', '/tax?ctc=3000000'],
+  ['I earn 40 lakh', '/tax?ctc=4000000'], ['offered 45 LPA', '/tax?ctc=4500000'], ['got a hike to 32 lakh', '/tax?ctc=3200000'], ['income 12 lakh', '/tax?ctc=1200000'], ['salary', '/tax'],
+];
+for (const [q, want] of salaries) { const r = A(q); ok(`salary: "${q}"`, r.kind === 'tool' && primary(r) === want, `${r.kind}/${r.intent || r.term || ''} -> ${primary(r)}`); }
+{
+  const r = A('Ctc is 70 lakh');
+  ok('70L: links the ₹70 lakh salary page and names both answers', r.links.some((l) => l.href === '/salary/70-lakh') && /in hand/.test(r.text) && /regime/.test(r.text), r.text);
+  const bare = A('70 lakh');
+  ok('an amount alone leads with salary and offers loan and home', bare.kind === 'tool' && primary(bare) === '/tax?ctc=7000000' && bare.links.some((l) => l.href === '/calculators/emi') && bare.links.some((l) => l.href === '/calculators/home'), bare.links.map((l) => l.href).join(' '));
+  ok('a monthly amount alone is filled in as a year', primary(A('1.5 lakh per month')) === '/tax?ctc=1800000');
+  ok('"what is ctc" is a definition', A('what is ctc').kind === 'define' && A('what is ctc').term === 'CTC (Cost to Company)');
+  ok('a question with an amount and a tool gets the tool, even worded "what is"', primary(A('what is my take home on 30 lakh ctc')) === '/calculators/salary?ctc=3000000');
+  ok('other income is not a salary', A('other income 50000').intent !== 'salary');
+  ok('salary words do not unlock fund picks', A('which mutual fund is best, my salary is 20 lakh').kind === 'advice');
+}
+
 // ---- the advice line ----
 for (const q of ['which mutual fund should i buy', 'best stocks to buy now', 'should i buy reliance', 'suggest a good elss fund to invest', 'stock tips']) {
   const r = A(q); ok(`advice declined: "${q}"`, r.kind === 'advice' && /does not recommend/.test(r.text), r.kind);
@@ -71,7 +89,7 @@ ok('"old or new scheme" is about tax, not advice', A('which scheme is better old
 ok('greeting', A('hi').kind === 'greeting');
 ok('empty', A('   ').kind === 'unknown');
 ok('nonsense gets the help text and links', A('asdf qwerty').kind === 'unknown' && A('asdf qwerty').links.length > 0);
-ok('every link is a site path or the e-filing portal', [...amounts, ...tools, ...defs].every(([q]) => A(q).links.every((l) => l.href.startsWith('/') || l.href === 'https://www.incometax.gov.in/')));
+ok('every link is a site path or the e-filing portal', [...amounts, ...tools, ...defs, ...salaries].every(([q]) => A(q).links.every((l) => l.href.startsWith('/') || l.href === 'https://www.incometax.gov.in/')));
 
 console.log(failures ? `\n${failures} failure(s)` : '\nAll ask tests passed');
 process.exit(failures ? 1 : 0);

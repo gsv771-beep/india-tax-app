@@ -120,6 +120,13 @@ const INTENTS = [
     reply: () => 'TaxCompass does not file returns. You file on the Income Tax Department’s e-filing portal, or through a chartered accountant. The calculator here helps you check the figures first.',
     links: () => [{ href: 'https://www.incometax.gov.in/', label: 'Income Tax e-filing portal', primary: true, external: true }, { href: '/tax', label: 'Check your tax first' }],
   },
+  {
+    // last: a salary named with nothing else asked ("CTC is 70 lakh", "offered 45 LPA") gets both answers
+    id: 'salary',
+    test: (q) => has(q, /\bctc\b/, /\bsalar(y|ies)\b/, /\bpackage\b/, /\d\s*lpa\b|\blpa\b/, /\bearn(s|ing|ings)?\b/, /(?<!other\s)\bincome\b/, /\b(offer|offered|hike|appraisal)\b/, /\bpaid\b/),
+    reply: (a) => `The calculator shows ${a ? `what ${inWords(a)} pays` : 'what your CTC pays'} in hand each month and which tax regime saves you more, as you type.${a ? ` It opens with ${inWords(a)} filled in.` : ' Type your CTC to start.'}`,
+    links: (a) => salaryLinks(a, '/tax', 'In-hand pay and old vs new regime'),
+  },
 ];
 
 // deduction and allowance words lead to the tax calculator after the definition
@@ -197,7 +204,7 @@ export function ask(question, { glossary } = {}) {
 
   const intent = INTENTS.find((i) => i.test(q));
   // the tax tools only make sense for a salary-sized figure; a loan or SIP amount is passed through as said
-  const salaryish = intent && ['regime', 'inhand', 'tax-on-salary'].includes(intent.id);
+  const salaryish = intent && ['regime', 'inhand', 'tax-on-salary', 'salary'].includes(intent.id);
   const amountFor = salaryish ? (yearly >= 100000 && yearly <= 1e9 ? yearly : null) : amt ? amt.amount : null;
 
   if (ASKS_ADVICE.test(q) && !(intent && ['regime', 'tax-on-salary', 'inhand'].includes(intent.id))) {
@@ -210,7 +217,8 @@ export function ask(question, { glossary } = {}) {
 
   const term = findTerm(q, glossary);
   const wantsDefinition = ASKS_DEFINITION.test(q) || (term && q.replace(/[?!.]/g, '').trim().length <= term.term.length + 4);
-  if (term && (wantsDefinition || !intent)) {
+  // "what is my take-home on 30 lakh" asks for a figure, not a definition: with an amount and a tool, the tool wins
+  if (term && ((wantsDefinition && !(amt && intent)) || !intent)) {
     const [href, label] = DEDUCTION.test(q) ? ['/tax', 'Tax calculator'] : intent ? [intent.links(amountFor)[0].href, intent.links(amountFor)[0].label] : TOOL_FOR_CATEGORY[term.cat] || ['/calculators', 'All money tools'];
     return {
       kind: 'define', term: term.term, text: term.def,
@@ -218,6 +226,20 @@ export function ask(question, { glossary } = {}) {
     };
   }
   if (intent) return { kind: 'tool', intent: intent.id, text: intent.reply(amountFor) + (salaryish ? monthlyNote : ''), links: intent.links(amountFor) };
+
+  // an amount and nothing else ("70 lakh"): most people mean a salary, so lead with that, and offer the rest
+  if (amt && !term && q.replace(/[^a-z]+/g, ' ').replace(/\b(rs|inr|crores?|cr|lakhs?|lacs?|l|k|thousand|rupees?|per|a|month|monthly|pm|is|my|of|about|around)\b/g, '').trim() === '') {
+    const ctc = yearly >= 100000 && yearly <= 1e9 ? yearly : null;
+    return {
+      kind: 'tool', intent: 'amount',
+      text: `If ${inWords(amt.amount)}${amt.monthly ? ' a month' : ''} is your salary, the calculator shows your in-hand pay and which tax regime saves more.${ctc ? ` It opens with ${inWords(ctc)} a year filled in.` : ''} If it is a loan or a home’s price, the other two answer that.`,
+      links: [
+        ...(ctc ? salaryLinks(ctc, '/tax', 'In-hand pay and old vs new regime').slice(0, 1) : [{ href: '/tax', label: 'In-hand pay and old vs new regime', primary: true }]),
+        { href: '/calculators/emi', label: 'EMI on a loan' },
+        { href: '/calculators/home', label: 'True cost of buying a home' },
+      ],
+    };
+  }
 
   return {
     kind: 'unknown',
