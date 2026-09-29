@@ -480,6 +480,7 @@ const VIEWS = {
     if (emiHandoff) {
       // a worked example starts clean, so the loan shows exactly the example's figures
       if (emiHandoff.values.fresh) { [PR, DP, CM].forEach((f) => fill(f.input, '')); fill(step.inputs[0], 'none'); fill(L.input, 0); fill(A.input, emiHandoff.values.annualPrepay || 0); fill(AS.input, 1); fill(M.input, 'reduce_tenure'); }
+      if (emiHandoff.values.stepUpPct > 0) { fill(step.inputs[0], 'pct'); fill(step.inputs[1], emiHandoff.values.stepUpPct); }
       fill(R.input, +(+emiHandoff.values.ratePct).toFixed(2)); fill(Y.input, emiHandoff.values.years);
       if (emiHandoff.values.price > 0) { fill(PR.input, emiHandoff.values.price); fill(DP.input, emiHandoff.values.downPayment || 0); fill(CM.input, emiHandoff.values.constructionMonths || 0); }
       else fill(P.input, emiHandoff.values.principal);
