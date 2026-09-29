@@ -47,10 +47,17 @@ export function initFeedback() {
     el('div', { class: 'fb-head' }, [el('h3', { style: 'margin:0' }, 'Tell us what you think'), close]),
     form,
   ]);
-  const toggle = el('button', { type: 'button', class: 'fb-toggle', 'aria-expanded': 'false' }, 'Feedback');
-  toggle.addEventListener('click', () => { panel.hidden = !panel.hidden; toggle.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) message.focus(); });
-  close.addEventListener('click', () => { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) { panel.hidden = true; toggle.setAttribute('aria-expanded', 'false'); } });
+  // Floating on wide screens; on phones the corner is Ask's alone, and Feedback is a button in the footer.
+  const toggle = el('button', { type: 'button', class: 'fb-toggle fb-feedback', 'aria-expanded': 'false' }, 'Feedback');
+  const setOpen = (v) => {
+    panel.hidden = !v;
+    toggle.setAttribute('aria-expanded', String(v));
+    if (v) { window.dispatchEvent(new CustomEvent('taxcompass:feedback-open')); message.focus(); }
+  };
+  toggle.addEventListener('click', () => setOpen(panel.hidden));
+  close.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-open-feedback]')) { e.preventDefault(); setOpen(true); } });
   // the corner holds the panels above a row of buttons; Ask TaxCompass (ask.js) adds its own to both
   document.body.append(el('div', { class: 'fb' }, [panel, el('div', { class: 'fb-row' }, [toggle])]));
 }
