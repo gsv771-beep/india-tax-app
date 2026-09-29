@@ -10,7 +10,7 @@ import { el, setChildren } from './util.js';
 import { ask, SUGGESTIONS } from '../engine/ask.js';
 import { tips } from '../engine/tips.js';
 import { setHandoff } from './handoff.js';
-import { countEvent } from './feedback.js';
+import { countEvent, isPhone, syncCorner } from './feedback.js';
 
 const TIP_INDEX = 'taxcompass.tip.v1';     // localStorage: which example comes next, across visits
 const TIP_SEEN = 'taxcompass.tip-seen.v1'; // sessionStorage: the bubble has been shown this visit
@@ -148,8 +148,10 @@ export function initAsk({ glossary, rates }) {
       hideTease();
       if (fbPanel) { fbPanel.hidden = true; fbToggle?.setAttribute('aria-expanded', 'false'); }
       if (!log.children.length) greet();
-      setTimeout(() => input.focus(), 0);
+      // on a phone the keyboard would cover the example; it comes up when the box is tapped
+      if (!isPhone()) setTimeout(() => input.focus(), 0);
     }
+    syncCorner();
   }
   toggle.addEventListener('click', () => setOpen(panel.hidden));
   close.addEventListener('click', () => setOpen(false));

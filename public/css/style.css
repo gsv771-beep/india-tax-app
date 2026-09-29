@@ -782,6 +782,14 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
   .ask-toggle:not(.ask-labelled) .mascot { width: 48px; height: 48px; }
   .ask-toggle:not(.ask-labelled) .ask-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .site-footer { padding-bottom: 112px; }
+  /* an open panel is a full-screen sheet over the visible viewport, above the keyboard */
+  .fb .fb-panel { position: fixed; left: 0; right: 0; top: var(--vv-top, 0px); height: var(--vv-h, 100dvh); width: auto; max-height: none; margin: 0; border: none; border-radius: 0; box-shadow: none; z-index: 60; overflow-y: auto; padding: 14px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
+  .fb .fb-panel.ask-panel { display: flex; flex-direction: column; overflow: hidden; }
+  .fb .ask-panel .ask-log { flex: 1; min-height: 0; }
+  .fb .ask-form input, .fb .fb-form textarea, .fb .fb-form input { font-size: 16px; }   /* 16px or more: iOS does not zoom the page on focus */
+  .fb.panel-open .fb-row, .fb.panel-open .ask-tease { display: none; }
+  .fb .ask-panel:focus-within .ask-intro { display: none; }   /* typing: the conversation gets the room */
+  html.sheet-open, html.sheet-open body { overflow: hidden; }
 }
 /* the footer's way in to Feedback, on every screen */
 .footer-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding: 14px 16px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--radius-sm); background: rgba(255, 255, 255, .05); }

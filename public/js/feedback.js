@@ -52,7 +52,8 @@ export function initFeedback() {
   const setOpen = (v) => {
     panel.hidden = !v;
     toggle.setAttribute('aria-expanded', String(v));
-    if (v) { window.dispatchEvent(new CustomEvent('taxcompass:feedback-open')); message.focus(); }
+    if (v) { window.dispatchEvent(new CustomEvent('taxcompass:feedback-open')); if (!isPhone()) message.focus(); }
+    syncCorner();
   };
   toggle.addEventListener('click', () => setOpen(panel.hidden));
   close.addEventListener('click', () => setOpen(false));
@@ -60,6 +61,31 @@ export function initFeedback() {
   document.addEventListener('click', (e) => { if (e.target.closest('[data-open-feedback]')) { e.preventDefault(); setOpen(true); } });
   // the corner holds the panels above a row of buttons; Ask TaxCompass (ask.js) adds its own to both
   document.body.append(el('div', { class: 'fb' }, [panel, el('div', { class: 'fb-row' }, [toggle])]));
+  trackViewport();
+}
+
+// ---------- the corner's panels on a phone ----------
+// There a panel is a full-screen sheet sized to the visible viewport (which shrinks when the keyboard
+// opens), the corner's buttons step aside while one is open, and the page behind does not scroll.
+export const isPhone = () => window.matchMedia('(max-width: 560px)').matches;
+/** Call after opening or closing a panel in the corner. */
+export function syncCorner() {
+  const corner = document.querySelector('.fb');
+  if (!corner) return;
+  const open = [...corner.querySelectorAll('.fb-panel')].some((p) => !p.hidden);
+  corner.classList.toggle('panel-open', open);
+  document.documentElement.classList.toggle('sheet-open', open);
+}
+function trackViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  const set = () => {
+    document.documentElement.style.setProperty('--vv-h', `${Math.round(vv.height)}px`);
+    document.documentElement.style.setProperty('--vv-top', `${Math.round(vv.offsetTop)}px`);
+  };
+  vv.addEventListener('resize', set);
+  vv.addEventListener('scroll', set);
+  set();
 }
 
 // ---------- usage counter ----------
