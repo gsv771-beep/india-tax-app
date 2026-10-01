@@ -16,6 +16,7 @@ const GROUPS = [
     items: [
       { href: '/calculators/salary', icon: '💼', q: 'What will actually reach my bank?', d: 'CTC to monthly take-home: Basic, HRA, conveyance, variable pay, PF, professional tax and income tax.', line: (s) => (s && s.kind !== 'business' ? `About ${inr(s.takeHome.monthly)} a month on your figures.` : null) },
       { href: '/tax', icon: '💰', q: 'Old regime or new?', d: 'Both computed line by line, what moves your tax, and how far you are from the other one winning.', line: (s) => (s ? `${s.tax.regime} regime is cheaper for you today${s.tax.otherSaves > 0 ? `, by ${inr(s.tax.otherSaves)}` : ''}.` : null) },
+      { href: '/calculators/offer', icon: '🤝', q: 'Which offer pays more?', d: 'Two offers side by side: what reaches the bank each month and in two years, with variable pay and the joining bonus at what they really pay.', line: () => null },
       { href: '/calculators/budget', icon: '🧾', q: 'Where does it all go?', d: 'Expenses by category against your take-home, and what is genuinely free at the end of the month.', line: (s) => (s && s.surplus.fromBudget ? `${inr(s.surplus.monthly)} free each month.` : null) },
     ],
   },

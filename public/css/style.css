@@ -789,6 +789,16 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
   .fb .ask-panel:focus-within .ask-intro { display: none; }   /* typing: the conversation gets the room */
   html.sheet-open, html.sheet-open body { overflow: hidden; }
 }
+/* offer comparison: the two offers side by side, the result under them */
+.offer-calc { display: block; }
+.offer-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.offer-name { display: flex; align-items: center; gap: 10px; }
+.offer-name input { flex: 1; min-width: 0; font-weight: 700; }
+.offer-tag { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; flex: none; }
+.offer-b .offer-tag { background: var(--gold); }
+.offer-why { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.offer-table td:not(:first-child), .offer-table th:not(:first-child) { text-align: right; white-space: nowrap; }
+@media (max-width: 760px) { .offer-inputs { grid-template-columns: 1fr; } }
 /* the way in to Feedback, on every screen: the corner is Ask's alone */
 .footer-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding: 14px 16px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--radius-sm); background: rgba(255, 255, 255, .05); }
 .footer-feedback strong { display: block; color: #fff; font-size: .95rem; }

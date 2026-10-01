@@ -202,7 +202,7 @@ function mount(key, { detailOnly = false } = {}) {
 const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
-  debt: { keys: ['taxcompass.debt.v1'] },
+  debt: { keys: ['taxcompass.debt.v1'] }, offer: { keys: ['taxcompass.offer.v1'] },
   'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
 function resetCalc(key, { fromStartOver = false } = {}) {
@@ -326,6 +326,7 @@ const VIEWS = {
   retirement: () => import('./retirement.js').then((m) => m.renderRetirement(appData)),
   goal: () => import('./goal.js').then((m) => m.renderGoal(appData)),
   debt: () => import('./debt.js').then((m) => m.renderDebt(appData)),
+  offer: () => import('./offer.js').then((m) => m.renderOffer(appData)),
 
   emi() {
     let lastEmi = null;
