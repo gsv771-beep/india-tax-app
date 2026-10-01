@@ -28,6 +28,7 @@ const FROM_LABEL = {
   budget: ['your savings calculator', '/calculators/budget'],
   emi: ['your EMI calculation', '/calculators/emi'],
   home: ['the home-buying tool', '/calculators/home'],
+  offer: ['the offer comparison', '/calculators/offer'],
   tip: ['a TaxCompass worked example', '/'],
 };
 

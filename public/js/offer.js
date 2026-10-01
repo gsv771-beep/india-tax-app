@@ -9,6 +9,7 @@ import { getProfile } from './profile-store.js';
 import { isEmptyProfile, ctcOf } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { resultLayout } from './result-layout.js';
+import { setHandoff } from './handoff.js';
 
 const STORE = 'taxcompass.offer.v1';
 const signed = (n) => `${n >= 0 ? '+' : '−'}${inr(Math.abs(n))}`;
@@ -67,7 +68,7 @@ export function renderOffer({ rates }) {
         el('label', {}, [el('span', { class: 'lbl' }, 'One-time bonus'), kind]),
         bonusField,
       ]),
-      el('div', { class: 'offer-sub' }, [
+      key === 'a' ? null : el('div', { class: 'offer-sub' }, [
         num('relocation', 'Relocation allowance (₹, paid once)', { step: 10000, placeholder: '0', slider: { max: 500000, step: 10000 } }, 'year 1'),
         check('relocationBills', 'Reimbursed against bills, so not taxed'),
       ]),
@@ -86,7 +87,7 @@ export function renderOffer({ rates }) {
   function paint() {
     const ready = +st.a.ctc > 0 && +st.b.ctc > 0;
     if (!ready) { setChildren(out, [beginPrompt(+st.a.ctc > 0 ? 'Now enter the other offer’s CTC.' : 'Enter the CTC of both offers.')]); return; }
-    const r = compareOffers(st.a, st.b, rates);
+    const r = compareOffers({ ...st.a, relocation: 0 }, st.b, rates);
     if (r.error) { setChildren(out, [el('div', { class: 'notice error' }, r.error)]); return; }
     const [A1, A2] = r.a, [B1, B2] = r.b, d = r.diff;
     const A = st.a.name, B = st.b.name;
@@ -153,7 +154,8 @@ export function renderOffer({ rates }) {
       next: [
         { label: 'See each salary split in full', note: 'Basic, HRA, PF and tax for one CTC', href: `/calculators/salary?ctc=${Math.round(+st.b.ctc)}`, primary: true },
         { label: 'Would the old regime win with your deductions?', note: 'Rent, home loan, 80C and NPS', href: `/tax?ctc=${Math.round(+st.b.ctc)}` },
-        { label: 'What the difference becomes if invested', note: 'Put the extra each month in a SIP', href: '/calculators/sip' },
+        { label: `Plan your savings on ${B}’s pay`, note: `${inr(B1.monthly)} a month into the savings calculator`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(B1.monthly) }, 'offer') },
+        { label: `Or on ${A}’s`, note: `${inr(A1.monthly)} a month`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(A1.monthly) }, 'offer') },
       ],
       details: [
         table(A1, B1, 'Year 1, line by line'),

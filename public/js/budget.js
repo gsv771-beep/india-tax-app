@@ -12,6 +12,9 @@ import { saveFileCard } from './save-card.js';
 import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { salaryMonthly } from './budget-sync.js';
+import { quickAnswer } from './quick-engine.js';
+import { fromSalaryStore, ctcOf } from '../engine/profile.js';
+import { attachAmountEcho } from './amount-input.js';
 
 export const CATEGORIES = [
   'Rent / housing', 'Groceries & food', 'Education', 'Medical & health', 'Electricity & utilities',
@@ -289,10 +292,10 @@ export function renderBudget(appData) {
   // this page is closed), 'typed' is the person's own figure, 'none' means they cleared the budget
   // (Reset, Start over) and it stays empty until they type or take the salary's figure. A budget saved
   // before this existed has no source: it links if it is empty or already matches the salary.
-  const fromSalary = salaryMonthly(getProfile(), appData?.rates);
+  let fromSalary = salaryMonthly(getProfile(), appData?.rates);
   if (isBlankAfterReset('budget')) state.incomeFrom = 'none';   // read now: the first save clears the marker
   const handoff = takeHandoff('budget');
-  if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; state.incomeFrom = 'salary'; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
+  if (handoff && handoff.values.income > 0) { state.income = handoff.values.income; state.incomeFrom = handoff.from === 'offer' ? 'typed' : 'salary'; try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {} }
   else if (fromSalary && (state.incomeFrom === 'salary' || (state.incomeFrom == null && (!state.income || Math.round(+state.income) === fromSalary)))) { state.income = fromSalary; state.incomeFrom = 'salary'; }
   const root = el('div', { class: 'calc budget' });
   const left = el('div', { class: 'card inputs' });
@@ -311,6 +314,24 @@ export function renderBudget(appData) {
       : []);
   };
   incomeInput.addEventListener('input', () => { state.income = +incomeInput.value || 0; state.incomeFrom = Math.round(state.income) === fromSalary ? 'salary' : 'typed'; refresh(); });
+
+  // Start from the CTC: it is saved as the profile's salary (as the quick answer on the tax page saves it),
+  // so this page, the tax page and the in-hand calculator all work from the same figure.
+  const ctcInput = el('input', { type: 'number', min: 0, step: 50000, placeholder: 'e.g. 1800000', 'aria-label': 'Your annual CTC in rupees', value: ctcOf(getProfile().income) > 0 ? Math.round(ctcOf(getProfile().income)) : '' });
+  let ctcTimer = null;
+  ctcInput.addEventListener('input', () => {
+    clearTimeout(ctcTimer);
+    ctcTimer = setTimeout(() => {
+      const ctc = +ctcInput.value || 0;
+      if (!(ctc >= 100000) || !appData?.rates) return;
+      const a = quickAnswer({ ctc }, appData.rates);
+      if (!a || a.error) return;
+      updateProfile((d) => fromSalaryStore(d, { ...a.store, regime: a.better }, a.pay), 'calc:budget');
+      fromSalary = salaryMonthly(getProfile(), appData.rates);
+      state.income = fromSalary; state.incomeFrom = 'salary'; incomeInput.value = fromSalary;
+      refresh();
+    }, 400);
+  });
 
   const expenseList = el('div', { class: 'rows' });
   const investList = el('div', { class: 'rows' });
@@ -352,7 +373,8 @@ export function renderBudget(appData) {
   // append() turns a null into the text "null"; setChildren drops it
   setChildren(left, [
     handoff ? handoffNote(handoff.from, `Income set to ${inr(state.income)} a month from `) : null,
-    el('label', {}, ['Monthly take-home income (₹)', el('small', {}, ['after tax and deductions, as credited to your bank. ', el('a', { href: '/calculators/salary' }, 'Work it out from your CTC')]), incomeInput]),
+    el('label', { class: 'budget-ctc' }, ['Your annual CTC (₹)', el('small', {}, ['fills the take-home below; the same salary the tax and ', el('a', { href: '/calculators/salary' }, 'in-hand'), ' pages use']), ctcInput]),
+    el('label', {}, ['Monthly take-home income (₹)', el('small', {}, 'after tax and deductions, as credited to your bank'), incomeInput]),
     incomeNote,
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), el('div', { class: 'row-head' }, ['Category', 'Note', 'Amount', ''].map((t) => el('span', {}, t))), expenseList,
       el('div', { class: 'chips' }, CATEGORIES.map((c) => el('button', { type: 'button', onclick: () => addExpense(c) }, '+ ' + c)))]),
@@ -362,6 +384,7 @@ export function renderBudget(appData) {
   ]);
 
   // right side: the answer, why, what to do next, then the working
+  attachAmountEcho(ctcInput);
   const result = el('div');
   const exportBox = exportCard(() => state, () => summarise(state), () => ({ alloc: result.querySelector('.alloc-chart svg'), cat: result.querySelector('.cat-chart svg') }));
   right.append(result, exportBox, disclaimer('invest'));
