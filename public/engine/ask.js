@@ -55,6 +55,12 @@ const INTENTS = [
     links: (a) => salaryLinks(a, '/tax', 'Tax calculator'),
   },
   {
+    id: 'offer',
+    test: (q) => has(q, /\b(job\s+)?offers?\b.*\b(compare|vs|versus|or|better|which|choose|accept)\b/, /\b(compare|which|better)\b.*\boffers?\b/, /\b(accept|take|join)\b.*\boffers?\b/, /\b(switch(ing)?|change)\s+(job|company|companies)\b/, /\bjoining\s+bonus\b/, /\bcounter[\s-]?offer\b/),
+    reply: () => 'The offer comparison puts two offers (or your current job and an offer) side by side: what each puts in the bank every month and over two years, with variable pay at what you expect it to pay and the joining bonus taxed.',
+    links: () => [{ href: '/calculators/offer', label: 'Compare two offers', primary: true }, { href: '/calculators/salary', label: 'One CTC split in full' }],
+  },
+  {
     id: 'capital-gains',
     test: (q) => has(q, /capital\s+gains?/, /\b(ltcg|stcg)\b/, /\bsell(ing)?\b.*\b(shares?|stocks?|funds?|mutual|property|house|flat|land|gold)\b/, /\bsold\b/, /\bindexation\b/, /grandfather/),
     reply: () => 'The capital gains calculator works out the tax on selling shares, mutual funds, property or gold: short or long term, the ₹1.25 lakh exemption, and grandfathering for shares bought before February 2018.',
