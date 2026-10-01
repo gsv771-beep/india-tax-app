@@ -270,7 +270,7 @@ function stat(k, v, hi = false) {
   animateNumber(val, `calc:${currentCalc}:${k}`, v);
   return el('div', { class: 'stat' + (hi ? ' hi' : '') }, [el('div', { class: 'k' }, k), val]);
 }
-const GREEN = '#1d6b3d', GOLD = '#b7861c', GREY = '#8a948e';
+const GREEN = 'var(--chart-green)', GOLD = 'var(--chart-gold)', GREY = 'var(--chart-grey)';
 function splitBar(aLabel, a, bLabel, b) {
   const total = a + b || 1;
   return el('div', {}, [

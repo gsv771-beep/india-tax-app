@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="572a0015e5">
+  <meta name="tc-build" content="281f431ae2">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -43,6 +43,25 @@
   <link rel="modulepreload" href="/js/env.js">
   <link rel="modulepreload" href="/js/profile-panel.js">
   <script>
+    // Theme, before anything draws: the visitor's choice (Light or Dark, from the switch in the header)
+    // or the device's own setting on Auto. style.css keys the dark palette off data-theme on <html>.
+    (function () {
+      var KEY = 'taxcompass.theme', choice = 'auto';
+      try { choice = localStorage.getItem(KEY) || 'auto'; } catch (e) {}
+      var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+      function apply() {
+        var dark = choice === 'dark' || (choice === 'auto' && !!(mq && mq.matches));
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      }
+      apply();
+      if (mq && mq.addEventListener) mq.addEventListener('change', function () { if (choice === 'auto') apply(); });
+      window.taxcompassTheme = {
+        get: function () { return choice; },
+        set: function (v) { choice = v; try { localStorage.setItem(KEY, v); } catch (e) {} apply(); window.dispatchEvent(new CustomEvent('taxcompass:theme')); },
+      };
+    })();
+  </script>
+  <script>
     // Environment guard. Runs before anything else and needs no module to load:
     // off taxcompass.org the page is marked non-production, told not to be indexed, and gets an
     // unmissable banner. Keep the host list in sync with js/env.js and functions/_env.js.
@@ -73,6 +92,7 @@
         <a href="/glossary" data-tab="glossary">Glossary</a>
         <a href="/about" data-tab="about">About</a>
       </nav>
+      <div class="theme-switch" id="theme-switch"></div>
     </div>
   </header>
 

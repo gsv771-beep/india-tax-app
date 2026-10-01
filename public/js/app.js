@@ -10,6 +10,7 @@ import { initSnapshot } from './snapshot.js';
 import { mountQuick, detailFold } from './quick.js';
 import { initBudgetSync } from './budget-sync.js';
 import { initAsk } from './ask.js';
+import { initThemeSwitch } from './theme.js';
 import { initProfileUndo } from './profile-undo.js';
 import { ensureFresh, checkLiveBuild } from './fresh.js';
 import { isProduction } from './env.js';
@@ -137,6 +138,7 @@ async function boot() {
   if (await ensureFresh()) return;
   // Show the right section at once; results fill in when the data arrives (a few tens of milliseconds on a warm cache).
   route();
+  initThemeSwitch();
   try {
     const [rates, deductions, onboarding, formulas, glossary, schemes, capgains, propertyCharges, loanPolicy] = await Promise.all([
       loadJSON('/data/tax_rates.json'),

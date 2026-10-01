@@ -27,6 +27,12 @@ ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip'))
   const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   const dups = [...new Set(ids.filter((x, i) => ids.indexOf(x) !== i))];
   ok('index.html has no duplicate ids', dups.length === 0, dups.join(', '));
+  // the theme: set in <head> before the stylesheet's dark palette can apply, and the dark palette keyed to it
+  const css = readFileSync(new URL('../public/css/style.css', import.meta.url), 'utf8');
+  const head = html.slice(0, html.indexOf('</head>'));
+  ok('the theme is set in <head>, from the saved choice or the device', /taxcompass\.theme/.test(head) && /setAttribute\('data-theme'/.test(head) && /prefers-color-scheme: dark/.test(head));
+  ok('the dark palette follows data-theme, not the device alone', css.includes(':root[data-theme="dark"]') && !/@media \(prefers-color-scheme/.test(css));
+  ok('the header has the theme switch', html.includes('id="theme-switch"'));
   // every page section must close where it opened: a stray closing tag once spilled the tax page's
   // working, email card and disclaimer onto every other page
   const stack = [], bad = [];

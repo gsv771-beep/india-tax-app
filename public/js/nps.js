@@ -113,7 +113,7 @@ function projector(nps) {
       details: [
         r.years > 0 ? el('div', { class: 'card', style: 'padding:12px 14px;margin-bottom:12px' }, [
         el('div', { class: 'viz-title' }, 'Corpus by age'),
-        lineChart({ series: [{ name: 'Contributed', color: '#8a948e', dash: true, points: ages.map((k, i) => [+st.age + k, growth[i].invested]) }, { name: 'Corpus', color: '#1d6b3d', area: true, points: ages.map((k, i) => [+st.age + k, growth[i].fv]) }], xFormat: (x) => `Age ${Math.round(x)}`, xTipFormat: (x) => `At age ${Math.round(x)}`, height: 230, ariaLabel: 'NPS corpus by age' }),
+        lineChart({ series: [{ name: 'Contributed', color: 'var(--chart-grey)', dash: true, points: ages.map((k, i) => [+st.age + k, growth[i].invested]) }, { name: 'Corpus', color: 'var(--chart-green)', area: true, points: ages.map((k, i) => [+st.age + k, growth[i].fv]) }], xFormat: (x) => `Age ${Math.round(x)}`, xTipFormat: (x) => `At age ${Math.round(x)}`, height: 230, ariaLabel: 'NPS corpus by age' }),
       ]) : null,
         el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
         el('thead', {}, el('tr', {}, [el('th', {}, 'At retirement'), el('th', {}, 'Amount'), el('th', {}, 'Tax')])),
