@@ -47,20 +47,18 @@ export function initFeedback() {
     el('div', { class: 'fb-head' }, [el('h3', { style: 'margin:0' }, 'Tell us what you think'), close]),
     form,
   ]);
-  // Floating on wide screens; on phones the corner is Ask's alone, and Feedback is a button in the footer.
-  const toggle = el('button', { type: 'button', class: 'fb-toggle fb-feedback', 'aria-expanded': 'false' }, 'Feedback');
+  // No floating button: the footer's "Send feedback" (data-open-feedback) opens the panel, which sits
+  // in the corner above Ask's button (or fills the screen on a phone).
   const setOpen = (v) => {
     panel.hidden = !v;
-    toggle.setAttribute('aria-expanded', String(v));
     if (v) { window.dispatchEvent(new CustomEvent('taxcompass:feedback-open')); if (!isPhone()) message.focus(); }
     syncCorner();
   };
-  toggle.addEventListener('click', () => setOpen(panel.hidden));
   close.addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
   document.addEventListener('click', (e) => { if (e.target.closest('[data-open-feedback]')) { e.preventDefault(); setOpen(true); } });
   // the corner holds the panels above a row of buttons; Ask TaxCompass (ask.js) adds its own to both
-  document.body.append(el('div', { class: 'fb' }, [panel, el('div', { class: 'fb-row' }, [toggle])]));
+  document.body.append(el('div', { class: 'fb' }, [panel, el('div', { class: 'fb-row' })]));
   trackViewport();
 }
 
