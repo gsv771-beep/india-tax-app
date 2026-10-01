@@ -9,6 +9,7 @@
  */
 import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
+import { setHandoff } from './handoff.js';
 import { fromSalaryStore, toTaxInputs, ctcOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
 import { quickAnswer, ladder, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 import { SALARY_CTCS, salarySlug } from './routes.js';
@@ -160,6 +161,7 @@ export function mountQuick(slot, opts) {
         el('div', { class: 'quick-v' }, inr(a.monthly.best)),
         el('div', { class: 'quick-sub' }, `${inrShort(a.inHand.best)} a year, after ${inr(a.pay.employeePf / 12)} PF, ${inr(a.pay.professionalTax / 12)} professional tax and ${inr(taxMonthly)} income tax a month (${a.better} regime).`),
         salaryLink ? el('a', { class: 'quick-link', href: salaryLink.href, onclick: salaryLink.onclick }, salaryLink.text) : null,
+        el('a', { class: 'quick-link', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(a.monthly.best) }, 'salary') }, 'Plan your savings with this →'),
       ]),
       el('div', { class: 'quick-tile' + (a.same ? '' : ' quick-win') }, [
         el('div', { class: 'quick-k' }, a.same ? 'Tax is the same in both regimes' : `The ${a.better} regime saves you`),
