@@ -50,7 +50,6 @@ export function initAsk({ glossary, rates }) {
   const corner = document.querySelector('.fb');
   if (!corner) return;
   const fbPanel = corner.querySelector('.fb-panel');
-  const fbToggle = corner.querySelector('.fb-feedback');
 
   let tipList = [];
   try { tipList = rates ? tips(rates) : []; } catch (e) { console.error(e); }
@@ -146,7 +145,7 @@ export function initAsk({ glossary, rates }) {
     if (v) {
       markOpened();
       hideTease();
-      if (fbPanel) { fbPanel.hidden = true; fbToggle?.setAttribute('aria-expanded', 'false'); }
+      if (fbPanel) fbPanel.hidden = true;
       if (!log.children.length) greet();
       // on a phone the keyboard would cover the example; it comes up when the box is tapped
       if (!isPhone()) setTimeout(() => input.focus(), 0);

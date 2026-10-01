@@ -774,9 +774,7 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 @media (max-width: 560px) {
   /* clear of the browser's own bar and of the screen edge, so it reads as part of the page */
   .fb { right: 16px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
-  /* on phones the corner is Ask's alone: Feedback lives in the footer. Ask keeps its label until it
-     has been opened once, then it is the mascot alone. */
-  .fb-feedback { display: none; }
+  /* Ask keeps its label until it has been opened once, then on a phone it is the mascot alone */
   .ask-toggle { padding: 4px 16px 4px 4px; }
   .ask-toggle:not(.ask-labelled) { padding: 4px; border-radius: 50%; }
   .ask-toggle:not(.ask-labelled) .mascot { width: 48px; height: 48px; }
@@ -791,7 +789,7 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
   .fb .ask-panel:focus-within .ask-intro { display: none; }   /* typing: the conversation gets the room */
   html.sheet-open, html.sheet-open body { overflow: hidden; }
 }
-/* the footer's way in to Feedback, on every screen */
+/* the way in to Feedback, on every screen: the corner is Ask's alone */
 .footer-feedback { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 22px; padding: 14px 16px; border: 1px solid rgba(255, 255, 255, .16); border-radius: var(--radius-sm); background: rgba(255, 255, 255, .05); }
 .footer-feedback strong { display: block; color: #fff; font-size: .95rem; }
 .footer-feedback .btn { background: #fff; color: #14532d; border-color: #fff; }
