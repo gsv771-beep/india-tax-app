@@ -52,8 +52,13 @@ export function renderSalary(data) {
   const ctcField = field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'cost to company, as on your offer letter');
   attachSlider(ctcField.querySelector('input'), { max: 100000000, step: 50000 });
   pctToggle({ input: variableField.querySelector('input'), baseInput: ctcField.querySelector('input'), defaultPct: 10, name: 'salary.variable', hint: 'CTC', max: 60 });
+  // The CTC is the one question; the structure folds away until someone wants their exact payslip
+  // anyone who has already set their own structure sees it open
+  const customised = +st.basicPct !== 40 || +st.hraPct !== 50 || +st.conveyance > 0 || +st.variable > 0 || +st.rentPaid > 0 || +st.employerNpsPct > 0 || +st.other80c > 0 || +st.nps1b > 0 || +st.healthSelf > 0 || st.regime !== 'best' || st.includeEmployerPf === false;
   const inputs = el('div', { class: 'card inputs' }, [
     ctcField,
+    el('details', { class: 'opts fold salary-structure', open: customised }, [
+    el('summary', {}, 'Your exact salary structure'),
     el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, 'usually 35 to 50%'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
     field('conveyance', 'Conveyance allowance per year (₹)', { step: 1000 }, 'taxable since 2018; it only changes the break-up'),
     variableField,
@@ -74,6 +79,7 @@ export function renderSalary(data) {
       el('div', { class: 'two' }, [field('other80c', 'Other 80C investments (₹)', { step: 1000 }, 'beyond EPF'), field('nps1b', 'Own NPS, 80CCD(1B) (₹)', { step: 1000 })]),
       el('div', { class: 'two' }, [field('healthSelf', 'Health insurance premium (₹)', { step: 500 }), field('ageBand', 'Age', { options: [['below_60', 'Below 60'], ['senior_60_to_79', '60 to 79'], ['super_senior_80_plus', '80 and above']] })]),
       field('regime', 'Tax regime for TDS', { options: [['best', 'Whichever is lower (recommended)'], ['new', 'New regime'], ['old', 'Old regime']] }),
+    ]),
     ]),
   ]);
 
@@ -98,10 +104,8 @@ export function renderSalary(data) {
       key: 'salary',
       answer: [
         el('div', { class: 'stats' }, [
-          stat(r.variableApart ? 'Monthly in hand, fixed pay' : 'Monthly in hand', inr(r.monthly), 'hi'),
-          stat('Yearly in hand', inr(r.annual)),
-          stat(`Income tax, ${r.regime} regime`, inr(r.tax)),
-          stat(r.variableInCtc ? 'Take-home as % of CTC' : 'Take-home as % of package', pct(r.takeHomePct, 0)),
+          stat(r.variableApart ? 'In hand each month, fixed pay' : 'In hand each month', inr(r.monthly), 'hi'),
+          stat(`Income tax a month, ${r.regime} regime`, inr(r.tax / 12)),
         ]),
         el('p', { class: 'explain' }, `You take home about ${inr(r.monthly)} a month${r.variableApart ? ' from fixed pay' : ''}, ${pct(r.takeHomePct, 0)} of your ${r.variableInCtc ? 'CTC' : 'package'}.`),
         el('div', { class: 'viz-title' }, 'Your payslip, line by line'),

@@ -192,6 +192,8 @@ export function mountQuick(slot, opts) {
 
   function paintLadder(a) {
     if (!showLadder) return;
+    // the table of common salaries fills an empty page; once there is an answer it is only more to read
+    if (a && !a.error) { setChildren(table, []); return; }
     const rowsData = ladderRows;
     const near = a ? rowsData.reduce((b, r) => (Math.abs(r.ctc - a.ctc) < Math.abs(b.ctc - a.ctc) ? r : b), rowsData[0]) : null;
     setChildren(table, [

@@ -54,29 +54,34 @@ export function renderOffer({ rates }) {
     const bonusLabel = () => (o.bonusKind === 'retention' ? 'Retention bonus (₹, paid once)' : 'Joining bonus (₹, paid once)');
     const bonusField = num('joiningBonus', bonusLabel(), { step: 25000, placeholder: '0', slider: { max: 2000000, step: 25000 } }, 'counted in year 1; usually repaid if you leave early');
     const kind = select('bonusKind', [['joining', 'Joining bonus'], ['retention', 'Retention bonus']], () => { bonusField.querySelector('.lbl').textContent = bonusLabel(); paint(); });
+    // the payout and where the variable pay sits only matter once there is some
+    const variablePctField = num('variablePct', 'Variable pay (% of CTC)', { step: 1, max: 100, slider: { max: 50, step: 1 } }, 'the target; 0 if none');
+    const variableMore = el('div', { class: 'offer-variable-more' }, [
+      num('payoutPct', 'You expect it to pay (%)', { step: 5, max: 200, slider: { max: 150, step: 5 } }, 'of the target; 100 if unsure'),
+      el('label', {}, [el('span', { class: 'lbl' }, 'Variable pay is'), select('variableOnTop', [['false', 'inside the CTC (the usual case)'], ['true', 'paid over and above the CTC']])]),
+    ]);
+    const syncVariable = () => { variableMore.hidden = !(+o.variablePct > 0); };
+    variablePctField.querySelector('input').addEventListener('input', syncVariable);
+    syncVariable();
+    const variableBlock = el('div', { class: 'offer-sub' }, [variablePctField, variableMore]);
     return el('div', { class: `card inputs offer-col offer-${key}` }, [
       el('div', { class: 'offer-name' }, [el('span', { class: 'offer-tag' }, key.toUpperCase()), name]),
       num('ctc', 'CTC on the offer letter (₹ a year)', { step: 50000, placeholder: 'e.g. 2400000', slider: { max: 20000000, step: 50000 } }),
-      el('div', { class: 'offer-sub' }, [
-        el('div', { class: 'two' }, [
-          num('variablePct', 'Variable pay (% of CTC)', { step: 1, max: 100, slider: { max: 50, step: 1 } }, 'the target'),
-          num('payoutPct', 'You expect it to pay (%)', { step: 5, max: 200, slider: { max: 150, step: 5 } }, 'of the target; 100 if unsure'),
-        ]),
-        el('label', {}, [el('span', { class: 'lbl' }, 'Variable pay is'), select('variableOnTop', [['false', 'inside the CTC (the usual case)'], ['true', 'paid over and above the CTC']])]),
-      ]),
+      variableBlock,
       el('div', { class: 'offer-sub' }, [
         el('label', {}, [el('span', { class: 'lbl' }, 'One-time bonus'), kind]),
         bonusField,
       ]),
-      key === 'a' ? null : el('div', { class: 'offer-sub' }, [
-        num('relocation', 'Relocation allowance (₹, paid once)', { step: 10000, placeholder: '0', slider: { max: 500000, step: 10000 } }, 'year 1'),
-        check('relocationBills', 'Reimbursed against bills, so not taxed'),
-      ]),
-      num('stockPerYear', 'Stock vesting each year (₹, ESOP or RSU)', { step: 25000, placeholder: '0', slider: { max: 5000000, step: 25000 } }, 'at today’s share price; taxed as salary when it vests; not cash'),
-      el('label', {}, [el('span', { class: 'lbl' }, 'City'), select('city', [['metro', 'Metro: Mumbai, Delhi, Kolkata, Chennai'], ['other', 'Elsewhere, including Bengaluru, Pune, Hyderabad']])]),
-      num('rentMonthly', 'Rent you will pay (₹ a month)', { step: 1000, placeholder: '0', slider: { max: 200000, step: 1000 } }, 'for the HRA exemption in the old regime'),
-      el('details', { class: 'opts fold' }, [
-        el('summary', {}, 'Salary structure and year 2'),
+      // the rest only matters to some offers: one fold, open when something in it is already filled
+      el('details', { class: 'opts fold', open: +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 40 || o.pfInCtc === false || +o.hikePct > 0 }, [
+        el('summary', {}, key === 'a' ? 'More: stock, rent, structure' : 'More: relocation, stock, rent, structure'),
+        key === 'a' ? null : el('div', { class: 'offer-sub' }, [
+          num('relocation', 'Relocation allowance (₹, paid once)', { step: 10000, placeholder: '0', slider: { max: 500000, step: 10000 } }, 'year 1'),
+          check('relocationBills', 'Reimbursed against bills, so not taxed'),
+        ]),
+        num('stockPerYear', 'Stock vesting each year (₹, ESOP or RSU)', { step: 25000, placeholder: '0', slider: { max: 5000000, step: 25000 } }, 'at today’s share price; taxed as salary when it vests; not cash'),
+        el('label', {}, [el('span', { class: 'lbl' }, 'City'), select('city', [['metro', 'Metro: Mumbai, Delhi, Kolkata, Chennai'], ['other', 'Elsewhere, including Bengaluru, Pune, Hyderabad']])]),
+        num('rentMonthly', 'Rent you will pay (₹ a month)', { step: 1000, placeholder: '0', slider: { max: 200000, step: 1000 } }, 'for the HRA exemption in the old regime'),
         num('basicPct', 'Basic (% of CTC)', { step: 1, max: 80, slider: { min: 20, max: 70, step: 1 } }, '40% is common; check the annexure'),
         el('label', { class: 'check' }, [pf, 'Employer PF is inside the CTC (the usual case)']),
         num('hikePct', 'Hike you expect for year 2 (%)', { step: 1, max: 100, slider: { max: 50, step: 1 } }, 'on the fixed pay'),

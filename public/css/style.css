@@ -604,6 +604,10 @@ table.compare td.neg { color: var(--danger); }
    Calculators
    ============================================================ */
 .subtabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.subtabs[hidden] { display: none; }
+.all-tools { display: inline-block; margin: -4px 0 16px; font-size: .9rem; font-weight: 600; color: var(--accent-2); text-decoration: none; }
+.all-tools:hover { text-decoration: underline; }
+#calculators.on-index .all-tools { display: none; }
 .subtabs a, .subtabs button { display: inline-block; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--text); text-decoration: none; font: inherit; font-weight: 500; cursor: pointer; transition: all .15s; }
 .subtabs a:hover, .subtabs button:hover { border-color: var(--accent-3); color: var(--accent); }
 .subtabs a.active, .subtabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 2px 8px rgba(20, 83, 45, .25); }
@@ -821,6 +825,8 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .offer-name input { flex: 1; min-width: 0; font-weight: 700; }
 .offer-tag { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; flex: none; }
 .offer-b .offer-tag { background: var(--gold); color: #1c2321; }
+.offer-variable-more { display: grid; gap: 10px; }
+.offer-variable-more[hidden] { display: none; }
 .offer-why { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 .offer-table td:not(:first-child), .offer-table th:not(:first-child) { text-align: right; white-space: nowrap; }
 @media (max-width: 760px) { .offer-inputs { grid-template-columns: 1fr; } }
