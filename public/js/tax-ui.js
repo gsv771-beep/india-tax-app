@@ -12,7 +12,7 @@ import { countEvent } from './feedback.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { toTaxInputs, fromTaxInputs, isEmptyProfile, clearSalary } from '../engine/profile.js';
 
-const OLD_COLOR = '#b7861c', NEW_COLOR = '#1d6b3d';
+const OLD_COLOR = 'var(--chart-gold)', NEW_COLOR = 'var(--chart-green)';
 const FY_SHORT = { 'FY2026-27': 'FY 2026-27', 'FY2025-26': 'FY 2025-26' };
 
 const STORAGE_KEY = 'taxcompass.inputs.v1';

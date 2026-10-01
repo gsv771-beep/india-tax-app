@@ -131,8 +131,8 @@ export function renderDebt() {
         el('div', { class: 'viz-title' }, 'What you owe, month by month'),
         lineChart({
           series: [
-            { name: 'Highest rate first', color: '#1d6b3d', area: true, points: cmp.avalanche.schedule.map((x) => [x.month, x.outstanding]) },
-            { name: 'Smallest balance first', color: '#b7861c', dash: true, points: cmp.snowball.schedule.map((x) => [x.month, x.outstanding]) },
+            { name: 'Highest rate first', color: 'var(--chart-green)', area: true, points: cmp.avalanche.schedule.map((x) => [x.month, x.outstanding]) },
+            { name: 'Smallest balance first', color: 'var(--chart-gold)', dash: true, points: cmp.snowball.schedule.map((x) => [x.month, x.outstanding]) },
           ],
           xFormat: (x) => `Month ${Math.round(x)}`, xTipFormat: (x) => `Month ${Math.round(x)}`, height: 230, ariaLabel: 'Outstanding debt by month under each order',
         }),

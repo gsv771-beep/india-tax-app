@@ -95,11 +95,11 @@ function buildLine(o, W) {
   }
   o.series.forEach((s) => {
     const d = s.points.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
-    if (s.area) root.append(svg('path', { d: d + ` L${X(s.points[s.points.length - 1][0])},${Y(0)} L${X(s.points[0][0])},${Y(0)} Z`, fill: s.color, opacity: 0.08 }));
-    root.append(svg('path', { d, fill: 'none', stroke: s.color, 'stroke-width': 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-dasharray': s.dash ? '6 4' : null }));
+    if (s.area) root.append(svg('path', { d: d + ` L${X(s.points[s.points.length - 1][0])},${Y(0)} L${X(s.points[0][0])},${Y(0)} Z`, style: `fill:${s.color}`, opacity: 0.08 }));
+    root.append(svg('path', { d, fill: 'none', style: `stroke:${s.color}`, 'stroke-width': 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-dasharray': s.dash ? '6 4' : null }));
   });
   for (const k of o.markers || []) {
-    root.append(svg('circle', { cx: X(k.x), cy: Y(k.y), r: 5, fill: k.color || 'var(--text)', stroke: 'var(--surface)', 'stroke-width': 2 }));
+    root.append(svg('circle', { cx: X(k.x), cy: Y(k.y), r: 5, style: `fill:${k.color || 'var(--text)'};stroke:var(--surface)`, 'stroke-width': 2 }));
     if (k.label) {
       const anchor = X(k.x) < W * 0.2 ? 'start' : X(k.x) > W * 0.8 ? 'end' : 'middle';
       root.append(svg('text', { x: X(k.x), y: Math.max(m.t - 4, Y(k.y) - 10), 'text-anchor': anchor, 'font-size': 11, 'font-weight': 700, style: TEXT }, k.label));
@@ -110,7 +110,7 @@ function buildLine(o, W) {
   // hover
   const tip = el('div', { class: 'viz-tip', hidden: true });
   const cross = svg('line', { x1: 0, x2: 0, y1: m.t, y2: Y(0), style: 'stroke:var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
-  const dots = o.series.map((s) => svg('circle', { r: 4, fill: s.color, stroke: 'var(--surface)', 'stroke-width': 2, visibility: 'hidden' }));
+  const dots = o.series.map((s) => svg('circle', { r: 4, style: `fill:${s.color};stroke:var(--surface)`, 'stroke-width': 2, visibility: 'hidden' }));
   root.append(cross, ...dots);
   const hit = svg('rect', { x: m.l, y: m.t, width: pw, height: ph, fill: 'transparent' });
   root.append(hit);
@@ -168,7 +168,7 @@ function buildColumns({ categories, series, yFormat = shortINR, xLabel, height =
     series.forEach((s, k) => {
       const v = s.values[i] || 0;
       const top = Y(acc + v), bottom = Y(acc);
-      g.append(svg('rect', { x, y: top, width: bw, height: Math.max(0, bottom - top - (k < series.length - 1 ? 2 : 0)), rx: k === series.length - 1 ? 3 : 0, fill: s.color }));
+      g.append(svg('rect', { x, y: top, width: bw, height: Math.max(0, bottom - top - (k < series.length - 1 ? 2 : 0)), rx: k === series.length - 1 ? 3 : 0, style: `fill:${s.color}` }));
       acc += v;
     });
     root.append(g);
