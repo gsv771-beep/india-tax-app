@@ -176,7 +176,7 @@ export function showCalc(name) {
   } else {
     eyebrow.textContent = 'Calculator';
     title.textContent = CALCS[key].title;
-    intro.textContent = CALCS[key].desc;
+    intro.textContent = CALCS[key].lead || CALCS[key].desc;
   }
   mount(key);
 }
