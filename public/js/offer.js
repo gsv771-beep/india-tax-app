@@ -143,7 +143,7 @@ export function renderOffer({ rates }) {
     ]);
 
     setChildren(out, resultLayout({
-      key: 'offer',
+      key: 'offer', whyOpen: true,
       answer: [
         el('div', { class: 'stats' }, [
           stat('Each month', pair(A1.monthly, B1.monthly)),
