@@ -25,7 +25,7 @@ export function takeHandoff(to) {
 
 const FROM_LABEL = {
   salary: ['your in-hand salary calculation', '/calculators/salary'],
-  budget: ['your expenses and savings plan', '/calculators/budget'],
+  budget: ['your savings calculator', '/calculators/budget'],
   emi: ['your EMI calculation', '/calculators/emi'],
   home: ['the home-buying tool', '/calculators/home'],
   tip: ['a TaxCompass worked example', '/'],

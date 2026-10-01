@@ -117,8 +117,8 @@ const INTENTS = [
   {
     id: 'budget',
     test: (q) => has(q, /\bexpenses?\b/, /\bbudget\b/, /\bsavings?\s+rate\b/, /how\s+much.*\bsave\b/, /where.*money\s+go/),
-    reply: () => 'The expenses and savings calculator takes your take-home pay, your expenses by category and your SIPs, and shows what is left each month.',
-    links: () => [{ href: '/calculators/budget', label: 'Expenses and savings', primary: true }],
+    reply: () => 'The savings calculator takes your take-home pay, your expenses by category and your SIPs, and shows what is left each month.',
+    links: () => [{ href: '/calculators/budget', label: 'Savings calculator', primary: true }],
   },
   {
     id: 'filing',

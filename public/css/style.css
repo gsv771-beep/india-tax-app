@@ -132,10 +132,10 @@ html.non-production .site-header { top: var(--staging-h); }
 .brand-mark { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #fff; color: var(--accent); font-weight: 800; font-size: 1.1rem; box-shadow: 0 2px 8px rgba(0, 0, 0, .15); }
 .brand-sub { color: rgba(255, 255, 255, .7); font-weight: 500; }
 .brand-tag { display: none; font-size: .78rem; color: rgba(255, 255, 255, .7); font-weight: 400; margin-left: 6px; padding-left: 12px; border-left: 1px solid rgba(255, 255, 255, .25); }
-@media (min-width: 900px) { .brand-tag { display: inline; } }
+/* the tagline gave way to the menu: seven sections need the header's width */
 .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
 .tabs::-webkit-scrollbar { display: none; }
-.tabs a { white-space: nowrap; padding: 8px 14px; border-radius: 999px; text-decoration: none; color: rgba(255, 255, 255, .82); font-weight: 500; font-size: .92rem; transition: background .15s, color .15s; }
+.tabs a { white-space: nowrap; padding: 8px 12px; border-radius: 999px; text-decoration: none; color: rgba(255, 255, 255, .82); font-weight: 500; font-size: .92rem; transition: background .15s, color .15s; }
 .tabs a:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 .tabs a.active { background: #fff; color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
 @media (max-width: 700px) {
@@ -791,7 +791,9 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 }
 /* offer comparison: the two offers side by side, the result under them */
 .offer-calc { display: block; }
-.offer-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.offer-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; align-items: start; }
+.offer-col { align-content: start; }
+.offer-sub { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
 .offer-name { display: flex; align-items: center; gap: 10px; }
 .offer-name input { flex: 1; min-width: 0; font-weight: 700; }
 .offer-tag { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; flex: none; }

@@ -45,8 +45,9 @@ function primeCalcHeading(tab, sub) {
 
 function showTab(tab, sub) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
-  // the in-hand salary page and the salary pages belong with the tax page in the menu
-  const navTab = (tab === 'calculators' && sub === 'salary') || tab === 'salary' ? 'tax' : tab;
+  // the menu leads with the everyday tools; the salary pages sit with the in-hand calculator, NPS with the rest
+  const FRONT = ['salary', 'offer', 'budget'];
+  const navTab = tab === 'calculators' && FRONT.includes(sub) ? sub : tab === 'salary' ? 'salary' : tab === 'nps' ? 'calculators' : tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === navTab));
   if (tab !== currentTab) {
     const panel = document.getElementById(tab);
