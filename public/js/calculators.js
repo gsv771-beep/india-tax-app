@@ -4,7 +4,6 @@ import { renderFundPanel } from './funds.js';
 import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
-import { mountQuick, detailFold } from './quick.js';
 import { fromLoanInputs, clearSalary } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { resultLayout } from './result-layout.js';
@@ -154,6 +153,7 @@ export function initCalculators(data) {
     // the quick answer on the same page keeps its input (and focus); only the detailed tool under it re-fills
     mount(currentCalc, { detailOnly: source === 'quick:' + currentCalc });
   }, 200));
+  window.addEventListener('routechange', (e) => { if (e.detail.tab === 'calculators' && currentCalc === 'salary' && /[?&]ctc=/.test(location.search)) mount('salary'); });
 }
 
 /** Called by the router for /calculators[/<name>]. No name: the decision index. */
@@ -231,22 +231,11 @@ function resetCalc(key, { fromStartOver = false } = {}) {
 // "Start over" in a quick answer has already cleared the profile; the in-hand calculator follows.
 if (typeof window !== 'undefined') window.addEventListener('taxcompass:startover', () => resetCalc('salary', { fromStartOver: true }));
 /**
- * The in-hand salary page leads with the quick answer (CTC in, in-hand and regime out); the full
- * calculator sits folded under it for anyone who wants their real Basic, HRA and allowances.
+ * The in-hand salary page is the payslip itself: the full calculator, open, with the month-by-month
+ * split as the answer. The regime question lives on the tax page, so this page does not repeat its card.
  */
 function withQuick(key, node) {
-  if (key !== 'salary') return node;
-  const slot = el('div', { class: 'quick-slot' });
-  const detail = el('div', { class: 'detail-body' }, node);
-  const page = el('div', { class: 'quick-page' }, [slot, detail]);
-  const fold = detailFold('salary', page, { label: 'Get it exact: your real Basic, HRA, allowances and bonus ▾', openLabel: 'Hide the detailed calculator ▴' });
-  page.insertBefore(fold.button, detail);
-  mountQuick(slot, {
-    rates: appData.rates, source: 'quick:salary',
-    salaryLink: { href: '#detail', text: 'See the full payslip split →', onclick: (e) => { e.preventDefault(); fold.open(); } },
-    taxLink: { href: '/tax', text: 'Every line of the tax, both regimes →' },
-  });
-  return page;
+  return node;
 }
 
 /** Append a Reset button to the calculator's inputs card (or the view itself if it has none). */

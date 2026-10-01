@@ -10,6 +10,7 @@ import { getProfile, updateProfile } from './profile-store.js';
 import { toSalaryStore, fromSalaryStore, isEmptyProfile } from '../engine/profile.js';
 import { attachSlider, pctToggle, enhanceMoneyInputs } from './amount-input.js';
 import { resultLayout } from './result-layout.js';
+import { ctcFromUrl } from './quick.js';
 
 const SOURCE = 'calc:salary';
 
@@ -25,6 +26,9 @@ export function renderSalary(data) {
   const profile = getProfile();
   const fromProfile = isEmptyProfile(profile) || isBlankAfterReset('salary') ? {} : toSalaryStore(profile);
   const st = { ctc: '', basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
+  // a link with ?ctc= (Ask, the salary pages, the tax page) opens at that CTC; nothing is saved until an edit
+  const urlCtc = ctcFromUrl();
+  if (urlCtc) st.ctc = urlCtc;
   const save = () => {
     clearBlankAfterReset('salary');
     try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {}
@@ -100,6 +104,8 @@ export function renderSalary(data) {
           stat(r.variableInCtc ? 'Take-home as % of CTC' : 'Take-home as % of package', pct(r.takeHomePct, 0)),
         ]),
         el('p', { class: 'explain' }, `You take home about ${inr(r.monthly)} a month${r.variableApart ? ' from fixed pay' : ''}, ${pct(r.takeHomePct, 0)} of your ${r.variableInCtc ? 'CTC' : 'package'}.`),
+        el('div', { class: 'viz-title' }, 'Your payslip, line by line'),
+        breakup,
       ],
       why: [
         el('p', {}, `Of a ${inr(r.ctc)} CTC, ${inr(r.grossSalary)} is paid to you as salary; employer PF of ${inr(r.employerPf)} and gratuity of ${inr(r.gratuity)} are yours but not paid monthly. From the salary come your own PF (${inr(r.employeePf)}), professional tax and ${inr(r.tax)} of income tax under the ${r.regime} regime.${Math.abs(otherInHand - r.annual) > 1 ? ` Under the ${otherRegime} regime you would take home ${inr(otherInHand / 12)} a month.` : ''}`),
@@ -107,14 +113,14 @@ export function renderSalary(data) {
       ],
       next: [
         { label: 'Plan where it goes', note: `Put ${inr(r.monthly)} a month into a budget and see what is genuinely free`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(r.monthly) }, 'salary'), primary: true },
-        { label: 'Check the regime', note: 'Both regimes line by line, and what would flip the answer', onclick: () => openInTaxComparison(r) },
+        { label: 'Old or new regime?', note: 'Both regimes line by line, and which deductions would flip it', onclick: () => openInTaxComparison(r) },
+        { label: 'Comparing a job offer?', note: 'Two CTCs side by side, bonuses and stock included', href: `/calculators/offer` },
         { label: 'What home can this carry?', note: 'The true cost of buying, then the loan', href: '/calculators/home' },
       ],
       details: [
-        breakup,
         el('p', { class: 'muted small' }, `Conveyance allowance is fully taxable (the ₹1,600 a month exemption ended in 2018, except for employees with a disability). HRA exemption${r.inputs.salary.rentPaid ? ' has been applied from the rent you entered' : ' needs the rent you pay; enter it above'}. Variable pay is split out of the tax in proportion to pay. Meal cards and other perquisites are not modelled; add them to the CTC if they are paid in cash.`),
       ],
-      detailsLabel: 'Show the component-by-component working',
+      detailsLabel: 'Show the assumptions',
       foot: [disclaimer('tax')],
     }));
   }
