@@ -610,14 +610,19 @@ function renderNext(inputs, cmp) {
   if (!box || !has) return;
   const biz = hasBusiness(inputs);
   const better = cmp.better === 'old' ? 'old' : 'new';
-  const action = (label, note, href) => el('a', { class: 'r-action', href }, [el('strong', {}, label), el('span', {}, note)]);
+  const action = (label, note, href) => el('a', { class: 'r-action primary', href }, [el('strong', {}, label), el('span', {}, note)]);
+  const also = (label, href, note) => el('a', { class: 'r-also-link', href, title: note }, label);
+  const gains = inputs.capitalGains && Object.values(inputs.capitalGains).some((v) => +v > 0);
+  // one next step stands out, the others are a line of links (as on every calculator)
   setChildren(box, [
     biz ? action('Plan the advance tax', 'The instalments and dates are in the card above', '#tax-business')
       : action('See your monthly take-home', `What reaches your bank each month under the ${better} regime`, '/calculators/salary'),
-    action('Put the saving to work', 'PPF, FD, funds and NPS compared after tax, at your slab', '/calculators/compare'),
-    (inputs.capitalGains && Object.values(inputs.capitalGains).some((v) => +v > 0))
-      ? action('Work out the capital gains properly', 'From a sale, or from your broker’s Tax P&L file', '/calculators/capital-gains')
-      : action('Sold shares or property this year?', 'The gain, the exemptions, and what reinvesting saves', '/calculators/capital-gains'),
+    el('div', { class: 'r-also' }, [
+      el('span', {}, 'Also:'),
+      also('Put the saving to work', '/calculators/compare', 'PPF, FD, funds and NPS compared after tax, at your slab'),
+      gains ? also('Work out the capital gains', '/calculators/capital-gains', 'From a sale, or from your broker’s Tax P&L file')
+        : also('Sold shares or property?', '/calculators/capital-gains', 'The gain, the exemptions, and what reinvesting saves'),
+    ]),
   ]);
 }
 

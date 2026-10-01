@@ -35,12 +35,22 @@ function action(a) {
     onclick: a.onclick,
   }, [el('strong', {}, a.label), a.note ? el('span', {}, a.note) : null]);
 }
+/** The rest of the next steps, as one line of plain links: they stay a tap away without filling the page. */
+function alsoLink(a) {
+  return el(a.href ? 'a' : 'button', { class: 'r-also-link', href: a.href, type: a.href ? undefined : 'button', onclick: a.onclick, title: a.note || undefined }, a.label);
+}
 
-export function resultLayout({ key, answer, why, next, details, detailsLabel = 'Show the detailed working', foot }) {
-  const a = list(answer), w = list(why), n = list(next).map(action), d = list(details);
+export function resultLayout({ key, answer, why, next, details, detailsLabel = 'Show the detailed working', foot, whyOpen = false }) {
+  const a = list(answer), w = list(why), d = list(details);
+  // one next step stands out (the one marked primary, else the first); the others are a line of links
+  const plain = list(next).filter((x) => !x.nodeType);
+  const lead = plain.find((x) => x.primary) || plain[0];
+  const n = [...list(next).filter((x) => x.nodeType), lead ? action({ ...lead, primary: true }) : null].filter(Boolean);
+  const also = plain.filter((x) => x !== lead);
   const out = [];
   if (a.length) out.push(el('div', { class: 'r-answer' }, a));
-  if (w.length) out.push(el('section', { class: 'r-block r-why', 'aria-label': 'Why' }, [el('h3', { class: 'r-head' }, 'Why'), ...w]));
+  // the reasons are one tap away rather than always on screen, unless a tool says they are the point
+  if (w.length) out.push(el('details', { class: 'r-block r-why', open: whyOpen }, [el('summary', { class: 'r-head' }, 'Why this answer'), ...w]));
   if (n.length) {
     // plain action links sit in a grid; a richer node (a plan table, a card) takes the full width
     const links = n.filter((x) => x.classList && x.classList.contains('r-action'));
@@ -49,6 +59,7 @@ export function resultLayout({ key, answer, why, next, details, detailsLabel = '
       el('h3', { class: 'r-head' }, 'What to do next'),
       ...blocks,
       links.length ? el('div', { class: 'r-actions' }, links) : null,
+      also.length ? el('div', { class: 'r-also' }, [el('span', {}, 'Also:'), ...also.map(alsoLink)]) : null,
     ]));
   }
   if (d.length) {

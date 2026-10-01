@@ -40,10 +40,15 @@ export function saveFileCard(opts) {
       status.textContent = e.message;
     } finally { download.disabled = false; }
   });
-  return el('div', { class: 'card export' }, [
+  if (isProfile) return el('div', { class: 'card export' }, [
     el('h3', { style: 'margin-top:0' }, opts.title),
     el('p', { class: 'muted' }, opts.intro),
     el('div', { class: 'btn-row' }, [download]),
     status,
   ]);
+  // a calculator's download is one line: the button, and what the file holds for anyone who hovers
+  download.classList.add('secondary', 'small-btn');
+  download.textContent = opts.downloadLabel || '⬇ Download as Excel';
+  download.title = opts.intro;
+  return el('div', { class: 'export export-line' }, [download, el('span', { class: 'muted small' }, 'the full working, every figure and the assumptions'), status]);
 }

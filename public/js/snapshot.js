@@ -11,6 +11,7 @@ import { baseRates, loadMixRates } from './mix-rates.js';
 import { snapshot, seedFromCtc } from './snapshot-engine.js';
 
 const SOURCE = 'snapshot';
+const OPEN_KEY = 'taxcompass.snapshot-open.v1';
 const EQ_KEY = 'taxcompass.snapshot-equity.v1';
 
 export function initSnapshot({ rates, schemes, loanPolicy }) {
@@ -90,8 +91,10 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
     ];
     const range = el('input', { type: 'range', min: 0, max: 100, step: 10, value: equityPct, 'aria-label': 'Equity share' });
     range.addEventListener('input', () => { equityPct = +range.value; try { localStorage.setItem(EQ_KEY, String(equityPct)); } catch {} paint(getProfile()); });
-    return el('div', { class: 'card snap' }, [
-      el('div', { class: 'snap-head' }, [el('div', { class: 'snap-title' }, extrasOnly ? 'What else this salary means' : 'Your money at a glance'), el('div', { class: 'muted small' }, `On ${s.kind === 'salary' ? `a CTC of ${inr(s.ctc)}` : s.kind === 'business' ? `receipts of ${inr(s.business.receipts)}` : `a CTC of ${inr(s.ctc)} and receipts of ${inr(s.business.receipts)}`}. Every line opens the tool that works it out in full.`)]),
+    // folded to its title until opened (and remembered): the answer above is what most people came for
+    let open = false; try { open = localStorage.getItem(OPEN_KEY) === '1'; } catch {}
+    const card = el('details', { class: 'card snap', open }, [
+      el('summary', { class: 'snap-head' }, [el('div', { class: 'snap-title' }, extrasOnly ? 'What else this salary means' : 'Your money at a glance'), el('div', { class: 'muted small' }, `Tax, take-home, what is left after EMIs, what investing it becomes, and more, on ${s.kind === 'salary' ? `a CTC of ${inr(s.ctc)}` : s.kind === 'business' ? `receipts of ${inr(s.business.receipts)}` : `a CTC of ${inr(s.ctc)} and receipts of ${inr(s.business.receipts)}`}.`)]),
       el('div', { class: 'snap-rows' }, rows),
       el('div', { class: 'snap-foot' }, [
         el('label', { class: 'snap-mix' }, [`Equity share for the ten-year line: ${equityPct}%`, range]),
@@ -99,6 +102,8 @@ export function initSnapshot({ rates, schemes, loanPolicy }) {
         el('div', { class: 'muted small' }, ['Change any figure under ', el('a', { href: '#profile-panel', onclick: (e) => { e.preventDefault(); document.querySelector('.profile-toggle')?.click(); document.getElementById('profile-panel').scrollIntoView({ block: 'start', behavior: 'smooth' }); } }, 'Your profile'), ', or in the tool itself; this picture follows.']),
       ]),
     ]);
+    card.addEventListener('toggle', () => { try { localStorage.setItem(OPEN_KEY, card.open ? '1' : '0'); } catch {} });
+    return card;
   }
 
   paint(getProfile());
