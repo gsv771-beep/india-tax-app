@@ -22,7 +22,7 @@ import { compareRegimes } from '../js/tax-engine.js';
 
 export const OFFER_DEFAULTS = {
   ctc: '', variablePct: 0, variableOnTop: false, payoutPct: 100, joiningBonus: 0, bonusKind: 'joining',
-  relocation: 0, relocationBills: false, stockPerYear: 0, basicPct: 40, pfInCtc: true, city: 'metro', rentMonthly: 0,
+  relocation: 0, relocationBills: false, stockPerYear: 0, basicPct: 40, pfInCtc: false, city: 'metro', rentMonthly: 0,
   professionalTax: 2400, hikePct: 0,
 };
 
@@ -49,7 +49,7 @@ export function offerYear(raw, rates, { year = 1 } = {}) {
   const basicPctOfFixed = fixedBase > 0 ? num(o.basicPct, 40) * ctc / fixedBase : 0;
   const metro = o.city === 'metro';
   const b = salaryBreakdown({
-    ctc: fixedCtc, basicPct: basicPctOfFixed, hraPct: metro ? 50 : 40, includeEmployerPf: o.pfInCtc !== false, includeGratuity: true,
+    ctc: fixedCtc, basicPct: basicPctOfFixed, hraPct: metro ? 50 : 40, includeEmployerPf: o.pfInCtc === true, includeGratuity: o.pfInCtc === true,
     professionalTax: num(o.professionalTax, 2400), city: metro ? 'Mumbai' : 'Other', rentPaid: num(o.rentMonthly) * 12, regime: 'best',
   }, rates);
   if (b.error) return { error: `Basic at ${num(o.basicPct, 40)}% leaves no room for the rest of the CTC. Lower it.` };
@@ -70,7 +70,9 @@ export function offerYear(raw, rates, { year = 1 } = {}) {
   const taxable = b.grossSalary + cashExtra;
   const fixedShareOfTax = taxable > 0 ? tax * b.grossSalary / taxable : 0;
   const monthly = (b.grossSalary - b.employeePf - b.professionalTax - fixedShareOfTax) / 12;
-  const employerPfOutside = o.pfInCtc === false ? 0.12 * b.basic : 0;
+  // on top of the CTC (the default): still saved for you, just not carved out of the headline
+  const employerPfOutside = o.pfInCtc === true ? 0 : 0.12 * b.basic;
+  const gratuityOutside = o.pfInCtc === true ? 0 : 0.0481 * b.basic;
   return {
     year, ctc, fixedCtc, target, expected, variableOnTop: onTop, variableShortfall: target - expected,
     bonus, bonusKind: o.bonusKind === 'retention' ? 'retention' : 'joining', bonusTax,
@@ -80,11 +82,11 @@ export function offerYear(raw, rates, { year = 1 } = {}) {
     tax, taxAll, regime, otherRegimeTax: all[regime === 'old' ? 'new' : 'old'].tax.total,
     monthly, cash, cashWithStock: cash + stock - stockTax,
     // saved for you rather than paid to you: both sides of PF, and gratuity (yours only after 5 years)
-    pf: b.employeePf + b.employerPf + employerPfOutside, gratuity: b.gratuity,
-    retirement: b.employeePf + b.employerPf + employerPfOutside + b.gratuity,
+    pf: b.employeePf + b.employerPf + employerPfOutside, gratuity: b.gratuity + gratuityOutside,
+    retirement: b.employeePf + b.employerPf + employerPfOutside + b.gratuity + gratuityOutside,
     employerPfOutside,
     // the package as you would add it up: the CTC plus whatever is paid on top of it
-    totalPackage: ctc + (onTop ? target : 0) + employerPfOutside,
+    totalPackage: ctc + (onTop ? target : 0),
   };
 }
 

@@ -47,8 +47,8 @@ for (const ctc of [800000, 1800000, 3500000]) {
 
 // PF outside the CTC is more saved for you, and gratuity is counted apart from cash
 {
-  const inside = offerYear({ ctc: 2000000 }, rates), outside = offerYear({ ctc: 2000000, pfInCtc: false }, rates);
-  near('PF on top of the CTC: that much more is paid to you', outside.grossSalary - inside.grossSalary, outside.employerPfOutside);
+  const inside = offerYear({ ctc: 2000000, pfInCtc: true }, rates), outside = offerYear({ ctc: 2000000 }, rates);
+  near('PF and gratuity on top of the CTC: that much more is paid as salary', outside.grossSalary - inside.grossSalary, outside.employerPfOutside + 0.0481 * outside.basic);
   near('and the same is still saved for you', outside.retirement, inside.retirement);
 }
 
@@ -62,7 +62,7 @@ for (const ctc of [800000, 1800000, 3500000]) {
 {
   const top = offerYear({ ctc: 2000000, variablePct: 20, variableOnTop: true }, rates), inside = offerYear({ ctc: 2000000, variablePct: 20 }, rates), plain = offerYear({ ctc: 2000000 }, rates);
   near('on top: the month is the all-fixed CTC\'s month, give or take the tax share', top.grossSalary, plain.grossSalary);
-  ok('on top: more cash in the year than the same variable inside the CTC', top.cash > inside.cash + 300000, `${Math.round(top.cash)} vs ${Math.round(inside.cash)}`);
+  ok('on top: more cash in the year than the same variable inside the CTC', top.cash > inside.cash + 250000, `${Math.round(top.cash)} vs ${Math.round(inside.cash)}`);
   ok('on top: the package is CTC plus the target', top.totalPackage === 2400000);
 }
 

@@ -19,7 +19,7 @@ ok('no CTC -> no answer', quickAnswer({ ctc: 0 }, rates) === null);
 // agrees with the in-hand salary calculator at its own defaults, so the link from one to the other shows the same figure
 {
   const a = quickAnswer({ ctc: 1800000 }, rates);
-  const s = salaryBreakdown({ ctc: 1800000, basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best' }, rates);
+  const s = salaryBreakdown({ ctc: 1800000, basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best' }, rates);
   near('18L: monthly in-hand equals the salary calculator', a.monthly.best, s.monthly);
   near('18L: new-regime tax equals the salary calculator', a.tax.new, s.cmp.new.tax.total);
   ok('18L with nothing but PF: the new regime wins', a.better === 'new' && a.saves > 0, `saves ${a.saves}`);
@@ -56,8 +56,9 @@ ok('no CTC -> no answer', quickAnswer({ ctc: 0 }, rates) === null);
 
 // low incomes: no tax in either regime, and the answer says so rather than inventing a saving
 {
-  const a = quickAnswer({ ctc: 600000 }, rates);
-  ok('6L: no tax either way', a.tax.new === 0 && a.tax.old === 0 && a.same);
+  const a = quickAnswer({ ctc: 500000 }, rates);
+  ok('5L: no tax either way', a.tax.new === 0 && a.tax.old === 0 && a.same);
+  ok('6L: no tax in the new regime', quickAnswer({ ctc: 600000 }, rates).tax.new === 0);
   const b = quickAnswer({ ctc: 1200000 }, rates);
   ok('12L: no tax in the new regime after the rebate', b.tax.new === 0 && b.tax.old > 0 && b.better === 'new');
 }

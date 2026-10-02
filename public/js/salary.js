@@ -25,7 +25,7 @@ export function renderSalary(data) {
   // The shared profile wins over this calculator's own memory whenever it has anything in it.
   const profile = getProfile();
   const fromProfile = isEmptyProfile(profile) || isBlankAfterReset('salary') ? {} : toSalaryStore(profile);
-  const st = { ctc: '', basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
+  const st = { ctc: '', basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
   // a link with ?ctc= (Ask, the salary pages, the tax page) opens at that CTC; nothing is saved until an edit
   const urlCtc = ctcFromUrl();
   if (urlCtc) st.ctc = urlCtc;
@@ -67,9 +67,9 @@ export function renderSalary(data) {
       field('variableMonthly', 'Paid', { options: [['yearly', 'Once a year, separately'], ['monthly', 'Every month with salary']] }),
     ]),
     el('div', { class: 'opts' }, [
-      el('div', { class: 'opt-title' }, 'Inside the CTC'),
-      field('includeEmployerPf', 'Employer PF at 12% of Basic is part of my CTC', { type: 'checkbox' }),
-      field('includeGratuity', 'Gratuity provision (4.81% of Basic) is part of my CTC', { type: 'checkbox' }),
+      el('div', { class: 'opt-title' }, 'Only if your offer letter counts them inside the CTC'),
+      field('includeEmployerPf', 'Employer PF (12% of Basic) is inside my CTC', { type: 'checkbox' }),
+      field('includeGratuity', 'Gratuity (4.81% of Basic) is inside my CTC', { type: 'checkbox' }),
       field('employerNpsPct', 'Employer NPS as % of Basic', { step: 1 }, '0 if none; up to 14% is deductible in both regimes'),
     ]),
     el('div', { class: 'opts' }, [
