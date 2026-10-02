@@ -49,7 +49,7 @@ export function renderOffer({ rates }) {
     };
     const name = el('input', { type: 'text', maxlength: 30, value: o.name, 'aria-label': `Name for offer ${key.toUpperCase()}` });
     name.addEventListener('input', () => { o.name = name.value.trim() || (key === 'a' ? 'Current job' : 'New offer'); save(); rerender(); });
-    const pf = el('input', { type: 'checkbox' }); pf.checked = o.pfInCtc !== false;
+    const pf = el('input', { type: 'checkbox' }); pf.checked = o.pfInCtc === true;
     pf.addEventListener('change', () => { o.pfInCtc = pf.checked; save(); paint(); });
     const bonusLabel = () => (o.bonusKind === 'retention' ? 'Retention bonus (₹, paid once)' : 'Joining bonus (₹, paid once)');
     const bonusField = num('joiningBonus', bonusLabel(), { step: 25000, placeholder: '0', slider: { max: 2000000, step: 25000 } }, 'counted in year 1; usually repaid if you leave early');
@@ -73,7 +73,7 @@ export function renderOffer({ rates }) {
         bonusField,
       ]),
       // the rest only matters to some offers: one fold, open when something in it is already filled
-      el('details', { class: 'opts fold', open: +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 40 || o.pfInCtc === false || +o.hikePct > 0 }, [
+      el('details', { class: 'opts fold', open: +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 40 || o.pfInCtc === true || +o.hikePct > 0 }, [
         el('summary', {}, key === 'a' ? 'More: stock, rent, structure' : 'More: relocation, stock, rent, structure'),
         key === 'a' ? null : el('div', { class: 'offer-sub' }, [
           num('relocation', 'Relocation allowance (₹, paid once)', { step: 10000, placeholder: '0', slider: { max: 500000, step: 10000 } }, 'year 1'),
@@ -83,7 +83,7 @@ export function renderOffer({ rates }) {
         el('label', {}, [el('span', { class: 'lbl' }, 'City'), select('city', [['metro', 'Metro: Mumbai, Delhi, Kolkata, Chennai'], ['other', 'Elsewhere, including Bengaluru, Pune, Hyderabad']])]),
         num('rentMonthly', 'Rent you will pay (₹ a month)', { step: 1000, placeholder: '0', slider: { max: 200000, step: 1000 } }, 'for the HRA exemption in the old regime'),
         num('basicPct', 'Basic (% of CTC)', { step: 1, max: 80, slider: { min: 20, max: 70, step: 1 } }, '40% is common; check the annexure'),
-        el('label', { class: 'check' }, [pf, 'Employer PF is inside the CTC (the usual case)']),
+        el('label', { class: 'check' }, [pf, 'Employer PF and gratuity are inside this CTC (only if the offer letter says so)']),
         num('hikePct', 'Hike you expect for year 2 (%)', { step: 1, max: 100, slider: { max: 50, step: 1 } }, 'on the fixed pay'),
       ]),
     ]);
@@ -113,9 +113,9 @@ export function renderOffer({ rates }) {
         ? `${o.name}: the ${inr(y1.relocation)} relocation allowance is taxed as salary here. Reimbursed against actual moving bills it is usually tax-free: ask HR how they pay it.`
         : `${o.name}: the ${inr(y1.relocation)} relocation is reimbursed against bills, so it is not taxed.`);
       if (y1.stock > 0) traps.push(`${o.name}: ${inr(y1.stock)} of stock vests each year and is taxed as salary when it does (${inr(y1.stockTax)}), leaving ${inr(y1.stockNet)}, if the share price holds. It is not cash: unlisted ESOPs can take years to sell, or never.`);
-      if (o.pfInCtc === false) traps.push(`${o.name}: employer PF is paid on top of the CTC, so this offer saves ${inr(y1.employerPfOutside)} a year more for you than its CTC says.`);
+      if (o.pfInCtc === true) traps.push(`${o.name}: employer PF and gratuity (${inr(y1.retirement - y1.employeePf)} a year) are carved out of this CTC, so less of it is paid as salary.`);
     }
-    traps.push(`Both: ${inr(A1.retirement)} and ${inr(B1.retirement)} a year of the CTC is PF and gratuity: yours, but saved, not paid. Gratuity is yours only after 5 years with the employer.`);
+    traps.push(`Both: ${inr(A1.retirement)} and ${inr(B1.retirement)} a year goes into PF and gratuity: yours, but saved, not paid. Gratuity is yours only after 5 years with the employer.`);
 
     const rows = [
       ['Headline CTC', (y) => y.ctc],
@@ -165,7 +165,7 @@ export function renderOffer({ rates }) {
       details: [
         table(A1, B1, 'Year 1, line by line'),
         table(A2, B2, `Year 2${+st.a.hikePct || +st.b.hikePct ? ', with the hikes you expect' : ''}: no one-time bonus or relocation`),
-        el('p', { class: 'muted small' }, 'Assumes the salary structure on the left (Basic as a share of the CTC, HRA half of Basic in a metro or 40% elsewhere, gratuity at 4.81% of Basic inside the CTC), ₹2,400 professional tax, age under 60, FY 2026-27 rates, and whichever regime is cheaper for each offer. Variable pay, bonuses and taxable relocation are taxed with the year’s salary. Stock is taken at the value you enter, taxed as salary in the year it vests, and kept out of the cash figures; insurance and other benefits are left out.'),
+        el('p', { class: 'muted small' }, 'Assumes the salary structure on the left (Basic as a share of the CTC, HRA half of Basic in a metro or 40% elsewhere, employer PF and gratuity (4.81% of Basic) on top of the CTC unless you say otherwise), ₹2,400 professional tax, age under 60, FY 2026-27 rates, and whichever regime is cheaper for each offer. Variable pay, bonuses and taxable relocation are taxed with the year’s salary. Stock is taken at the value you enter, taxed as salary in the year it vests, and kept out of the cash figures; insurance and other benefits are left out.'),
       ],
       detailsLabel: 'Show both offers line by line, year 1 and year 2',
       foot: [disclaimer('tax')],

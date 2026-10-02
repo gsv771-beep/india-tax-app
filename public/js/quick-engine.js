@@ -6,7 +6,7 @@
  *   ladder(rates)  -> the same answer at common CTCs, for the table shown before anything is typed
  *
  * The salary split is the in-hand calculator's own (salary.js), with its defaults (Basic 40% of CTC, HRA
- * 50% of Basic, employer PF and gratuity inside the CTC, ₹2,400 professional tax), so following a link
+ * 50% of Basic, employer PF and gratuity on top of the CTC rather than inside it, ₹2,400 professional tax), so following a link
  * from here to that calculator shows the same figure. Pure; no DOM.
  */
 import { salaryBreakdown } from '../engine/salary-split.js';
@@ -35,7 +35,7 @@ export function quickAnswer(q, rates) {
   if (!ctc) return null;
   const store = {
     ctc, basicPct: num(q.basicPct) || QUICK_DEFAULTS.basicPct, hraPct: q.hraPct != null ? +q.hraPct : QUICK_DEFAULTS.hraPct,
-    conveyance: 0, variable: 0, variableInCtc: 'ctc', includeEmployerPf: true, includeGratuity: true, employerNpsPct: 0,
+    conveyance: 0, variable: 0, variableInCtc: 'ctc', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0,
     professionalTax: q.professionalTax != null ? num(q.professionalTax) : QUICK_DEFAULTS.professionalTax,
     city: q.city || QUICK_DEFAULTS.city, rentPaid: 12 * num(q.rentMonthly),
     other80c: num(q.other80c), nps1b: num(q.nps1b), healthSelf: num(q.healthSelf), homeLoanInterest: num(q.homeLoanInterest), ageBand: q.ageBand || 'below_60', regime: 'best',

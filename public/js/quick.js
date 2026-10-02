@@ -235,7 +235,7 @@ export function mountQuick(slot, opts) {
       results,
       flip,
       el('p', { class: 'quick-assume muted small' }, [
-        'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity inside the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. An estimate, not tax advice.',
+        'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC (your own 12% PF comes off your pay), ', assumePt, ' professional tax, age under 60, FY 2026-27. An estimate, not tax advice.',
       ]),
     ]),
     table,

@@ -51,7 +51,7 @@ for (const ctc of SALARY_CTCS) {
 ok('all 41 pages render with sound, consistent figures', bad.length === 0, bad.slice(0, 3).join('; '));
 {
   const m = salaryPageModel(1800000, rates);
-  ok('18L: the answer leads with the monthly in-hand', /₹1,22,045 a month/.test(m.answer) && /new regime saves ₹1,59,900/.test(m.answer), m.answer);
+  ok('18L: the answer leads with the monthly in-hand', /₹1,30,033 a month/.test(m.answer) && /new regime saves ₹1,72,490/.test(m.answer), m.answer);
   ok('18L: neighbours are linked', m.nearby.includes(1700000) && m.nearby.includes(1900000) && !m.nearby.includes(1800000));
   const t = salaryPageModel(1200000, rates);
   ok('12L: explains the rebate with the Act 2025 section', t.faq.some((f) => /section 156 of the Income-tax Act 2025, formerly 87A/.test(f.a) && /₹75,000 standard deduction/.test(f.a)));
@@ -65,7 +65,7 @@ ok('all 41 pages render with sound, consistent figures', bad.length === 0, bad.s
   const env = { ASSETS: { fetch: async (u) => ({ ok: String(u).endsWith('/data/tax_rates.json'), json: async () => rates }) } };
   const url = new URL('https://taxcompass.org/salary/18-lakh');
   const page = await salarySsr(metaFor('/salary/18-lakh'), env, url);
-  ok('edge: a salary page renders with its description and FAQ data', page && page.html.includes('<h1>₹18 lakh salary: ₹1,22,045 in hand a month</h1>') && /₹1,22,045 a month/.test(page.desc) && page.jsonLd['@type'] === 'FAQPage');
+  ok('edge: a salary page renders with its description and FAQ data', page && page.html.includes('<h1>₹18 lakh salary: ₹1,30,033 in hand a month</h1>') && /₹1,30,033 a month/.test(page.desc) && page.jsonLd['@type'] === 'FAQPage');
   const index = await salarySsr(metaFor('/salary'), env, url);
   ok('edge: the index renders, without FAQ data', index && index.html.includes('In-hand salary for every CTC') && index.jsonLd === null);
   ok('edge: other pages are left alone', (await salarySsr(metaFor('/tax'), env, url)) === null);

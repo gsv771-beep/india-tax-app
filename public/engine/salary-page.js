@@ -27,7 +27,7 @@ export function salaryPageModel(ctc, rates) {
   const answer = `On a CTC of ${inr(ctc)} you take home about ${inr(a.monthly.best)} a month (${inr(a.inHand.best)} a year) under the ${a.better} regime, after ${inr(p.employeePf / 12)} PF, ${inr(p.professionalTax / 12)} professional tax and ${inr(a.tax[a.better] / 12)} income tax a month. ${verdict}`;
 
   const faq = [
-    { q: `What is the in-hand salary on a ${w} CTC?`, a: `About ${inr(a.monthly.best)} a month under the ${a.better} regime: ${inr(p.grossSalary / 12)} of gross pay, less ${inr(p.employeePf / 12)} PF, ${inr(p.professionalTax / 12)} professional tax and ${inr(a.tax[a.better] / 12)} income tax. That assumes Basic at 40% of the CTC with employer PF and gratuity inside it; a larger Basic means more PF and a little less in hand.` },
+    { q: `What is the in-hand salary on a ${w} CTC?`, a: `About ${inr(a.monthly.best)} a month under the ${a.better} regime: ${inr(p.grossSalary / 12)} of gross pay, less ${inr(p.employeePf / 12)} PF, ${inr(p.professionalTax / 12)} professional tax and ${inr(a.tax[a.better] / 12)} income tax. That assumes Basic at 40% of the CTC, with employer PF and gratuity paid on top of the CTC; your own 12% PF comes off your pay. A larger Basic means more PF and a little less in hand.` },
     { q: `How much income tax is paid on a ${w} salary?`, a: noTax ? `None in either regime at this income.` : `${inr(t.new.total)} a year in the new regime (${inr(t.new.total / 12)} a month, ${pct(t.new.total / ctc)} of the CTC), and ${inr(t.old.total)} in the old regime with no deductions beyond PF. Both include the 4% health and education cess.` },
     { q: `Is the old or the new tax regime better for ${w}?`, a: noTax ? `Neither costs anything at this income, so the choice does not matter.` : a.better === 'new' ? `The new regime, by ${inr(a.saves)} a year, for most people. The old regime wins only when its deductions (the HRA exemption, 80C including your PF, home-loan interest, health insurance and your own NPS) add up to more than ${inr(a.needed)}.` : `The old regime, by ${inr(a.saves)} a year.` },
   ];
@@ -72,7 +72,7 @@ export function salaryPageHtml(m) {
     <thead><tr><th></th><th>A year</th><th>A month</th></tr></thead>
     <tbody>${m.breakup.map(row).join('')}</tbody>
   </table></div>
-  <p class="muted small">Basic at 40% of the CTC, HRA half of Basic, employer PF and gratuity inside the CTC, ₹2,400 professional tax, age under 60. Change any of it below or in the <a href="/calculators/salary">in-hand salary calculator</a>.</p>
+  <p class="muted small">Basic at 40% of the CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ₹2,400 professional tax, age under 60. Change any of it below or in the <a href="/calculators/salary">in-hand salary calculator</a>.</p>
 </section>
 <section class="card sp-block">
   <h2>Old vs new regime at ${esc(m.w)}</h2>
@@ -112,5 +112,5 @@ export function salaryIndexHtml(rates) {
   <thead><tr><th>CTC</th><th>In hand a month</th><th>Tax, new regime</th><th>Tax, old regime</th><th>Cheaper regime</th></tr></thead>
   <tbody>${rows}</tbody>
 </table></div>
-<p class="muted small">Basic at 40% of the CTC, HRA half of Basic, employer PF and gratuity inside the CTC, ₹2,400 professional tax, age under 60, FY 2026-27. An estimate, not tax advice.</p>`;
+<p class="muted small">Basic at 40% of the CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ₹2,400 professional tax, age under 60, FY 2026-27. An estimate, not tax advice.</p>`;
 }
