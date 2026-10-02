@@ -23,7 +23,7 @@
 const num = (v) => (Number.isFinite(+v) ? +v : 0);
 
 export const PROFILE_KEY = 'taxcompass.profile.v1';
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const LOAN_TYPES = ['home', 'car', 'personal', 'education', 'other'];
 export const PROPERTY_USE = ['self_occupied', 'let_out', 'none'];
@@ -57,6 +57,17 @@ const MIGRATIONS = {
   2: (p) => ({ ...p, schemaVersion: 3, business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0, ...(p.business || {}) } }),
   // v3 -> v4: conveyance allowance and variable pay are their own components; both were inside otherAllowances before.
   3: (p) => ({ ...p, schemaVersion: 4, income: { conveyance: 0, variablePay: 0, ...(p.income || {}) } }),
+  // v4 -> v5: a CTC is the salary, with employer PF and gratuity paid on top of it. Up to v4 every salary
+  // was saved with them carved out of the CTC, so the same CTC now means that much more salary: the
+  // CTC stays as typed, the PF and gratuity become part of the special allowance, and the profile's
+  // gross salary equals its CTC again. Anyone whose offer letter does count them inside ticks it anew.
+  4: (p) => {
+    const i = { ...(p.income || {}) };
+    const n = (v) => (Number.isFinite(+v) ? +v : 0);
+    const moved = n(i.employerPf) + n(i.gratuity);
+    if (moved > 0) { i.otherAllowances = n(i.otherAllowances) + moved; i.employerPf = 0; i.gratuity = 0; }
+    return { ...p, schemaVersion: 5, income: i };
+  },
 };
 
 export function migrateProfile(raw) {

@@ -54,6 +54,14 @@ const fixture = (f) => migrateProfile(JSON.parse(readFileSync(path.join(here, '.
   ok('rejects non-JSON', /valid JSON/.test(threw('{nope')));
   ok('rejects an array', /not contain a profile/.test(threw('[1,2]')));
   ok('rejects an unrelated object', /does not look like/.test(threw('{"hello":1}')));
+  // v4 -> v5: a CTC saved with employer PF and gratuity carved out of it becomes a salary equal to the CTC
+  {
+    const ctc = 6550000, basic = 0.4 * ctc, hra = 0.5 * basic, pf = 0.12 * basic, gr = 0.0481 * basic;
+    const v4 = migrateProfile({ schemaVersion: 4, income: { ctc, basic, hra, conveyance: 0, variablePay: 0, otherAllowances: ctc - basic - hra - pf - gr, employerNps: 0, employerPf: pf, gratuity: gr, esop: 0 } });
+    ok('v4 salary: the CTC is kept as typed', Math.round(ctcOf(v4.income)) === ctc && v4.schemaVersion === SCHEMA_VERSION);
+    ok('v4 salary: PF and gratuity move out of the CTC, so the gross salary is the CTC', v4.income.employerPf === 0 && v4.income.gratuity === 0 && Math.round(toTaxInputs(v4).salary.gross) === ctc, String(toTaxInputs(v4).salary.gross));
+    ok('a v5 profile with PF inside the CTC is left as it is', migrateProfile({ schemaVersion: SCHEMA_VERSION, income: { ctc: 1500000, basic: 600000, hra: 300000, otherAllowances: 528000, employerPf: 72000 } }).income.employerPf === 72000);
+  }
   ok('rejects a newer schema', /newer version/.test(threw(JSON.stringify({ schemaVersion: SCHEMA_VERSION + 1, income: {} }))));
   ok('accepts an exported profile with extra top-level fields', parseProfileJSON(JSON.stringify({ ...fixture('new-regime-15L.json'), exportedAt: 'x', app: 'y' })).income.ctc === 1500000);
 }

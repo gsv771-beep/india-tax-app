@@ -1,6 +1,6 @@
 {
   "_fixture": "₹45L CTC, old regime, own flat in Mumbai with a ₹60L home loan at 8.5% and 15 years to run (EMI ₹59,084). Two children.",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "person": {"age": 41, "creditScore": 790, "employment": "salaried"},
   "income": { "ctc": 4500000, "basic": 1800000, "conveyance": 0, "variablePay": 0, "hra": 900000, "otherAllowances": 1584000, "employerNps": 0, "employerPf": 216000, "esop": 0 },
   "business": { "receipts": 0, "kind": "profession", "presumptive": true, "digitalSharePct": 100, "expenses": 0, "tds": 0 },
