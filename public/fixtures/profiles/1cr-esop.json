@@ -1,6 +1,6 @@
 {
   "_fixture": "₹1cr CTC of which ₹25L is ESOP vesting each year (taxed as a perquisite on exercise). Employer NPS at 10% of basic. New regime, renting.",
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "person": {"age": 36, "creditScore": 745, "employment": "salaried"},
   "income": { "ctc": 10000000, "basic": 3000000, "conveyance": 0, "variablePay": 0, "hra": 1500000, "otherAllowances": 2340000, "employerNps": 300000, "employerPf": 360000, "esop": 2500000 },
   "business": { "receipts": 0, "kind": "profession", "presumptive": true, "digitalSharePct": 100, "expenses": 0, "tds": 0 },
