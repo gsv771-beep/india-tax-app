@@ -59,6 +59,7 @@ export function renderSalary(data) {
     ctcField,
     el('details', { class: 'opts fold salary-structure', open: customised }, [
     el('summary', {}, 'Your exact salary structure'),
+    el('div', { class: 'wide-grid' }, [
     el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, 'usually 35 to 50%'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
     field('conveyance', 'Conveyance allowance per year (₹)', { step: 1000 }, 'taxable since 2018; it only changes the break-up'),
     variableField,
@@ -79,6 +80,7 @@ export function renderSalary(data) {
       el('div', { class: 'two' }, [field('other80c', 'Other 80C investments (₹)', { step: 1000 }, 'beyond EPF'), field('nps1b', 'Own NPS, 80CCD(1B) (₹)', { step: 1000 })]),
       el('div', { class: 'two' }, [field('healthSelf', 'Health insurance premium (₹)', { step: 500 }), field('ageBand', 'Age', { options: [['below_60', 'Below 60'], ['senior_60_to_79', '60 to 79'], ['super_senior_80_plus', '80 and above']] })]),
       field('regime', 'Tax regime for TDS', { options: [['best', 'Whichever is lower (recommended)'], ['new', 'New regime'], ['old', 'Old regime']] }),
+    ]),
     ]),
     ]),
   ]);
@@ -129,7 +131,8 @@ export function renderSalary(data) {
     }));
   }
   render();
-  return el('div', { class: 'calc' }, [inputs, el('div', {}, [out, exportCard])]);
+  // across the full width: the CTC and its structure on top, the answer and the payslip under them
+  return el('div', { class: 'calc calc-wide' }, [inputs, el('div', {}, [out, exportCard])]);
 }
 
 function openInTaxComparison(r) {

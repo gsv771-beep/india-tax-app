@@ -112,5 +112,11 @@ export function pctToggle({ input, baseInput, base, defaultPct, name, hint, max 
   if (baseInput) baseInput.addEventListener('input', () => { if (mode === 'pct') apply(); });
   input.after(row);
   apply();
-  return { get mode() { return mode; }, refresh: apply, row };
+  /** The figure was set in code (from the profile): show it as its share of the base, leaving it as it is. */
+  const syncFromInput = () => {
+    const b = baseValue();
+    if (mode === 'pct' && b > 0 && input.value !== '') pct.value = Math.round((+input.value / b) * 1000) / 10;
+    note.textContent = mode === 'pct' ? (b > 0 ? `${pct.value || 0}% of ${hint}` : `${hint} is empty, so this stays 0`) : '';
+  };
+  return { get mode() { return mode; }, refresh: apply, syncFromInput, row };
 }
