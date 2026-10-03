@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="4634369dac">
+  <meta name="tc-build" content="996bc20882">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -151,6 +151,9 @@
               <label>Annual Basic + DA (₹) <small>on your payslip; usually 40-50% of gross</small>
                 <input type="number" min="0" step="1000" data-path="salary.basicDa" placeholder="e.g. 600000">
               </label>
+              <label>HRA received (₹) <small>house rent allowance on your payslip; part of the gross above</small>
+                <input type="number" min="0" step="1000" data-path="salary.hraReceived">
+              </label>
               <label>Conveyance allowance (₹) <small>fully taxable since 2018; part of the gross above</small>
                 <input type="number" min="0" step="1000" data-path="salary.conveyance">
               </label>
@@ -166,6 +169,7 @@
               <label>Special allowance (₹) <small>the balance of the gross, worked out for you</small>
                 <input type="number" data-salary-balance readonly tabindex="-1">
               </label>
+              <p class="salary-tieout" data-salary-tieout aria-live="polite"></p>
             </div>
             <div class="grid" data-for="business" hidden>
               <label>Gross receipts or turnover for the year (₹) <small>what clients or customers paid you, before any expenses</small>
@@ -209,7 +213,7 @@
             <summary><span class="step">2</span> Do you have any of these?</summary>
             <p class="opt-help" id="topics-help">Tick what applies and only those questions appear. Nothing ticked is fine: salary alone gives a real answer.</p>
             <div class="topics" id="tax-topics">
-              <label class="topic"><input type="checkbox" value="hra"> <span>🏢 I pay rent / get HRA</span></label>
+              <label class="topic"><input type="checkbox" value="hra"> <span>🏢 I pay rent</span></label>
               <label class="topic"><input type="checkbox" value="homeloan"> <span>🏠 Home loan</span></label>
               <label class="topic"><input type="checkbox" value="invest"> <span>💹 80C investments, NPS</span></label>
               <label class="topic"><input type="checkbox" value="health"> <span>🩺 Health insurance</span></label>
@@ -224,9 +228,8 @@
             <summary><span class="step">3</span> Your details</summary>
 
             <fieldset class="topic-group" data-topic="hra">
-              <legend>Rent and HRA</legend>
+              <legend>Rent</legend>
               <div class="grid">
-                <label data-for="salary">HRA received (₹)<input type="number" min="0" step="1000" data-path="salary.hraReceived"></label>
                 <label>Annual rent paid (₹) <small data-rent-hint>with HRA the exemption is worked out; without HRA, 80GG gives up to ₹60,000 (old regime)</small><input type="number" min="0" step="1000" data-path="salary.rentPaid"></label>
                 <label>City
                   <select data-path="salary.city">

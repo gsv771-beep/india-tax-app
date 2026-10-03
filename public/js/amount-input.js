@@ -28,9 +28,16 @@ export function attachAmountEcho(input, { unit = 'inr' } = {}) {
   const paint = () => { const v = input.value; echo.textContent = v === '' || !Number.isFinite(+v) ? '' : show(v); };
   input.addEventListener('input', paint);
   input.addEventListener('change', paint);
+  // a figure filled in for the person (from the profile, a saved form) fires no input event of its own
+  input.addEventListener('refresh-echo', paint);
   paint();
   input.after(echo);
   return echo;
+}
+
+/** Repaint every echo under `root`: call after setting values in code. */
+export function refreshEchoes(root) {
+  if (root) for (const input of root.querySelectorAll('input[data-echo]')) input.dispatchEvent(new Event('refresh-echo'));
 }
 
 /** What a field is measured in, from its own label: rupees, percent, years or months. */

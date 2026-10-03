@@ -478,6 +478,8 @@ details.snap:not([open]) > summary { margin-bottom: 0; }
 label { display: flex; flex-direction: column; gap: 5px; font-size: .9rem; font-weight: 500; }
 /* drag line under a number, and the ₹ | % switch */
 input[data-salary-balance] { background: var(--accent-soft); color: var(--muted); }
+.salary-tieout { grid-column: 1 / -1; margin: 0; padding: 8px 12px; border-radius: var(--radius-sm); background: var(--surface-2); color: var(--text); font-size: .86rem; font-variant-numeric: tabular-nums; }
+.salary-tieout:empty { display: none; }
 input[data-salary-balance].neg { color: #9b1c1c; background: #fbe9e9; }
 .amount-echo { font-size: .82rem; color: var(--accent-2); font-weight: 600; font-variant-numeric: tabular-nums; min-height: 1em; margin-top: -1px; }
 .amount-echo:empty { display: none; }
