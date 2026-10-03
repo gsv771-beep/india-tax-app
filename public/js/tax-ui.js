@@ -2,7 +2,7 @@ import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
 import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
 import { hasBusiness, businessIncome } from './tax-engine.js';
-import { attachSlider, pctToggle, enhanceMoneyInputs } from './amount-input.js';
+import { attachSlider, pctToggle, enhanceMoneyInputs, refreshEchoes } from './amount-input.js';
 import { rememberFold } from './result-layout.js';
 import { saveFileCard } from './save-card.js';
 import { lineChart, shortINR } from './charts.js';
@@ -210,6 +210,12 @@ function syncSalaryBalance(form) {
   const bal = total - rest;
   out.value = total > 0 ? Math.round(bal) : '';
   out.classList.toggle('neg', bal < 0);
+  // the sum, written out, so the components visibly add up to the gross
+  const tie = form.querySelector('[data-salary-tieout]');
+  if (tie) {
+    const parts = [['Basic', v('salary.basicDa')], ['HRA', v('salary.hraReceived')], ['conveyance', v('salary.conveyance')], ['bonus', variable], ['special allowance', Math.max(0, bal)]].filter(([, x]) => x > 0);
+    tie.textContent = total > 0 && bal >= 0 ? `${parts.map(([k, x]) => `${k} ${inr(Math.round(x))}`).join(' + ')} = ${inr(Math.round(total))}${onTop && variable > 0 ? ' total pay' : ' gross'}` : '';
+  }
   const echo = out.nextElementSibling;
   if (echo && echo.classList.contains('amount-echo')) {
     echo.textContent = total <= 0 ? ''
@@ -260,6 +266,7 @@ function applyProfile(form, profile, { initial = false } = {}) {
     else if (field.type === 'number') field.value = v ? String(Math.round(v)) : '';
     else field.value = String(v);
   }
+  refreshEchoes(form);
 }
 
 function readForm(form) {
@@ -287,6 +294,7 @@ function restore(form) {
     else if (field.type === 'number') field.value = v ? String(v) : '';
     else field.value = String(v);
   });
+  refreshEchoes(form);
 }
 
 function render(inputs, rates, flags) {
