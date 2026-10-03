@@ -23,14 +23,15 @@ export function initTax({ rates, onboarding }) {
   const form = document.getElementById('tax-form');
   const flags = { ...DEFAULT_FLAGS };
 
+  const pctToggles = [];
   restore(form);
   applyProfile(form, getProfile(), { initial: true });
   // a drag line under the salary, and ₹ | % switches for the two figures people know as a share
   { const gross = form.querySelector('[data-path="salary.gross"]'), basic = form.querySelector('[data-path="salary.basicDa"]'), empNps = form.querySelector('[data-path="employer.npsContribution"]');
     attachSlider(gross, { max: 100000000, step: 50000 });
-    pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary', defaultMode: 'pct' });
+    pctToggles.push(pctToggle({ input: basic, baseInput: gross, defaultPct: 40, name: 'tax.basic', hint: 'gross salary', defaultMode: 'pct' }));
     // employer NPS: rupees by default and zero, because most people have none; % is there for those who do
-    pctToggle({ input: empNps, baseInput: basic, defaultPct: 0, name: 'tax.employerNps.v3', hint: 'Basic + DA', max: 30, defaultMode: 'inr' }); }
+    pctToggles.push(pctToggle({ input: empNps, baseInput: basic, defaultPct: 0, name: 'tax.employerNps.v3', hint: 'Basic + DA', max: 30, defaultMode: 'inr' })); }
   enhanceMoneyInputs(form);
   syncSalaryBalance(form);
   form.addEventListener('input', () => syncSalaryBalance(form));
@@ -54,6 +55,8 @@ export function initTax({ rates, onboarding }) {
   const clearForm = () => {
     form.reset();
     try { localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(TOPICS_KEY); } catch {}
+    for (const g of topicGroups(form)) g.open = false;
+    pctToggles.forEach((t) => t.syncFromInput()); syncSalaryBalance(form); refreshEchoes(form);
     syncTopics(form); syncIncomeType(form);
     render(readForm(form), rates, flags);
   };
@@ -61,7 +64,9 @@ export function initTax({ rates, onboarding }) {
   window.addEventListener('taxcompass:startover', clearForm);
   window.addEventListener('taxcompass:salarycleared', clearForm);
   // Edits made elsewhere (the profile panel, the salary calculator, a fixture) flow into the form.
-  onProfileChange((p) => { applyProfile(form, p); syncTopics(form); syncIncomeType(form); render(readForm(form), rates, flags); }, 'tax');
+  // figures set in code fire no input event: bring the derived parts (the % boxes, the special allowance
+  // and the sum under it) in line with them
+  onProfileChange((p) => { applyProfile(form, p); pctToggles.forEach((t) => t.syncFromInput()); syncSalaryBalance(form); syncTopics(form); syncIncomeType(form); render(readForm(form), rates, flags); }, 'tax');
 
   renderProvisionTable(onboarding);
   syncTopics(form);
@@ -123,20 +128,20 @@ function syncIncomeType(form) {
   // the tick boxes are worded for whoever is reading them: HRA, EPF and perks mean nothing to a shop owner
   const noSalary = t === 'business';
   const TOPIC_LABELS = {
-    hra: noSalary ? '🏢 I pay rent (80GG)' : '🏢 I pay rent / get HRA',
-    invest: noSalary ? '💹 80C investments, own NPS' : '💹 80C investments, NPS',
-    more: noSalary ? '➕ Other deductions' : '➕ Other deductions and perks',
+    hra: noSalary ? 'Rent (80GG)' : 'Rent',
+    invest: noSalary ? '80C investments and own NPS' : '80C investments and NPS',
+    more: noSalary ? 'Other deductions' : 'Other deductions and perks',
   };
   for (const [value, label] of Object.entries(TOPIC_LABELS)) {
-    const span = form.querySelector(`#tax-topics input[value="${value}"]`);
-    if (span) span.closest('label').querySelector('span').textContent = label;
+    const name = form.querySelector(`details.topic-group[data-topic="${value}"] .topic-name`);
+    if (name) name.textContent = label;
   }
   const help = form.querySelector('#topics-help');
   if (help) help.textContent = noSalary
-    ? 'Tick what applies and only those questions appear. Your receipts alone already give a real answer; business expenses and the TDS your clients deducted are in step 1 above.'
+    ? 'Open what applies to you. Your receipts alone already give a real answer; business expenses and the TDS your clients deducted are in step 1 above.'
     : t === 'both'
-      ? 'Tick what applies and only those questions appear. Nothing ticked is fine: the salary and receipts above already give a real answer.'
-      : 'Tick what applies and only those questions appear. Nothing ticked is fine: salary alone gives a real answer.';
+      ? 'Open what applies to you. Nothing opened is fine: the salary and receipts above already give a real answer.'
+      : 'Open what applies to you. Nothing opened is fine: salary alone gives a real answer.';
 }
 
 /** Business or profession: what is left to pay after TDS, the advance-tax calendar, and GST. */
@@ -174,27 +179,34 @@ function renderBusiness(inputs, cmp, rates, flags) {
 }
 
 // ---- progressive disclosure: topics ----
-// Step 2 is a row of tick boxes; each topic-group of fields shows only when its topic is ticked. A topic
-// ticks itself when any of its fields already holds a value (a saved form, the profile, a fixture), and
-// unticking one clears its fields so a hidden number can never shape the result.
+// Each group of fields (rent, home loan, 80C, health, capital gains, other income, more) is a dropdown,
+// closed until opened. A group opens by itself when one of its fields already holds a value (a saved form,
+// the profile), and a closed group says how many figures it holds, so a number never shapes the result
+// unseen. "Clear" inside a group empties it.
 const TOPICS_KEY = 'taxcompass.tax-topics.v1';
 const isCheck = (f) => f.type === 'checkbox';
 const hasValue = (f) => (isCheck(f) ? f.checked !== f.defaultChecked : f.tagName === 'SELECT' ? f.selectedIndex > 0 : f.value !== '' && +f.value !== 0);
-function topicBoxes(form) { return [...form.querySelectorAll('#tax-topics input[type=checkbox]')]; }
+function topicGroups(form) { return [...form.querySelectorAll('details.topic-group')]; }
+const filledIn = (g) => [...g.querySelectorAll('[data-path]')].filter((f) => !f.closest('[hidden]') && hasValue(f)).length;
 function initTopics(form, run) {
   let saved = []; try { saved = JSON.parse(localStorage.getItem(TOPICS_KEY) || '[]'); } catch {}
-  for (const box of topicBoxes(form)) box.checked = saved.includes(box.value);
-  form.querySelector('#tax-topics').addEventListener('change', (e) => {
-    const box = e.target; if (!box.value) return;
-    if (!box.checked) {
-      for (const f of form.querySelectorAll(`[data-topic="${box.value}"] [data-path]`)) { if (isCheck(f)) f.checked = f.defaultChecked; else if (f.tagName === 'SELECT') f.selectedIndex = 0; else f.value = ''; }
+  const persist = () => { try { localStorage.setItem(TOPICS_KEY, JSON.stringify(topicGroups(form).filter((g) => g.open).map((g) => g.dataset.topic))); } catch {} };
+  for (const g of topicGroups(form)) {
+    if (saved.includes(g.dataset.topic)) g.open = true;
+    g.addEventListener('toggle', persist);
+    const clear = el('button', { type: 'button', class: 'btn-link topic-clear' }, 'Clear these');
+    clear.addEventListener('click', () => {
+      for (const f of g.querySelectorAll('[data-path]')) { if (isCheck(f)) f.checked = f.defaultChecked; else if (f.tagName === 'SELECT') f.selectedIndex = 0; else f.value = ''; }
       // a field in % mode would re-derive itself from its base; zero the percentage too
-      for (const pctIn of form.querySelectorAll(`[data-topic="${box.value}"] .pct-input`)) { pctIn.value = 0; pctIn.dispatchEvent(new Event('input', { bubbles: false })); }
+      for (const pctIn of g.querySelectorAll('.pct-input')) { pctIn.value = 0; pctIn.dispatchEvent(new Event('input', { bubbles: false })); }
+      refreshEchoes(g);
       run();
-    }
-    showTopics(form);
-  });
-  form.querySelector('#tax-topics-all').addEventListener('click', () => { for (const box of topicBoxes(form)) box.checked = true; showTopics(form); });
+      showTopics(form);
+    });
+    g.append(el('div', { class: 'topic-actions' }, clear));
+  }
+  form.querySelector('#tax-topics-all').addEventListener('click', () => { for (const g of topicGroups(form)) g.open = true; persist(); });
+  form.addEventListener('input', () => showTopics(form));
 }
 /** Tick every topic whose fields carry a value, then show/hide. Called after restore, profile apply and reset. */
 /** Special allowance = gross less the named components; shown, never typed. */
@@ -225,20 +237,16 @@ function syncSalaryBalance(form) {
 }
 
 function syncTopics(form) {
-  for (const box of topicBoxes(form)) {
-    const fields = [...form.querySelectorAll(`[data-topic="${box.value}"] [data-path]`)];
-    if (fields.some(hasValue)) box.checked = true;
-  }
+  for (const g of topicGroups(form)) if (filledIn(g)) g.open = true;
   showTopics(form);
 }
+/** The count of figures each closed group holds, on its summary line. */
 function showTopics(form) {
-  const on = topicBoxes(form).filter((b) => b.checked).map((b) => b.value);
-  for (const g of form.querySelectorAll('.topic-group')) g.hidden = !on.includes(g.dataset.topic);
-  const details = form.querySelector('#tax-details');
-  details.hidden = on.length === 0;
-  const all = form.querySelector('#tax-topics-all');
-  all.textContent = on.length === topicBoxes(form).length ? 'Every field is showing' : 'Show every field';
-  try { localStorage.setItem(TOPICS_KEY, JSON.stringify(on)); } catch {}
+  for (const g of topicGroups(form)) {
+    const n = filledIn(g);
+    const badge = g.querySelector('.topic-filled');
+    if (badge) badge.textContent = n ? `${n} figure${n > 1 ? 's' : ''} entered` : '';
+  }
 }
 
 // Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
@@ -398,8 +406,8 @@ function hraWorking(cmp) {
   else if (w.exempt <= 0) verdict = `Rent paid minus 10% of Basic + DA is ${inr(w.least)}, which is not positive, so no HRA is exempt. Rent must exceed 10% of Basic + DA for any exemption.`;
   else verdict = `The exemption is the lowest of the three, ${inr(w.exempt)}. It reduces salary income in the old regime only; the new regime taxes the full HRA of ${inr(w.limbs[0].value)}.`;
   const taxable = Math.max(0, w.limbs[0].value - w.exempt);
-  return el('div', { class: 'card working-card hra-card' }, [
-    el('h3', { style: 'margin-top:0' }, 'HRA exemption, step by step'),
+  return el('details', { class: 'working-details hra-card' }, [
+    el('summary', {}, [`HRA exemption, step by step: ${inr(w.exempt)} exempt in the old regime`]),
     el('p', { class: 'muted small' }, `Section 10(13A) of the 1961 Act, s.11 read with Schedule III of the 2025 Act. Exempt HRA is the least of three amounts. "Salary" here means Basic + DA, ${inr(w.basicDa)}. ${w.city} counts as ${w.metro ? 'a metro' : 'a non-metro'} city, so limb (b) uses ${Math.round(w.pct * 100)}%.`),
     el('div', { class: 'table-wrap' }, el('table', { class: 'compare working' }, [el('tbody', {}, [
       ...rows,
@@ -418,8 +426,8 @@ function renderWorking(cmp, rates) {
   const hra = hraWorking(cmp);
   setChildren(box, [
     hra,
-    el('details', { class: 'working-details', open: true }, [
-      el('summary', {}, 'How the tax is worked out, slab by slab'),
+    el('details', { class: 'working-details' }, [
+      el('summary', {}, `How the tax is worked out, slab by slab: ${inr(cmp.old.tax.total)} old, ${inr(cmp.new.tax.total)} new`),
       el('p', { class: 'muted small', style: 'margin-top:0' }, 'Each regime step by step: slab bands, special-rate income, rebate and its marginal relief, surcharge and its marginal relief, then cess.'),
       el('div', { class: 'working-grid' }, [slabWorking('old', cmp.old, rates), slabWorking('new', cmp.new, rates)]),
       el('p', { class: 'muted small' }, 'Marginal relief exists in two places: on the rebate when total income crosses the rebate limit by a small margin, and at each surcharge threshold. In both cases the extra tax cannot exceed the extra income that caused it. Both are checked above.'),
