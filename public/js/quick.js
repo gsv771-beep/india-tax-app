@@ -10,7 +10,7 @@
 import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
-import { fromSalaryStore, toTaxInputs, ctcOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
+import { fromSalaryStore, toTaxInputs, ctcOf, payoutOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
 import { quickAnswer, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 
 const DETAIL = 'taxcompass.detail-open.v1';
@@ -29,6 +29,8 @@ function fromProfile(p) {
     listedLoan,   // interest then comes from the loan's schedule, so a figure typed here is not stored over it
     professionalTax: p.tax.professionalTax,
     other80c: p.tax.s80cUsed || 0, healthSelf: p.tax.s80dUsed || 0, nps1b: p.tax.nps1bUsed || 0,
+    // a bonus set in the payslip or the tax form: kept through a new CTC here, and out of the monthly figure
+    variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p),
   };
 }
 
@@ -175,12 +177,14 @@ export function mountQuick(slot, opts) {
       el('div', { class: 'quick-side-tax' }, a.tax[r] > 0 ? ['Tax ', el('b', {}, inr(a.tax[r])), ' a year'] : 'No income tax'),
       a.same ? (r === 'new' ? el('div', { class: 'quick-side-sub' }, 'Same either way') : null) : r === a.better ? el('div', { class: 'quick-side-sub' }, `Better by ${inr(a.saves)} a year`) : null,
     ]);
+    const bonus = a.bonus.paid > 0;
     setChildren(answer, [
-      el('div', { class: 'quick-k' }, 'Your monthly take-home'),
+      el('div', { class: 'quick-k' }, bonus ? 'Your monthly take-home, before bonus' : 'Your monthly take-home'),
       el('div', { class: 'quick-v' }, inr(a.monthly.best)),
       el('p', { class: 'quick-sub' }, a.tax.new === 0 && a.tax.old === 0
         ? `${inrShort(a.inHand.best)} a year. No income tax in either regime at this salary.`
-        : `${inrShort(a.inHand.best)} a year in the ${a.better} regime, after PF, professional tax and ${inr(a.tax[a.better] / 12)} a month of income tax.`),
+        : `${inrShort(a.inHand.best)} a year in the ${a.better} regime, after PF, professional tax and income tax.`),
+      bonus ? el('p', { class: 'quick-sub quick-bonus' }, [`Plus your bonus: ${inr(a.bonus.paid)}${a.bonus.payoutPct !== 100 ? ` (${+a.bonus.payoutPct.toFixed(1)}% of the ${inr(a.bonus.target)} target)` : ''}, about ${inr(a.bonus.net.best)} after tax, paid once a year. `, salaryLink ? el('a', { href: salaryLink.href, onclick: salaryLink.onclick }, 'Change the bonus or its payout in your payslip →') : null]) : null,
       el('div', { class: 'quick-sides' }, [side('new'), side('old')]),
     ]);
   }
@@ -215,12 +219,13 @@ export function mountQuick(slot, opts) {
         el('thead', {}, el('tr', {}, [el('th', {}, 'A year'), el('th', { class: a.better === 'new' ? 'win' : '' }, 'New'), el('th', { class: a.better === 'old' ? 'win' : '' }, 'Old')])),
         el('tbody', {}, [
           row('Your CTC', ...both(inr(a.ctc))),
-          gross !== a.ctc ? row('Salary paid', ...both(inr(gross))) : null,
+          gross !== a.ctc ? row(`Salary paid (bonus at ${+a.bonus.payoutPct.toFixed(1)}%)`, ...both(inr(gross))) : null,
           row('Your PF', ...both(minus(pf))),
           row('Professional tax', ...both(minus(pt))),
           row('Income tax', minus(a.tax.new), minus(a.tax.old)),
           row('In hand a year', inr(a.inHand.new), inr(a.inHand.old), 'total'),
-          row('In hand a month', inr(a.monthly.new), inr(a.monthly.old), 'total'),
+          a.bonus.paid > 0 ? row('Of which bonus, paid once', inr(a.bonus.net.new), inr(a.bonus.net.old)) : null,
+          row(a.bonus.paid > 0 ? 'In hand a month, before bonus' : 'In hand a month', inr(a.monthly.new), inr(a.monthly.old), 'total'),
         ]),
       ])),
       el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here. Old-regime deductions counted: ${parts.join(', ')}.`]),

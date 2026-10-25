@@ -2,7 +2,9 @@
  * The one-number answer: a CTC in, the monthly in-hand pay and old-vs-new regime out, plus how far the
  * old regime is from winning and what the deductions a person actually has do to that.
  *
- *   quickAnswer({ ctc, basicPct, city, rentMonthly, homeLoanInterest, other80c, healthSelf, nps1b }, rates)
+ *   quickAnswer({ ctc, basicPct, city, rentMonthly, homeLoanInterest, other80c, healthSelf, nps1b, variable, payoutPct }, rates)
+ *     variable: the target bonus inside the CTC (from the payslip or tax form); payoutPct: what is actually
+ *     paid, % of it. The monthly figures leave the bonus out, because it is paid once; the yearly ones include it.
  *   ladder(rates)  -> the same answer at common CTCs, for the table shown before anything is typed
  *
  * The salary split is the in-hand calculator's own (salary.js), with its defaults (Basic 40% of CTC, HRA
@@ -35,7 +37,7 @@ export function quickAnswer(q, rates) {
   if (!ctc) return null;
   const store = {
     ctc, basicPct: num(q.basicPct) || QUICK_DEFAULTS.basicPct, hraPct: q.hraPct != null ? +q.hraPct : QUICK_DEFAULTS.hraPct,
-    conveyance: 0, variable: 0, variableInCtc: 'ctc', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0,
+    conveyance: 0, variable: num(q.variable), variablePayoutPct: q.payoutPct == null ? 100 : q.payoutPct, variableMonthly: 'yearly', variableInCtc: 'ctc', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0,
     professionalTax: q.professionalTax != null ? num(q.professionalTax) : QUICK_DEFAULTS.professionalTax,
     city: q.city || QUICK_DEFAULTS.city, rentPaid: 12 * num(q.rentMonthly),
     other80c: num(q.other80c), nps1b: num(q.nps1b), healthSelf: num(q.healthSelf), homeLoanInterest: num(q.homeLoanInterest), ageBand: q.ageBand || 'below_60', regime: 'best',
@@ -48,6 +50,10 @@ export function quickAnswer(q, rates) {
   const tax = { new: cmp.new.tax.total, old: cmp.old.tax.total };
   const better = tax.old < tax.new ? 'old' : 'new';          // a tie goes to the new regime: nothing to prove to the employer
   const inHand = (r) => pay.grossSalary - pay.employeePf - pay.professionalTax - tax[r];
+  // the bonus reaches the bank once, carrying its share of the year's tax; the month is the rest
+  const paid = pay.variablePaid || 0;
+  const bonusNet = (r) => (paid > 0 && pay.grossSalary > 0 ? paid - tax[r] * paid / pay.grossSalary : 0);
+  const month = (r) => (inHand(r) - bonusNet(r)) / 12;
   const c = claimed(cmp.old.income, pay);
   const deductionsNow = c.total;
   return {
@@ -55,7 +61,8 @@ export function quickAnswer(q, rates) {
     same: tax.old === tax.new,
     saves: Math.abs(tax.old - tax.new),
     inHand: { new: inHand('new'), old: inHand('old'), best: inHand(better) },
-    monthly: { new: inHand('new') / 12, old: inHand('old') / 12, best: inHand(better) / 12 },
+    monthly: { new: month('new'), old: month('old'), best: month(better) },
+    bonus: { target: pay.variable || 0, paid, payoutPct: pay.payoutPct ?? 100, net: { new: bonusNet('new'), old: bonusNet('old'), best: bonusNet(better) } },
     claimed: c,
     // old-regime deductions, in total, at which the two regimes cost the same
     needed: be.kind === 'need' ? deductionsNow + be.extra : be.kind === 'cushion' ? deductionsNow - be.cushion : null,

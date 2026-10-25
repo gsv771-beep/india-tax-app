@@ -35,7 +35,7 @@ export function emptyProfile() {
     person: { age: 0, creditScore: 0, employment: 'salaried' },
     income: { ctc: 0, basic: 0, hra: 0, conveyance: 0, variablePay: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
     business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0 },
-    tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60', professionalTax: 2400, homeLoanInterest: 0 },
+    tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60', professionalTax: 2400, homeLoanInterest: 0, bonusPayoutPct: 100 },
     location: { city: 'Other', metro: false, rentPaid: 0, housing: 'rent' },
     loans: [],
     investments: { equity: 0, debt: 0, epf: 0, ppf: 0, nps: 0, fd: 0, gold: 0 },
@@ -140,6 +140,12 @@ export function nextYearInterest(loan) {
   return total;
 }
 
+/** The share of the target bonus actually paid this year, % (100 unless the person said otherwise). */
+export function payoutOf(p) {
+  const v = p.tax && p.tax.bonusPayoutPct;
+  return v == null || !Number.isFinite(+v) ? 100 : Math.min(300, Math.max(0, +v));
+}
+
 /** Gross salary as the tax engine sees it: everything paid or taxed as salary, employer PF and gratuity excluded. */
 export function grossSalaryOf(p) {
   const i = p.income;
@@ -207,7 +213,7 @@ export function toTaxInputs(p) {
     fy: p.tax.fy, resident: true, ageBand: p.tax.ageBand, hasBusinessIncome: false,
     incomeType: incomeTypeOf(p),
     business: { income: 0, receipts: p.business.receipts, kind: p.business.kind, presumptive: p.business.presumptive, digitalSharePct: p.business.digitalSharePct, expenses: p.business.expenses, tdsDeducted: p.business.tds },
-    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: num(p.tax.professionalTax) },
+    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), variablePayoutPct: payoutOf(p), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: num(p.tax.professionalTax) },
     employer: { npsContribution: p.income.employerNps, isGovernment: false, totalRetirementContribution: p.income.employerPf + p.income.employerNps },
     perquisites: { other: 0 },
     houseProperty: { selfOccupiedInterest: Math.round(sop), letOut: { rent: 0, municipalTax: 0, interest: Math.round(letOut) } },
@@ -220,7 +226,7 @@ export function toSalaryStore(p) {
   const i = p.income;
   return {
     ctc: i.ctc, basicPct: i.ctc ? +(100 * i.basic / i.ctc).toFixed(4) : 40, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
-    conveyance: num(i.conveyance), variable: num(i.variablePay), variableInCtc: 'ctc',
+    conveyance: num(i.conveyance), variable: num(i.variablePay), variableInCtc: 'ctc', variablePayoutPct: payoutOf(p),
     includeEmployerPf: i.employerPf > 0, includeGratuity: i.gratuity > 0, employerNpsPct: i.basic ? +(100 * i.employerNps / i.basic).toFixed(4) : 0,
     city: p.location.city, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0,
     other80c: p.tax.s80cUsed, nps1b: p.tax.nps1bUsed, healthSelf: p.tax.s80dUsed, ageBand: p.tax.ageBand, regime: p.tax.regime,
@@ -255,6 +261,7 @@ export function fromTaxInputs(p, t) {
   out.tax.nps1bUsed = num(t.deductions?.nps1b);
   out.tax.s80dUsed = num(t.deductions?.healthSelf); // parents' cover stays with the tax form
   out.tax.professionalTax = num(t.salary?.professionalTax);
+  if (t.salary?.variablePayoutPct != null && t.salary.variablePayoutPct !== '') out.tax.bonusPayoutPct = Math.min(300, Math.max(0, num(t.salary.variablePayoutPct)));
   // home-loan interest typed on the form is kept only when no self-occupied loan is listed (a listed loan's schedule wins)
   if (!out.loans.some((l) => l.type === 'home' && l.propertyUse === 'self_occupied')) out.tax.homeLoanInterest = num(t.houseProperty?.selfOccupiedInterest);
   if (t.incomeType === 'salary' || t.incomeType === 'business' || t.incomeType === 'both') out.person.employment = t.incomeType === 'salary' ? 'salaried' : t.incomeType === 'business' ? 'self_employed' : 'both';
@@ -273,7 +280,7 @@ export function fromTaxInputs(p, t) {
 export function clearSalary(p) {
   const out = migrateProfile(p);
   for (const k of Object.keys(out.income)) out.income[k] = 0;
-  Object.assign(out.tax, { regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, homeLoanInterest: 0 });
+  Object.assign(out.tax, { regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, homeLoanInterest: 0, bonusPayoutPct: 100 });
   out.location.rentPaid = 0;
   return out;
 }
@@ -294,6 +301,7 @@ export function fromSalaryStore(p, st, r) {
   out.tax.nps1bUsed = num(st.nps1b);
   out.tax.s80dUsed = num(st.healthSelf);
   if (st.professionalTax != null) out.tax.professionalTax = num(st.professionalTax);
+  if (st.variablePayoutPct != null && st.variablePayoutPct !== '') out.tax.bonusPayoutPct = Math.min(300, Math.max(0, num(st.variablePayoutPct)));
   if (st.city) { out.location.city = st.city; out.location.metro = METRO_CITIES.includes(st.city); }
   out.location.rentPaid = num(st.rentPaid);
   if (out.location.rentPaid > 0) out.location.housing = 'rent';

@@ -55,6 +55,7 @@ export function emptyInputs() {
       conveyance: 0,     // conveyance allowance: fully taxable since 2018, part of gross; kept for the break-up
       variablePay: 0,    // bonus or performance pay; part of gross, or on top of it (variableOnTop)
       variableOnTop: false,  // true when the bonus is paid over and above the gross figure entered
+      variablePayoutPct: 100, // what is actually paid this year, % of the target bonus inside the gross (120, 80...)
       professionalTax: 0,
     },
     employer: {
@@ -178,8 +179,11 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
 
   // --- 1.1 Salary ---
   // a bonus paid over and above the salary figure adds to what is taxed; one carved out of it does not
+  // the gross carries the target bonus; a payout above or below target changes only what is paid and taxed
   const variableOnTop = !!inp.salary.variableOnTop;
-  const gross = num(inp.salary.gross) + (variableOnTop ? num(inp.salary.variablePay) : 0);
+  const payoutPct = inp.salary.variablePayoutPct == null || inp.salary.variablePayoutPct === '' ? 100 : Math.min(300, Math.max(0, num(inp.salary.variablePayoutPct)));
+  const variablePaid = num(inp.salary.variablePay) * payoutPct / 100;
+  const gross = num(inp.salary.gross) + (variableOnTop ? num(inp.salary.variablePay) : 0) + (variablePaid - num(inp.salary.variablePay));
   let salary = 0;
   if (gross > 0) {
     push('gross_salary', 'Gross salary / pension', gross);
@@ -234,13 +238,13 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
 
     salary = clamp0(salary);
     // break-up of that gross, when the person gave one: information only, it does not change the tax
-    const conveyance = num(inp.salary.conveyance), variablePay = num(inp.salary.variablePay);
+    const conveyance = num(inp.salary.conveyance), variablePay = variablePaid;
     const basicForBreakup = num(inp.salary.basicDa);
     if (basicForBreakup > 0 || conveyance > 0 || variablePay > 0) {
       const named = basicForBreakup + num(inp.salary.hraReceived) + conveyance + variablePay;
-      const parts = [basicForBreakup > 0 ? `Basic + DA ${fmtNum(basicForBreakup)}` : null, num(inp.salary.hraReceived) > 0 ? `HRA ${fmtNum(num(inp.salary.hraReceived))}` : null, conveyance > 0 ? `conveyance ${fmtNum(conveyance)}` : null, variablePay > 0 ? `variable pay ${fmtNum(variablePay)}` : null, gross - named > 0 ? `special allowance ${fmtNum(gross - named)}` : null].filter(Boolean);
+      const parts = [basicForBreakup > 0 ? `Basic + DA ${fmtNum(basicForBreakup)}` : null, num(inp.salary.hraReceived) > 0 ? `HRA ${fmtNum(num(inp.salary.hraReceived))}` : null, conveyance > 0 ? `conveyance ${fmtNum(conveyance)}` : null, variablePay > 0 ? `bonus paid ${fmtNum(variablePay)}${payoutPct !== 100 ? ` (${+payoutPct.toFixed(1)}% of the ${fmtNum(num(inp.salary.variablePay))} target)` : ''}` : null, gross - named > 0 ? `special allowance ${fmtNum(gross - named)}` : null].filter(Boolean);
       push('salary_breakup', `Of which: ${parts.join(', ')}`, 0, { info: true });
-      if (named > gross) notes.push(`The salary components add up to Rs ${fmtNum(named)}, more than the gross salary of Rs ${fmtNum(gross)}. Raise the gross, reduce a component, or mark the bonus as paid on top of the gross.`);
+      if (named > gross) notes.push(`The salary components add up to Rs ${fmtNum(named)}, more than the gross salary of Rs ${fmtNum(gross)}. Your CTC or gross should include the target bonus; raise it or reduce a component.`);
     }
     push('net_salary', 'Income from salary', salary, { subtotal: true });
   }

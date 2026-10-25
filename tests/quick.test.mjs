@@ -94,5 +94,16 @@ ok('Basic of 80% with PF and gratuity: components exceed CTC is reported', !!qui
   near('ladder "old wins only above" is the same finish line as the meter', r18.oldNeeds, quickAnswer({ ctc: 1800000 }, rates).needed);
 }
 
+// ---- a bonus inside the CTC: the month leaves it out, the year keeps it ----
+{
+  const plain = quickAnswer({ ctc: 8000000 }, rates), withBonus = quickAnswer({ ctc: 8000000, variable: 1500000 }, rates);
+  ok('a bonus at target does not change the tax', plain.tax.new === withBonus.tax.new && plain.tax.old === withBonus.tax.old);
+  ok('a bonus at target does not change the take-home for the year', Math.abs(plain.inHand.best - withBonus.inHand.best) < 1);
+  ok('the monthly figure leaves the once-a-year bonus out', withBonus.monthly.best < plain.monthly.best);
+  ok('month x 12 + bonus after tax = the year', Math.abs(12 * withBonus.monthly.best + withBonus.bonus.net.best - withBonus.inHand.best) < 1);
+  const hi = quickAnswer({ ctc: 8000000, variable: 1500000, payoutPct: 120 }, rates);
+  ok('a 120% payout raises the year and the tax, not the month much', hi.inHand.best > withBonus.inHand.best && hi.tax.new > withBonus.tax.new && hi.bonus.paid === 1800000);
+}
+
 console.log(failures ? `\n${failures} failure(s)` : '\nAll quick-answer tests passed');
 process.exit(failures ? 1 : 0);
