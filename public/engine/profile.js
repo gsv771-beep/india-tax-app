@@ -35,7 +35,7 @@ export function emptyProfile() {
     person: { age: 0, creditScore: 0, employment: 'salaried' },
     income: { ctc: 0, basic: 0, hra: 0, conveyance: 0, variablePay: 0, otherAllowances: 0, employerNps: 0, employerPf: 0, gratuity: 0, esop: 0 },
     business: { receipts: 0, kind: 'profession', presumptive: true, digitalSharePct: 100, expenses: 0, tds: 0 },
-    tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60', professionalTax: 2400, homeLoanInterest: 0, bonusPayoutPct: 100 },
+    tax: { fy: 'FY2026-27', regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, ageBand: 'below_60', professionalTax: 2400, homeLoanInterest: 0, bonusPayoutPct: 100, bonusOnTop: false },
     location: { city: 'Other', metro: false, rentPaid: 0, housing: 'rent' },
     loans: [],
     investments: { equity: 0, debt: 0, epf: 0, ppf: 0, nps: 0, fd: 0, gold: 0 },
@@ -140,6 +140,14 @@ export function nextYearInterest(loan) {
   return total;
 }
 
+/**
+ * The CTC as the offer letter states it. The components always add up to everything the employer pays
+ * (ctcOf); a bonus paid on top of the CTC is part of that sum but not of the headline.
+ */
+export function ctcHeadline(p) {
+  return ctcOf(p.income) - (p.tax && p.tax.bonusOnTop ? num(p.income.variablePay) : 0);
+}
+
 /** The share of the target bonus actually paid this year, % (100 unless the person said otherwise). */
 export function payoutOf(p) {
   const v = p.tax && p.tax.bonusPayoutPct;
@@ -213,7 +221,8 @@ export function toTaxInputs(p) {
     fy: p.tax.fy, resident: true, ageBand: p.tax.ageBand, hasBusinessIncome: false,
     incomeType: incomeTypeOf(p),
     business: { income: 0, receipts: p.business.receipts, kind: p.business.kind, presumptive: p.business.presumptive, digitalSharePct: p.business.digitalSharePct, expenses: p.business.expenses, tdsDeducted: p.business.tds },
-    salary: { gross: Math.round(grossSalaryOf(p)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), variablePayoutPct: payoutOf(p), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: num(p.tax.professionalTax) },
+    // the form's gross is the headline: a bonus paid on top goes in separately, marked as such
+    salary: { gross: Math.round(grossSalaryOf(p) - (p.tax.bonusOnTop ? num(p.income.variablePay) : 0)), basicDa: p.income.basic, hraReceived: p.income.hra, conveyance: num(p.income.conveyance), variablePay: num(p.income.variablePay), variableOnTop: !!p.tax.bonusOnTop, variablePayoutPct: payoutOf(p), rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0, city: p.location.city, ltaExempt: 0, professionalTax: num(p.tax.professionalTax) },
     employer: { npsContribution: p.income.employerNps, isGovernment: false, totalRetirementContribution: p.income.employerPf + p.income.employerNps },
     perquisites: { other: 0 },
     houseProperty: { selfOccupiedInterest: Math.round(sop), letOut: { rent: 0, municipalTax: 0, interest: Math.round(letOut) } },
@@ -224,9 +233,10 @@ export function toTaxInputs(p) {
 /** Shape used by the in-hand salary calculator (salary.js). */
 export function toSalaryStore(p) {
   const i = p.income;
+  const ctc = ctcHeadline(p);
   return {
-    ctc: i.ctc, basicPct: i.ctc ? +(100 * i.basic / i.ctc).toFixed(4) : 40, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
-    conveyance: num(i.conveyance), variable: num(i.variablePay), variableInCtc: 'ctc', variablePayoutPct: payoutOf(p),
+    ctc, basicPct: ctc ? +(100 * i.basic / ctc).toFixed(4) : 40, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
+    conveyance: num(i.conveyance), variable: num(i.variablePay), variableInCtc: p.tax.bonusOnTop ? 'top' : 'ctc', variablePayoutPct: payoutOf(p),
     includeEmployerPf: i.employerPf > 0, includeGratuity: i.gratuity > 0, employerNpsPct: i.basic ? +(100 * i.employerNps / i.basic).toFixed(4) : 0,
     city: p.location.city, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0,
     other80c: p.tax.s80cUsed, nps1b: p.tax.nps1bUsed, healthSelf: p.tax.s80dUsed, ageBand: p.tax.ageBand, regime: p.tax.regime,
@@ -254,7 +264,8 @@ export function fromTaxInputs(p, t) {
   i.employerPf = Math.max(0, num(t.employer?.totalRetirementContribution) - i.employerNps);
   // no salary on the form means no package: gratuity is a share of Basic and must not outlive it
   if (!(num(t.salary?.gross) > 0)) for (const k of Object.keys(i)) i[k] = 0;
-  i.ctc = ctcOf(i);
+  if (t.salary && 'variableOnTop' in t.salary) out.tax.bonusOnTop = onTop && i.variablePay > 0;
+  i.ctc = ctcHeadline(out);
   out.tax.fy = t.fy || out.tax.fy;
   out.tax.ageBand = t.ageBand || out.tax.ageBand;
   out.tax.s80cUsed = num(t.deductions?.s80c);
@@ -280,7 +291,7 @@ export function fromTaxInputs(p, t) {
 export function clearSalary(p) {
   const out = migrateProfile(p);
   for (const k of Object.keys(out.income)) out.income[k] = 0;
-  Object.assign(out.tax, { regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, homeLoanInterest: 0, bonusPayoutPct: 100 });
+  Object.assign(out.tax, { regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, homeLoanInterest: 0, bonusPayoutPct: 100, bonusOnTop: false });
   out.location.rentPaid = 0;
   return out;
 }
@@ -294,7 +305,8 @@ export function fromSalaryStore(p, st, r) {
     employerNps: num(r.employerNps), employerPf: num(r.employerPf), gratuity: num(r.gratuity), esop: out.income.esop,
   };
   out.income.otherAllowances = Math.max(0, out.income.otherAllowances - out.income.esop);
-  out.income.ctc = ctcOf(out.income);
+  out.tax.bonusOnTop = (st.variableInCtc === 'top' || st.variableInCtc === false) && out.income.variablePay > 0;
+  out.income.ctc = ctcHeadline(out);
   if (st.regime === 'old' || st.regime === 'new') out.tax.regime = st.regime;
   out.tax.ageBand = st.ageBand || out.tax.ageBand;
   out.tax.s80cUsed = num(st.other80c);

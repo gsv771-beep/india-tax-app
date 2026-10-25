@@ -7,7 +7,7 @@ import { el, setChildren, inr } from './util.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { downloadBase64 } from './save-card.js';
 import { getProfile, updateProfile, resetProfile, wipeEverything, exportSnapshotJSON, importProfileJSON, onProfileChange } from './profile-store.js';
-import { profileSummary, isEmptyProfile, ctcOf, emiFor, CITIES, METRO_CITIES, LOAN_TYPES, PROPERTY_USE, INVESTMENT_BUCKETS } from '../engine/profile.js';
+import { profileSummary, isEmptyProfile, ctcOf, ctcHeadline, emiFor, CITIES, METRO_CITIES, LOAN_TYPES, PROPERTY_USE, INVESTMENT_BUCKETS } from '../engine/profile.js';
 
 const SOURCE = 'panel';
 const BUCKET_LABELS = { equity: 'Equity (stocks, equity funds)', debt: 'Debt funds', epf: 'EPF', ppf: 'PPF', nps: 'NPS', fd: 'Fixed deposits', gold: 'Gold' };
@@ -89,9 +89,9 @@ export function initProfilePanel() {
     const group = (title, children, note) => el('fieldset', { class: 'profile-group' }, [el('legend', {}, title), note ? el('p', { class: 'small muted' }, note) : null, el('div', { class: 'grid' }, children)]);
 
     // Income: components add up to the CTC. Editing the CTC balances "other allowances"; editing a component moves the CTC.
-    const comp = (key, label, hint) => numField(label, (d) => d.income[key], (d, v) => { d.income[key] = v; d.income.ctc = ctcOf(d.income); }, { step: 1000, slider: key === 'basic' || key === 'variablePay' ? 20000000 : 0 }, hint);
+    const comp = (key, label, hint) => numField(label, (d) => d.income[key], (d, v) => { d.income[key] = v; d.income.ctc = ctcHeadline(d); }, { step: 1000, slider: key === 'basic' || key === 'variablePay' ? 20000000 : 0 }, hint);
     const income = group('Income (per year)', [
-      numField('Cost to company (₹)', (d) => d.income.ctc, (d, v) => { const i = d.income; i.ctc = v; i.otherAllowances = Math.max(0, v - i.basic - i.hra - i.conveyance - i.variablePay - i.employerNps - i.employerPf - i.gratuity - i.esop); }, { step: 50000, slider: 100000000, derived: (d) => d.income.ctc }, 'drag or type, up to ₹10 crore; special allowance absorbs the difference'),
+      numField('Cost to company (₹)', (d) => d.income.ctc, (d, v) => { const i = d.income; i.ctc = v; i.otherAllowances = Math.max(0, v - i.basic - i.hra - i.conveyance - (d.tax.bonusOnTop ? 0 : i.variablePay) - i.employerNps - i.employerPf - i.gratuity - i.esop); }, { step: 50000, slider: 100000000, derived: (d) => d.income.ctc }, 'drag or type, up to ₹10 crore; special allowance absorbs the difference'),
       comp('basic', 'Basic + DA (₹)', 'drives HRA, PF, NPS caps'),
       comp('hra', 'HRA received (₹)'),
       comp('conveyance', 'Conveyance allowance (₹)', 'taxable since 2018'),

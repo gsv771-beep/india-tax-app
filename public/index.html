@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="24b207b56d">
+  <meta name="tc-build" content="d0b049cd07">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -146,7 +146,7 @@
               <input type="hidden" data-path="incomeType" value="salary">
             </div>
             <div class="grid" data-for="salary">
-              <label>Annual CTC or gross salary (₹) <small>including your target bonus; employer PF and gratuity are on top of this. A pension goes here too</small>
+              <label>Annual CTC or gross salary (₹) <small>as on your offer letter; employer PF and gratuity are on top of this. A pension goes here too</small>
                 <input type="number" min="0" step="1000" data-path="salary.gross" placeholder="e.g. 1500000">
               </label>
               <label>Annual Basic + DA (₹) <small>on your payslip; usually 40-50% of gross</small>
@@ -158,8 +158,14 @@
               <label>Conveyance allowance (₹) <small>fully taxable since 2018; part of the gross above</small>
                 <input type="number" min="0" step="1000" data-path="salary.conveyance">
               </label>
-              <label>Target bonus or variable pay (₹) <small>the bonus included in the CTC above; 0 if none</small>
+              <label>Target bonus or variable pay (₹) <small>the full amount if paid as agreed; 0 if none</small>
                 <input type="number" min="0" step="10000" data-path="salary.variablePay">
+              </label>
+              <label data-bonus-kind hidden>That bonus is
+                <select data-path="salary.variableOnTop" data-type="bool">
+                  <option value="false">Part of the CTC above</option>
+                  <option value="true">Paid on top of the CTC above</option>
+                </select>
               </label>
               <label data-bonus-payout hidden>Bonus actually paid (% of target) <small>100 if paid as agreed; 120 or 80 if it paid more or less</small>
                 <input type="number" min="0" max="300" step="5" data-path="salary.variablePayoutPct" data-default="100" placeholder="100">

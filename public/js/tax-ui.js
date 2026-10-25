@@ -94,7 +94,7 @@ export function initTax({ rates, onboarding }) {
 // Step 1 has three buttons writing to a hidden incomeType input; blocks marked data-for="salary" or
 // data-for="business" show only for the matching type ('both' shows everything). Switching away from a
 // type clears that type's figures so a hidden salary or hidden receipts never shape the result.
-const SALARY_PATHS = ['salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.variablePayoutPct', 'salary.ltaExempt', 'salary.professionalTax', 'deductions.epfEmployee', 'employer.npsContribution', 'employer.totalRetirementContribution', 'perquisites.other'];
+const SALARY_PATHS = ['salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.variableOnTop', 'salary.variablePayoutPct', 'salary.ltaExempt', 'salary.professionalTax', 'deductions.epfEmployee', 'employer.npsContribution', 'employer.totalRetirementContribution', 'perquisites.other'];
 const BUSINESS_PATHS = ['business.receipts', 'business.expenses', 'business.tdsDeducted'];
 function initIncomeType(form, run) {
   form.querySelectorAll('[data-income-type]').forEach((b) => b.addEventListener('click', () => {
@@ -214,29 +214,36 @@ function syncSalaryBalance(form) {
   const out = form.querySelector('[data-salary-balance]');
   if (!out) return;
   const v = (p) => +(form.querySelector(`[data-path="${p}"]`) || {}).value || 0;
-  // the CTC carries the target bonus: it comes out of the special allowance, whatever is finally paid
+  // a bonus inside the CTC comes out of the special allowance; one paid on top leaves the CTC alone.
+  // Either way the payout % changes only what is paid and taxed this year, never the CTC or the Basic
   const variable = v('salary.variablePay');
+  const onTop = (form.querySelector('[data-path="salary.variableOnTop"]') || {}).value === 'true';
+  const kindRow = form.querySelector('[data-bonus-kind]');
+  if (kindRow) kindRow.hidden = !(variable > 0);
   const payoutIn = form.querySelector('[data-path="salary.variablePayoutPct"]');
   const payout = payoutIn && payoutIn.value !== '' ? Math.min(300, Math.max(0, +payoutIn.value)) : 100;
   const payoutRow = form.querySelector('[data-bonus-payout]');
   if (payoutRow) payoutRow.hidden = !(variable > 0);
   const total = v('salary.gross');
-  const rest = v('salary.basicDa') + v('salary.hraReceived') + v('salary.conveyance') + variable;
+  const rest = v('salary.basicDa') + v('salary.hraReceived') + v('salary.conveyance') + (onTop ? 0 : variable);
   const bal = total - rest;
   out.value = total > 0 ? Math.round(bal) : '';
   out.classList.toggle('neg', bal < 0);
   // the sum, written out, so the components visibly add up to the gross
   const tie = form.querySelector('[data-salary-tieout]');
   if (tie) {
-    const parts = [['Basic', v('salary.basicDa')], ['HRA', v('salary.hraReceived')], ['conveyance', v('salary.conveyance')], ['target bonus', variable], ['special allowance', Math.max(0, bal)]].filter(([, x]) => x > 0);
+    const parts = [['Basic', v('salary.basicDa')], ['HRA', v('salary.hraReceived')], ['conveyance', v('salary.conveyance')], ['target bonus', onTop ? 0 : variable], ['special allowance', Math.max(0, bal)]].filter(([, x]) => x > 0);
     const paid = variable * payout / 100;
-    tie.textContent = total > 0 && bal >= 0 ? `${parts.map(([k, x]) => `${k} ${inr(Math.round(x))}`).join(' + ')} = ${inr(Math.round(total))}`
-      + (variable > 0 && payout !== 100 ? `. Bonus paid at ${+payout.toFixed(1)}%: ${inr(Math.round(paid))}, so ${inr(Math.round(total - variable + paid))} is paid and taxed this year.` : '') : '';
+    const paidYear = total - (onTop ? 0 : variable) + paid;
+    const bonusNote = !(variable > 0) ? ''
+      : onTop ? `, plus a bonus on top of ${inr(Math.round(paid))}${payout !== 100 ? ` (${+payout.toFixed(1)}% of the ${inr(Math.round(variable))} target)` : ''}, so ${inr(Math.round(paidYear))} is paid and taxed this year.`
+      : payout !== 100 ? `. Bonus paid at ${+payout.toFixed(1)}%: ${inr(Math.round(paid))}, so ${inr(Math.round(paidYear))} is paid and taxed this year.` : '';
+    tie.textContent = total > 0 && bal >= 0 ? `${parts.map(([k, x]) => `${k} ${inr(Math.round(x))}`).join(' + ')} = ${inr(Math.round(total))} CTC${bonusNote}` : '';
   }
   const echo = out.nextElementSibling;
   if (echo && echo.classList.contains('amount-echo')) {
     echo.textContent = total <= 0 ? ''
-      : bal < 0 ? `the components exceed the CTC by ${inr(Math.abs(Math.round(bal)))}: the CTC should include the target bonus`
+      : bal < 0 ? `the components exceed the CTC by ${inr(Math.abs(Math.round(bal)))}${variable > 0 && !onTop ? ': raise the CTC, or mark the bonus as paid on top' : ''}`
       : inr(Math.round(bal));
   }
 }
@@ -255,7 +262,7 @@ function showTopics(form) {
 }
 
 // Fields the shared profile owns. Everything else on the form (capital gains, donations, parents' cover...) is the form's own.
-const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.variablePayoutPct', 'salary.rentPaid', 'salary.city', 'salary.professionalTax', 'houseProperty.selfOccupiedInterest', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
+const PROFILE_PATHS = ['fy', 'ageBand', 'incomeType', 'salary.gross', 'salary.basicDa', 'salary.hraReceived', 'salary.conveyance', 'salary.variablePay', 'salary.variableOnTop', 'salary.variablePayoutPct', 'salary.rentPaid', 'salary.city', 'salary.professionalTax', 'houseProperty.selfOccupiedInterest', 'employer.npsContribution', 'employer.totalRetirementContribution', 'deductions.s80c', 'deductions.nps1b', 'deductions.healthSelf', 'business.receipts', 'business.kind', 'business.presumptive', 'business.digitalSharePct', 'business.expenses', 'business.tdsDeducted'];
 
 // Shared later than the rest: on first load a figure already typed here wins over the profile's default.
 const TYPED_WINS_ON_LOAD = new Set(['salary.professionalTax', 'houseProperty.selfOccupiedInterest']);
