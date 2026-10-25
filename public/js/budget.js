@@ -373,7 +373,7 @@ export function renderBudget(appData) {
   // append() turns a null into the text "null"; setChildren drops it
   setChildren(left, [
     handoff ? handoffNote(handoff.from, `Income set to ${inr(state.income)} a month from `) : null,
-    el('label', { class: 'budget-ctc' }, ['Your annual CTC (₹)', el('small', {}, ['fills the take-home below; the same salary the tax and ', el('a', { href: '/calculators/salary' }, 'in-hand'), ' pages use']), ctcInput]),
+    el('label', { class: 'budget-ctc' }, ['Your annual CTC (₹)', el('small', {}, ['fills the take-home below; the same salary the ', el('a', { href: '/tax' }, 'Tax & salary'), ' page uses']), ctcInput]),
     el('label', {}, ['Monthly take-home income (₹)', el('small', {}, 'after tax and deductions, as credited to your bank'), incomeInput]),
     incomeNote,
     el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), el('div', { class: 'row-head' }, ['Category', 'Note', 'Amount', ''].map((t) => el('span', {}, t))), expenseList,

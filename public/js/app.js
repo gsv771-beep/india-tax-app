@@ -1,7 +1,7 @@
 import { loadJSON } from './util.js';
 import { PAGES, REMOVED, parsePath, metaFor, CALCS } from './routes.js';
 import { initTax } from './tax-ui.js';
-import { initCalculators, showCalc } from './calculators.js';
+import { initCalculators, showCalc, mountPayslip } from './calculators.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
@@ -46,9 +46,9 @@ function primeCalcHeading(tab, sub) {
 
 function showTab(tab, sub) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
-  // the menu leads with the everyday tools; the salary pages sit with the in-hand calculator, NPS with the rest
-  const FRONT = ['salary', 'offer', 'budget'];
-  const navTab = tab === 'calculators' && FRONT.includes(sub) ? sub : tab === 'salary' ? 'salary' : tab === 'nps' ? 'calculators' : tab;
+  // the menu leads with the everyday tools; the salary pages sit with Tax & salary, NPS with the rest
+  const FRONT = ['emi', 'budget'];
+  const navTab = tab === 'calculators' && FRONT.includes(sub) ? sub : tab === 'salary' ? 'tax' : tab === 'nps' ? 'calculators' : tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === navTab));
   if (tab !== currentTab) {
     const panel = document.getElementById(tab);
@@ -81,7 +81,7 @@ function route() {
   const m = location.hash.match(/^#(tax|calculators|schemes|nps|glossary|about)(\?.*)?$/);
   if (m) history.replaceState({}, '', `/${m[1] === 'schemes' ? 'nps' : m[1]}${m[2] || ''}`);
   const gone = REMOVED[location.pathname.replace(/\/+$/, '')];
-  if (gone) history.replaceState({}, '', gone + location.search);
+  if (gone) { const [p, h] = gone.split('#'); history.replaceState({}, '', p + location.search + (h ? `#${h}` : location.hash)); }
   if (location.pathname === '/index.html') history.replaceState({}, '', '/' + location.search);
   else if (location.pathname.startsWith('/schemes')) history.replaceState({}, '', '/nps');
   const { tab, sub } = parsePath(location.pathname);
@@ -114,21 +114,34 @@ document.addEventListener('wheel', (e) => {
   if (a && a.type === 'number' && a.contains(e.target)) a.blur();
 }, { passive: true });
 
-/** The quick answer on the home and tax pages; the salary page mounts its own (calculators.js). */
-function initQuick({ rates }) {
-  const tax = document.getElementById('tax');
-  const fold = detailFold('tax', tax, { label: 'Get it exact: every allowance, exemption and deduction ▾', openLabel: 'Hide the detailed calculator ▴' });
-  tax.querySelector(':scope > .detail-body').before(fold.button);
-  // a #detail link to the tax page opens the full calculator under the quick answer
-  window.addEventListener('routechange', (e) => { if (e.detail.tab === 'tax' && location.hash === '#detail') fold.open(); });
+/**
+ * Tax & salary: the quick answer, then two folds under it, each closed until wanted: the payslip (the
+ * in-hand calculator, which had its own page until it was merged here) and the full tax calculation.
+ * The home page carries the same quick answer, linking here.
+ */
+function initQuick(data) {
+  const { rates } = data;
+  const payslipBody = document.getElementById('tax-payslip');
+  const payslip = mountPayslip(payslipBody, data);
+  const slip = detailFold('payslip', payslipBody, { label: 'Your payslip: salary structure, variable pay, employer PF and NPS ▾', openLabel: 'Hide your payslip ▴', hash: '#payslip', onOpen: payslip.show });
+  payslipBody.before(slip.button);
+  const taxBody = document.getElementById('tax-detail');
+  const fold = detailFold('tax', taxBody, { label: 'Full tax calculation: every allowance, exemption and deduction ▾', openLabel: 'Hide the full tax calculation ▴' });
+  taxBody.before(fold.button);
+  // a #payslip or #detail link to this page opens that fold under the quick answer
+  window.addEventListener('routechange', (e) => {
+    if (e.detail.tab !== 'tax') return;
+    if (location.hash === '#detail') fold.open();
+    if (location.hash === '#payslip') slip.open();
+  });
   mountQuick(document.getElementById('tax-quick'), {
     rates, source: 'quick:tax',
-    salaryLink: { href: '/calculators/salary', text: 'See the full payslip split →' },
+    salaryLink: { href: '#payslip', text: 'Your payslip, line by line →', onclick: (e) => { e.preventDefault(); slip.open(); } },
     taxLink: { href: '#detail', text: 'Every line of the tax, both regimes →', onclick: (e) => { e.preventDefault(); fold.open(); } },
   });
   mountQuick(document.getElementById('home-quick'), {
     rates, source: 'quick:home',
-    salaryLink: { href: '/calculators/salary', text: 'See the full payslip split →' },
+    salaryLink: { href: '/tax#payslip', text: 'Your payslip, line by line →' },
     taxLink: { href: '/tax#detail', text: 'Every line of the tax, both regimes →' },
   });
 }

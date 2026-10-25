@@ -231,6 +231,43 @@ function resetCalc(key, { fromStartOver = false } = {}) {
 // "Start over" in a quick answer has already cleared the profile; the in-hand calculator follows.
 if (typeof window !== 'undefined') window.addEventListener('taxcompass:startover', () => resetCalc('salary', { fromStartOver: true }));
 /**
+ * The in-hand calculator as the payslip fold of the Tax & salary page (it had its own page until the
+ * two were merged). Drawn the first time the fold opens, then redrawn whenever the shared profile is
+ * changed somewhere else (the quick answer above, the tax form below, another tab), so all three agree.
+ *   mountPayslip(container, data) -> { show }
+ */
+export function mountPayslip(container, data) {
+  let drawn = false, drawing = null;
+  const draw = () => {
+    drawing = import('./salary.js').then((m) => {
+      const node = m.renderSalary(data);
+      const target = node.querySelector('.card.inputs') || node;
+      target.append(el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: reset }, 'Reset')));
+      container.replaceChildren(node);
+      enhanceMoneyInputs(container);
+      container.addEventListener('input', () => countEvent('calc:salary'), { once: true });
+      drawn = true;
+    }).catch((e) => { container.replaceChildren(el('div', { class: 'notice error' }, 'Could not load the payslip. ' + e.message)); }).finally(() => { drawing = null; });
+    return drawing;
+  };
+  // Reset clears this calculator's memory and the salary in the profile (one undoable step), so the
+  // quick answer above empties with it
+  function reset() {
+    try { localStorage.removeItem('taxcompass.salary.v1'); } catch {}
+    updateProfile(clearSalary, 'reset:salary');
+    draw();
+  }
+  onProfileChange(debounce((p, source) => {
+    // its own edits are already on screen; a figure being typed in it keeps its focus
+    if (!drawn || source === 'calc:salary' || container.contains(document.activeElement)) return;
+    draw();
+  }, 200));
+  window.addEventListener('taxcompass:startover', () => { try { localStorage.removeItem('taxcompass.salary.v1'); } catch {} if (drawn) draw(); });
+  window.addEventListener('routechange', (e) => { if (drawn && e.detail.tab === 'tax' && /[?&]ctc=/.test(location.search)) draw(); });
+  return { show: () => { if (!drawn && !drawing) { container.replaceChildren(el('div', { class: 'skeleton calc-skeleton', 'aria-busy': 'true' })); draw(); } } };
+}
+
+/**
  * The in-hand salary page is the payslip itself: the full calculator, open, with the month-by-month
  * split as the answer. The regime question lives on the tax page, so this page does not repeat its card.
  */

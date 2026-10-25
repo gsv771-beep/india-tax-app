@@ -72,7 +72,7 @@ export function salaryPageHtml(m) {
     <thead><tr><th></th><th>A year</th><th>A month</th></tr></thead>
     <tbody>${m.breakup.map(row).join('')}</tbody>
   </table></div>
-  <p class="muted small">Basic at 40% of the CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ₹2,400 professional tax, age under 60. Change any of it below or in the <a href="/calculators/salary">in-hand salary calculator</a>.</p>
+  <p class="muted small">Basic at 40% of the CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ₹2,400 professional tax, age under 60. Change any of it below or in <a href="/tax#payslip">your payslip on the Tax &amp; salary page</a>.</p>
 </section>
 <section class="card sp-block">
   <h2>Old vs new regime at ${esc(m.w)}</h2>

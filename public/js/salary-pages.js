@@ -18,7 +18,7 @@ export function showSalaryPage(sub, { rates }) {
   }
   if (ctc) mountQuick(document.getElementById('salary-quick'), {
     rates, source: 'quick:salarypage', ctc,
-    salaryLink: { href: `/calculators/salary?ctc=${ctc}`, text: 'See the full payslip split →' },
+    salaryLink: { href: `/tax?ctc=${ctc}#payslip`, text: 'Your payslip, line by line →' },
     taxLink: { href: '/tax#detail', text: 'Every line of the tax, both regimes →' },
   });
 }

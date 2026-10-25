@@ -387,7 +387,8 @@ table.compare.quick-breakdown-table tr.total th, table.compare.quick-breakdown-t
 .quick input.quick-basic { display: inline-block; width: 64px; padding: 3px 6px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; text-align: right; }
 .detail-toggle { display: block; width: 100%; margin: 22px 0 14px; padding: 13px 16px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--accent-2); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
 .detail-toggle:hover { border-color: var(--accent-3); background: var(--accent-soft); }
-.detail-closed .detail-body { display: none; }
+.detail-body.detail-closed { display: none; }
+.detail-toggle + .detail-body + .detail-toggle { margin-top: 0; }
 /* ---- salary pages (/salary, /salary/<n>-lakh): engine/salary-page.js ---- */
 .sp-answer { font-size: 1.05rem; color: var(--text); max-width: 72ch; }
 .sp-nav { font-size: .92rem; color: var(--muted); margin: 10px 0 0; line-height: 1.9; }

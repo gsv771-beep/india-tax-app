@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="b4687a9027">
+  <meta name="tc-build" content="c855d0aa09">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -85,8 +85,7 @@
       <a href="/" class="brand"><span class="brand-mark">₹</span> TaxCompass <span class="brand-sub">India</span><span class="brand-tag">Know the number. Make the decision.</span></a>
       <nav class="tabs" aria-label="Sections">
         <a href="/tax" data-tab="tax">Tax &amp; salary</a>
-        <a href="/calculators/salary" data-tab="salary">In-hand salary</a>
-        <a href="/calculators/offer" data-tab="offer">Compare offers</a>
+        <a href="/calculators/emi" data-tab="emi">EMI calculator</a>
         <a href="/calculators/budget" data-tab="budget">Savings calculator</a>
         <a href="/calculators" data-tab="calculators">More tools</a>
         <a href="/glossary" data-tab="glossary">Glossary</a>
@@ -123,13 +122,15 @@
     <!-- ============ TAX COMPARISON ============ -->
     <section id="tax" class="panel" hidden>
       <div class="panel-head">
-        <span class="eyebrow">Income tax</span>
-        <h1>Old regime or new regime?</h1>
-        <p>Type your CTC to see which regime leaves more in your hand, and whether your deductions can make the old one win.</p>
+        <span class="eyebrow">Tax &amp; salary</span>
+        <h1>Your take-home pay, and which tax regime wins</h1>
+        <p>Type your CTC for your monthly take-home and the tax under both regimes. Open your payslip or the full tax calculation below when you want more detail.</p>
       </div>
       <div id="tax-quick" class="quick-slot"></div>
 
-      <div class="detail-body">
+      <div class="detail-body" id="tax-payslip"></div>
+
+      <div class="detail-body" id="tax-detail">
       <div class="tax-layout">
         <div class="tax-left">
         <form id="tax-form" class="tax-form" autocomplete="off">
@@ -362,7 +363,6 @@
       <a href="/calculators" class="all-tools" id="all-tools">← All tools</a>
       <nav class="subtabs" id="calc-tabs" aria-label="Calculators" hidden>
         <a href="/calculators" data-calc="index">All</a>
-        <a href="/calculators/salary" data-calc="salary">In-hand salary</a>
         <a href="/calculators/offer" data-calc="offer">Compare offers</a>
         <a href="/calculators/budget" data-calc="budget">Savings calculator</a>
         <a href="/calculators/emi" data-calc="emi">EMI</a>
