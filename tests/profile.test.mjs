@@ -135,5 +135,17 @@ const fixture = (f) => migrateProfile(JSON.parse(readFileSync(path.join(here, '.
   ok('an emptied tax form leaves no salary behind (not even gratuity)', ctcOfFn(emptied.income) === 0);
 }
 
+// ---- in-hand adjustments: EMIs, other deductions and money added, monthly ----
+{
+  const { normaliseProfile: norm, clearSalary: clear, emptyProfile: empty } = await import('../public/engine/profile.js');
+  const okIn = (name, cond) => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}`); if (!cond) failures++; };
+  okIn('a new profile has no EMIs, deductions or additions', Object.values(empty().inhand).every((v) => v === 0 || v === ''));
+  const p = norm({ income: { ctc: 1500000 }, inhand: { homeLoanEmi: '42000', personalLoanEmi: -5, otherDeductionsNote: 'VPF'.repeat(40), additions: 3000, junk: 1 } });
+  okIn('amounts are kept as numbers, never negative', p.inhand.homeLoanEmi === 42000 && p.inhand.personalLoanEmi === 0 && p.inhand.additions === 3000);
+  okIn('notes are kept short, and unknown keys dropped', p.inhand.otherDeductionsNote.length === 60 && !('junk' in p.inhand));
+  okIn('an older profile without them reads as none', norm({ income: { ctc: 1500000 } }).inhand.homeLoanEmi === 0);
+  okIn('Start over clears them with the salary', Object.values(clear(p).inhand).every((v) => v === 0 || v === ''));
+}
+
 console.log(failures === 0 ? '\nAll profile tests passed.' : `\n${failures} profile test(s) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

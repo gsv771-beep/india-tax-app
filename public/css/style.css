@@ -333,6 +333,14 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 /* the refinements */
 .quick-refine { margin-top: 20px; }
 .quick-refine[hidden], .quick-breakdown[hidden] { display: none; }
+.quick-chip-add .quick-chip-plus { color: var(--accent-2); }
+.quick-adjust .quick-chip:not(.quick-chip-add) .quick-chip-plus { color: var(--danger); }
+.quick-row.quick-row-add { border-style: dashed; }
+.quick input.quick-note { width: 100%; padding: 7px 9px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); color: var(--text); font: inherit; font-size: .9rem; }
+.quick-left { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 10px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--line); }
+.quick-left-k { font-size: .9rem; font-weight: 600; color: var(--muted); }
+.quick-left-v { font-size: 1.35rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.quick-left.neg .quick-left-v { color: var(--danger); }
 .quick-refine-title { margin: 0 0 2px; font-size: 1.05rem; }
 .quick-refine-note { margin: 0 0 10px; }
 .quick-chips { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1064,3 +1072,4 @@ details.r-why[open] > summary { margin-bottom: 8px; }
 .income-note { margin: -4px 0 10px; }
 .income-note:empty { display: none; }
 .income-note .btn-link { font-weight: 700; }
+.quick-breakdown-body .table-wrap + .table-wrap { margin-top: 12px; }
