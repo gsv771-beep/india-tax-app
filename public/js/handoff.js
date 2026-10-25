@@ -24,7 +24,7 @@ export function takeHandoff(to) {
 }
 
 const FROM_LABEL = {
-  salary: ['your in-hand salary calculation', '/calculators/salary'],
+  salary: ['your payslip', '/tax#payslip'],
   budget: ['your savings calculator', '/calculators/budget'],
   emi: ['your EMI calculation', '/calculators/emi'],
   home: ['the home-buying tool', '/calculators/home'],

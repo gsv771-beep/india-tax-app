@@ -45,8 +45,8 @@ const INTENTS = [
   {
     id: 'inhand',
     test: (q) => has(q, /in[\s-]?hand/, /take[\s-]?home/, /net\s+salary/, /salary\s+after\s+tax/, /\bctc\b.*\b(month|monthly)\b/, /how much.*\b(get|receive|credited)\b/, /\bsalary\b.*\bmonth\b/),
-    reply: (a) => `The in-hand salary calculator splits a CTC into Basic, HRA, PF and tax and shows what reaches your bank each month.${a ? ` It opens with ${inWords(a)} filled in.` : ''}`,
-    links: (a) => salaryLinks(a, '/calculators/salary', 'In-hand salary calculator'),
+    reply: (a) => `Tax & salary shows what reaches your bank each month, under both regimes, with your payslip split into Basic, HRA, PF and tax.${a ? ` It opens with ${inWords(a)} filled in.` : ''}`,
+    links: (a) => salaryLinks(a, '/tax', 'Your take-home and tax'),
   },
   {
     id: 'tax-on-salary',
@@ -58,7 +58,7 @@ const INTENTS = [
     id: 'offer',
     test: (q) => has(q, /\b(job\s+)?offers?\b.*\b(compare|vs|versus|or|better|which|choose|accept)\b/, /\b(compare|which|better)\b.*\boffers?\b/, /\b(accept|take|join)\b.*\boffers?\b/, /\b(switch(ing)?|change)\s+(job|company|companies)\b/, /\bjoining\s+bonus\b/, /\bcounter[\s-]?offer\b/),
     reply: () => 'The offer comparison puts two offers (or your current job and an offer) side by side: what each puts in the bank every month and over two years, with variable pay at what you expect it to pay and the joining bonus taxed.',
-    links: () => [{ href: '/calculators/offer', label: 'Compare two offers', primary: true }, { href: '/calculators/salary', label: 'One CTC split in full' }],
+    links: () => [{ href: '/calculators/offer', label: 'Compare two offers', primary: true }, { href: '/tax#payslip', label: 'One CTC split in full' }],
   },
   {
     id: 'capital-gains',

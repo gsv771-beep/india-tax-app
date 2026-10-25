@@ -1,5 +1,6 @@
 // Route table shared by the client router and the edge middleware. Run: node tests/routes.test.mjs
-import { metaFor, parsePath, PAGES, CALCS } from '../public/js/routes.js';
+import { readFileSync } from 'node:fs';
+import { metaFor, parsePath, PAGES, CALCS, REMOVED } from '../public/js/routes.js';
 
 let failures = 0;
 const ok = (name, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? ' (' + detail + ')' : ''}`); if (!cond) failures++; };
@@ -11,6 +12,11 @@ ok('home-buying tool gets its own title', /True cost of buying/.test(metaFor('/c
 ok('home-buying description mentions the cities', /Mumbai/.test(metaFor('/calculators/home').desc));
 ok('unknown calculator falls back to EMI', metaFor('/calculators/nonsense').url === 'https://taxcompass.org/calculators/emi');
 ok('removed lumpsum route resolves to SIP', metaFor('/calculators/lumpsum').url === 'https://taxcompass.org/calculators/sip');
+ok('the merged in-hand page resolves to Tax & salary', metaFor('/calculators/salary').url === 'https://taxcompass.org/tax' && metaFor('/calculators/salary').tab === 'tax');
+{
+  const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
+  ok('every removed page has an edge redirect to the same page', Object.entries(REMOVED).every(([from, to]) => redirects.includes(`${from} ${to.split('#')[0]} 301`)));
+}
 ok('removed advance-tax route resolves to tax', metaFor('/calculators/advance-tax').url === 'https://taxcompass.org/tax');
 ok('retired insurance tool resolves to the money-tools index', metaFor('/calculators/insurance').url === 'https://taxcompass.org/calculators');
 ok('schemes alias resolves to NPS', metaFor('/schemes').tab === 'nps');

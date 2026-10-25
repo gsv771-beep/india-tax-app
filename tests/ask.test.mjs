@@ -36,7 +36,7 @@ for (const q of ['My CTC is 25 lakh, which is best for me old or new scheme?', '
 
 // ---- tools ----
 const tools = [
-  ['in hand salary for 18 LPA', '/calculators/salary?ctc=1800000'], ['what is my take home on 30 lakh ctc', '/calculators/salary?ctc=3000000'],
+  ['in hand salary for 18 LPA', '/tax?ctc=1800000'], ['what is my take home on 30 lakh ctc', '/tax?ctc=3000000'],
   ['how much tax on 15 lakh salary', '/tax?ctc=1500000'], ['EMI on a 50 lakh home loan', '/calculators/emi'], ['car loan emi', '/calculators/emi'],
   ['tax on selling shares', '/calculators/capital-gains'], ['I sold my flat, how much capital gains tax', '/calculators/capital-gains'], ['ltcg on mutual funds', '/calculators/capital-gains'],
   ['stamp duty in mumbai', '/calculators/home'], ['cost of buying a flat in pune', '/calculators/home'], ['how much will my sip of 10000 grow', '/calculators/sip'],
@@ -74,7 +74,7 @@ for (const [q, want] of salaries) { const r = A(q); ok(`salary: "${q}"`, r.kind 
   ok('an amount alone leads with salary and offers loan and home', bare.kind === 'tool' && primary(bare) === '/tax?ctc=7000000' && bare.links.some((l) => l.href === '/calculators/emi') && bare.links.some((l) => l.href === '/calculators/home'), bare.links.map((l) => l.href).join(' '));
   ok('a monthly amount alone is filled in as a year', primary(A('1.5 lakh per month')) === '/tax?ctc=1800000');
   ok('"what is ctc" is a definition', A('what is ctc').kind === 'define' && A('what is ctc').term === 'CTC (Cost to Company)');
-  ok('a question with an amount and a tool gets the tool, even worded "what is"', primary(A('what is my take home on 30 lakh ctc')) === '/calculators/salary?ctc=3000000');
+  ok('a question with an amount and a tool gets the tool, even worded "what is"', primary(A('what is my take home on 30 lakh ctc')) === '/tax?ctc=3000000' && A('what is my take home on 30 lakh ctc').intent === 'inhand');
   ok('other income is not a salary', A('other income 50000').intent !== 'salary');
   ok('salary words do not unlock fund picks', A('which mutual fund is best, my salary is 20 lakh').kind === 'advice');
 }

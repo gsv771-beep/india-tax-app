@@ -97,6 +97,12 @@ export function mountQuick(slot, opts) {
     }
     const a = quickAnswer(q, rates);
     if (!a || a.error) return;
+    // a ?ctc= link was only the starting figure: once a CTC of their own is saved, the address drops it so
+    // the payslip and tax form below (which also read it) follow the profile instead
+    if (ctcFromUrl() && ctcFromUrl() !== q.ctc) {
+      const u = new URL(location.href); u.searchParams.delete('ctc');
+      history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+    }
     updateProfile((d) => {
       const prev = fromProfile(d);
       // a new CTC or Basic % rewrites the salary split; adding a deduction leaves any detailed split alone
@@ -291,10 +297,10 @@ export function mountQuick(slot, opts) {
 }
 
 /**
- * The detailed tool under the quick answer, folded until asked for. Opens by itself on #detail links
- * and remembers being opened, per page.
+ * A detailed tool under the quick answer, folded until asked for. Opens by itself on its own hash link
+ * (#detail, #payslip) and remembers being opened, per tool. onOpen runs each time it opens.
  */
-export function detailFold(key, container, { label, openLabel }) {
+export function detailFold(key, container, { label, openLabel, hash = '#detail', onOpen }) {
   const read = () => { try { return JSON.parse(localStorage.getItem(DETAIL) || '{}'); } catch { return {}; } };
   const btn = el('button', { type: 'button', class: 'detail-toggle', 'aria-expanded': 'false' });
   const setOpen = (v, { remember = true, scroll = false } = {}) => {
@@ -302,11 +308,12 @@ export function detailFold(key, container, { label, openLabel }) {
     btn.setAttribute('aria-expanded', String(v));
     btn.textContent = v ? openLabel : label;
     if (remember) { try { localStorage.setItem(DETAIL, JSON.stringify({ ...read(), [key]: v })); } catch {} }
+    if (v && onOpen) onOpen();
     if (v) window.dispatchEvent(new Event('resize'));   // charts drawn while hidden re-measure
     // after the router's own scroll to the top, which runs once the route has been handled
     if (v && scroll) setTimeout(() => btn.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60);
   };
   btn.addEventListener('click', () => setOpen(container.classList.contains('detail-closed')));
-  setOpen(location.hash === '#detail' || !!read()[key], { remember: false, scroll: location.hash === '#detail' });
+  setOpen(location.hash === hash || !!read()[key], { remember: false, scroll: location.hash === hash });
   return { button: btn, open: (scroll = true) => setOpen(true, { scroll }) };
 }
