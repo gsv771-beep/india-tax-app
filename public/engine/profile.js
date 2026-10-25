@@ -42,6 +42,8 @@ export function emptyProfile() {
     cashflow: { monthlySurplus: 0, emergencyFund: 0 },
     household: { dependents: 0, childrenAges: [] },
     horizon: { goals: [] },
+    // money that leaves or joins the take-home each month without touching the tax: EMIs, other deductions, extra income
+    inhand: { homeLoanEmi: 0, personalLoanEmi: 0, carLoanEmi: 0, otherDeductions: 0, otherDeductionsNote: '', additions: 0, additionsNote: '' },
   };
 }
 
@@ -100,7 +102,10 @@ export function normaliseProfile(p) {
     cashflow: pick(base.cashflow, p.cashflow),
     household: { dependents: num(p.household?.dependents), childrenAges: Array.isArray(p.household?.childrenAges) ? p.household.childrenAges.map((a) => num(a)) : [] },
     horizon: { goals: Array.isArray(p.horizon?.goals) ? p.horizon.goals.map((g) => ({ name: String(g?.name || 'Goal'), years: num(g?.years), target: num(g?.target) })) : [] },
+    inhand: pick(base.inhand, p.inhand),
   };
+  for (const k of ['otherDeductionsNote', 'additionsNote']) out.inhand[k] = String(out.inhand[k] || '').slice(0, 60);
+  for (const k of ['homeLoanEmi', 'personalLoanEmi', 'carLoanEmi', 'otherDeductions', 'additions']) out.inhand[k] = Math.max(0, out.inhand[k]);
   if (out.tax.regime !== 'old' && out.tax.regime !== 'new') out.tax.regime = 'new';
   if (!['salaried', 'self_employed', 'both'].includes(out.person.employment)) out.person.employment = 'salaried';
   if (out.business.kind !== 'business') out.business.kind = 'profession';
@@ -293,6 +298,7 @@ export function clearSalary(p) {
   for (const k of Object.keys(out.income)) out.income[k] = 0;
   Object.assign(out.tax, { regime: 'new', s80cUsed: 0, s80dUsed: 0, nps1bUsed: 0, otherDeductions: 0, homeLoanInterest: 0, bonusPayoutPct: 100, bonusOnTop: false });
   out.location.rentPaid = 0;
+  out.inhand = emptyProfile().inhand;
   return out;
 }
 

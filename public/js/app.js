@@ -47,7 +47,7 @@ function primeCalcHeading(tab, sub) {
 function showTab(tab, sub) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
   // the menu leads with the everyday tools; the salary pages sit with Tax & salary, NPS with the rest
-  const FRONT = ['emi', 'budget'];
+  const FRONT = ['budget', 'emi', 'sip'];
   const navTab = tab === 'calculators' && FRONT.includes(sub) ? sub : tab === 'salary' ? 'tax' : tab === 'nps' ? 'calculators' : tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === navTab));
   if (tab !== currentTab) {

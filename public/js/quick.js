@@ -31,8 +31,20 @@ function fromProfile(p) {
     other80c: p.tax.s80cUsed || 0, healthSelf: p.tax.s80dUsed || 0, nps1b: p.tax.nps1bUsed || 0,
     // a bonus set in the payslip or the tax form: kept through a new CTC here, and out of the monthly figure
     variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p), onTop: !!p.tax.bonusOnTop,
+    inhand: { ...p.inhand },
+    loanEmi: (type) => Math.round(p.loans.filter((l) => l.type === type).reduce((s, l) => s + (l.emi || 0), 0)),
   };
 }
+
+// Money that leaves or joins the take-home each month without changing the tax. Monthly amounts.
+const ADJUST = [
+  { key: 'homeLoanEmi', chip: 'Home loan EMI', label: 'Home loan EMI', sign: -1, loan: 'home', hint: 'the whole EMI, principal and interest; the interest for tax goes under Home loan above' },
+  { key: 'personalLoanEmi', chip: 'Personal loan EMI', label: 'Personal loan EMI', sign: -1, loan: 'personal' },
+  { key: 'carLoanEmi', chip: 'Car loan EMI', label: 'Car loan EMI', sign: -1, loan: 'car' },
+  { key: 'otherDeductions', chip: 'Other deductions', label: 'Other deductions', sign: -1, note: 'otherDeductionsNote', notePh: 'what it is, e.g. VPF, insurance, salary advance' },
+  { key: 'additions', chip: 'Add an amount', label: 'Money added each month', sign: 1, note: 'additionsNote', notePh: 'what it is, e.g. reimbursement, rent received' },
+];
+const adjTotal = (inhand) => ADJUST.reduce((s, d) => s + d.sign * (+inhand?.[d.key] || 0), 0);
 
 const DEDUCTIONS = [
   { key: 'rentMonthly', chip: 'Pay rent', label: 'Rent', unit: 'a month', dflt: 25000, step: 1000, hint: () => 'the old regime exempts part of your HRA' },
@@ -116,6 +128,7 @@ export function mountQuick(slot, opts) {
       if (q.rentMonthly > 0) out.location.housing = 'rent';
       out.tax.regime = a.better;
       out.person.employment = out.person.employment === 'self_employed' || out.person.employment === 'both' ? 'both' : 'salaried';
+      out.inhand = { ...out.inhand, ...q.inhand };
       return out;
     }, source);
   }, 700);
@@ -160,6 +173,45 @@ export function mountQuick(slot, opts) {
   setChildren(chipRow, rows.map((r) => r.chip));
   const refreshRows = (a) => { for (const r of rows) { r.hint.textContent = r.d.hint(a); if (document.activeElement !== r.amount) r.amount.value = q[r.d.key] || ''; if (r.extra) r.extra.value = q.city; } };
 
+  // ---- what is left each month: EMIs and other deductions off, extra money on; the tax does not change ----
+  const adjAdded = new Set(ADJUST.filter((d) => +q.inhand?.[d.key] > 0).map((d) => d.key));
+  const setIn = (patch) => set({ inhand: { ...q.inhand, ...patch } });
+  const adjChips = el('div', { class: 'quick-chips', role: 'group', 'aria-label': 'Add EMIs, other deductions or extra money' });
+  const adjRows = ADJUST.map((d) => {
+    const chip = el('button', { type: 'button', class: 'quick-chip' + (d.sign > 0 ? ' quick-chip-add' : ''), 'aria-pressed': 'false' }, [el('span', { class: 'quick-chip-plus', 'aria-hidden': 'true' }, d.sign > 0 ? '+' : '−'), d.chip]);
+    const amount = el('input', { type: 'number', min: 0, step: 500, inputmode: 'numeric', 'data-echo': 'own', placeholder: 'e.g. 25000', value: q.inhand?.[d.key] || '', 'aria-label': `${d.label}, ₹ a month` });
+    const note = d.note ? el('input', { type: 'text', maxlength: 60, class: 'quick-note', placeholder: d.notePh, value: q.inhand?.[d.note] || '', 'aria-label': `${d.label}: what it is` }) : null;
+    const remove = el('button', { type: 'button', class: 'quick-row-remove', 'aria-label': `Remove ${d.label.toLowerCase()}` }, 'Remove');
+    const row = el('div', { class: 'quick-row' + (d.sign > 0 ? ' quick-row-add' : ''), hidden: true }, [
+      el('div', { class: 'quick-row-head' }, [el('span', { class: 'quick-row-label' }, d.label), remove]),
+      el('span', { class: 'quick-amount' }, ['₹', amount, el('span', { class: 'unit' }, 'a month')]),
+      note,
+      d.hint ? el('small', { class: 'quick-hint' }, d.hint) : null,
+    ]);
+    const sync = () => { const on = adjAdded.has(d.key); row.hidden = !on; chip.hidden = on; chip.setAttribute('aria-pressed', String(on)); };
+    chip.addEventListener('click', () => {
+      adjAdded.add(d.key);
+      // a loan already in the profile brings its EMI; otherwise the box waits for a figure
+      const fromLoans = d.loan ? q.loanEmi(d.loan) : 0;
+      if (!(+amount.value > 0) && fromLoans > 0) { amount.value = fromLoans; setIn({ [d.key]: fromLoans }); }
+      sync();
+      amount.focus({ preventScroll: true });
+    });
+    remove.addEventListener('click', () => { adjAdded.delete(d.key); sync(); setIn({ [d.key]: 0, ...(d.note ? { [d.note]: '' } : {}) }); if (note) note.value = ''; amount.value = ''; });
+    amount.addEventListener('input', () => setIn({ [d.key]: Math.max(0, +amount.value || 0) }));
+    if (note) note.addEventListener('input', () => setIn({ [d.note]: note.value }));
+    sync();
+    return { d, row, chip, amount, note, sync };
+  });
+  setChildren(adjChips, adjRows.map((r) => r.chip));
+  const adjust = el('div', { class: 'quick-refine quick-adjust' }, [
+    el('h3', { class: 'quick-refine-title' }, 'What is left each month?'),
+    el('p', { class: 'muted small quick-refine-note' }, 'Take off EMIs and anything else that comes out of your pay, or add money that comes in on top. These do not change your tax.'),
+    adjChips,
+    el('div', { class: 'quick-rows' }, adjRows.map((r) => r.row)),
+  ]);
+  const refreshAdj = () => { for (const r of adjRows) { if (document.activeElement !== r.amount) r.amount.value = q.inhand?.[r.d.key] || ''; if (r.note && document.activeElement !== r.note) r.note.value = q.inhand?.[r.d.note] || ''; } };
+
   const regimeName = (r) => (r === 'new' ? 'New regime' : 'Old regime');
   function paintAnswer(a) {
     if (!a) {
@@ -185,7 +237,16 @@ export function mountQuick(slot, opts) {
         ? `${inrShort(a.inHand.best)} a year. No income tax in either regime at this salary.`
         : `${inrShort(a.inHand.best)} a year in the ${a.better} regime, after PF, professional tax and income tax.`),
       bonus ? el('p', { class: 'quick-sub quick-bonus' }, [`Plus your bonus${a.store.variableInCtc === 'top' ? ', on top of your CTC' : ''}: ${inr(a.bonus.paid)}${a.bonus.payoutPct !== 100 ? ` (${+a.bonus.payoutPct.toFixed(1)}% of the ${inr(a.bonus.target)} target)` : ''}, about ${inr(a.bonus.net.best)} after tax, paid once a year. `, salaryLink ? el('a', { href: salaryLink.href, onclick: salaryLink.onclick }, 'Change the bonus or its payout in your payslip →') : null]) : null,
+      adjTotal(q.inhand) !== 0 ? leftLine(a) : null,
       el('div', { class: 'quick-sides' }, [side('new'), side('old')]),
+    ]);
+  }
+  function leftLine(a) {
+    const left = a.monthly.best + adjTotal(q.inhand);
+    const off = ADJUST.filter((d) => d.sign < 0).reduce((s, d) => s + (+q.inhand?.[d.key] || 0), 0), on = +q.inhand?.additions || 0;
+    return el('div', { class: 'quick-left' + (left < 0 ? ' neg' : '') }, [
+      el('span', { class: 'quick-left-k' }, `Left each month${off ? ` after ${inr(off)} of EMIs and deductions` : ''}${on ? `${off ? ',' : ''} with ${inr(on)} added` : ''}`),
+      el('span', { class: 'quick-left-v' }, (left < 0 ? '−' : '') + inr(Math.abs(left))),
     ]);
   }
 
@@ -228,6 +289,14 @@ export function mountQuick(slot, opts) {
           row(a.bonus.paid > 0 ? 'In hand a month, before bonus' : 'In hand a month', inr(a.monthly.new), inr(a.monthly.old), 'total'),
         ]),
       ])),
+      adjTotal(q.inhand) !== 0 ? el('div', { class: 'table-wrap' }, el('table', { class: 'compare quick-breakdown-table' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'Each month'), el('th', { class: 'win' }, `${a.better === 'new' ? 'New' : 'Old'} regime`)])),
+        el('tbody', {}, [
+          el('tr', {}, [el('th', { scope: 'row' }, a.bonus.paid > 0 ? 'Take-home, before bonus' : 'Take-home'), el('td', {}, inr(a.monthly.best))]),
+          ...ADJUST.filter((d) => +q.inhand?.[d.key] > 0).map((d) => el('tr', {}, [el('th', { scope: 'row' }, d.note && q.inhand[d.note] ? `${d.label} (${q.inhand[d.note]})` : d.label), el('td', {}, `${d.sign < 0 ? '−' : '+'} ${inr(q.inhand[d.key])}`)])),
+          el('tr', { class: 'total' }, [el('th', { scope: 'row' }, 'Left each month'), el('td', {}, (a.monthly.best + adjTotal(q.inhand) < 0 ? '−' : '') + inr(Math.abs(a.monthly.best + adjTotal(q.inhand))))]),
+        ]),
+      ])) : null,
       el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here. Old-regime deductions counted: ${parts.join(', ')}.`]),
       el('div', { class: 'quick-links' }, [
         taxLink ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
@@ -245,11 +314,13 @@ export function mountQuick(slot, opts) {
     slot.classList.toggle('has-answer', ok);
     paintAnswer(a);
     refine.hidden = !ok;
+    adjust.hidden = !ok;
     breakdown.hidden = !ok;
     if (!ok) return;
     paintVerdict(a);
     paintBreakdown(a);
     refreshRows(a);
+    refreshAdj();
   }
 
   refine.append(
@@ -269,6 +340,7 @@ export function mountQuick(slot, opts) {
       ]),
       answer,
       refine,
+      adjust,
       breakdown,
       el('p', { class: 'quick-assume muted small' }, [
         'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/tax#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
@@ -283,6 +355,8 @@ export function mountQuick(slot, opts) {
     basicInput.value = q.basicPct;
     added.clear();
     for (const r of rows) { if (q[r.d.key] > 0) added.add(r.d.key); r.sync(); }
+    adjAdded.clear();
+    for (const r of adjRows) { if (+q.inhand?.[r.d.key] > 0) adjAdded.add(r.d.key); r.sync(); }
     paint();
   };
   // Start over: the salary and deductions go from the profile in one undoable step, and the detailed
