@@ -1,18 +1,17 @@
 /**
- * The quick answer: type a CTC, see the monthly in-hand pay and which regime costs less, at once.
- * "Could the old regime win for you?" adds the deductions a person actually has (rent, home loan, 80C,
- * health cover, own NPS) one tick at a time and shows how close they are to the point where it flips.
- * Before anything is typed, a table of common CTCs fills the space and a tap on a row fills the box.
+ * The quick answer, in the order a person needs it: one input (the CTC), the answer at once (monthly
+ * take-home, both regimes side by side), then optional refinements (a chip each for rent, home loan,
+ * 80C, health cover and own NPS; an added chip becomes one figure and the answer follows), then the
+ * working (CTC down to take-home, line by line, folded until asked for).
  *
- * Mounted on the home page, the tax page and the in-hand salary page (each with its own profile source,
+ * Mounted on the home page, the tax page and the salary pages (each with its own profile source,
  * so one copy hears what another saved). The arithmetic is quick-engine.js.
  */
 import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
 import { fromSalaryStore, toTaxInputs, ctcOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
-import { quickAnswer, ladder, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
-import { SALARY_CTCS, salarySlug } from './routes.js';
+import { quickAnswer, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 
 const DETAIL = 'taxcompass.detail-open.v1';
 const live = new Map();   // one listener per mount point, replaced when a page re-renders its copy
@@ -34,11 +33,11 @@ function fromProfile(p) {
 }
 
 const DEDUCTIONS = [
-  { key: 'rentMonthly', label: 'I pay rent', unit: 'a month', dflt: 25000, step: 1000, hint: () => 'the old regime exempts part of your HRA' },
-  { key: 'homeLoanInterest', label: 'Home loan on a house I live in', unit: 'interest a year', dflt: 200000, step: 10000, hint: () => 'up to ₹2 lakh of interest counts (section 24b)' },
-  { key: 'other80c', label: 'PPF, ELSS, life insurance, tuition fees', unit: 'a year', dflt: null, step: 5000, hint: (a) => a ? `80C: your PF already uses ${inr(a.claimed.epf)} of the ${inrShort(LIMIT_80C)}, so ${inr(a.room80c)} is left` : '80C, on top of your PF' },
-  { key: 'healthSelf', label: 'Health insurance for my family', unit: 'premium a year', dflt: 25000, step: 1000, hint: () => '80D: up to ₹25,000, ₹50,000 if you are over 60' },
-  { key: 'nps1b', label: 'NPS I pay into myself', unit: 'a year', dflt: 50000, step: 5000, hint: () => '80CCD(1B): up to ₹50,000 over the 80C limit' },
+  { key: 'rentMonthly', chip: 'Pay rent', label: 'Rent', unit: 'a month', dflt: 25000, step: 1000, hint: () => 'the old regime exempts part of your HRA' },
+  { key: 'homeLoanInterest', chip: 'Home loan', label: 'Home loan on a house you live in', unit: 'interest a year', dflt: 200000, step: 10000, hint: () => 'up to ₹2 lakh of interest counts (section 24b)' },
+  { key: 'other80c', chip: '80C investments', label: 'PPF, ELSS, life insurance, tuition fees', unit: 'a year', dflt: null, step: 5000, hint: (a) => a ? `80C: your PF already uses ${inr(a.claimed.epf)} of the ${inrShort(LIMIT_80C)}, so ${inr(a.room80c)} is left` : '80C, on top of your PF' },
+  { key: 'healthSelf', chip: 'Health insurance', label: 'Health insurance for your family', unit: 'premium a year', dflt: 25000, step: 1000, hint: () => '80D: up to ₹25,000, ₹50,000 if you are over 60' },
+  { key: 'nps1b', chip: 'Own NPS', label: 'NPS you pay into yourself', unit: 'a year', dflt: 50000, step: 5000, hint: () => '80CCD(1B): up to ₹50,000 over the 80C limit' },
 ];
 
 /**
@@ -61,23 +60,27 @@ if (typeof window !== 'undefined') window.addEventListener('routechange', () => 
 });
 
 export function mountQuick(slot, opts) {
-  const { rates, source, taxLink, salaryLink, showLadder = true } = opts;
+  const { rates, source, taxLink, salaryLink } = opts;
   const ctc = opts.ctc ?? ctcFromUrl();
   if (!slot || !rates) return;
   if (live.has(source)) live.get(source)();
   mounts.set(source, { slot, opts: { ...opts, ctc } });
   // a salary page starts from its own CTC with the person's deductions; nothing is saved until they change something
   let q = { ...fromProfile(getProfile()), ...(ctc ? { ctc } : {}) };
-  const ladderRows = showLadder ? ladder(rates) : [];
-  const ticked = new Set(DEDUCTIONS.filter((d) => q[d.key] > 0).map((d) => d.key));
+  const added = new Set(DEDUCTIONS.filter((d) => q[d.key] > 0).map((d) => d.key));
 
-  // ---- the input ----
-  const ctcInput = el('input', { type: 'number', min: 0, step: 50000, inputmode: 'numeric', placeholder: 'e.g. 1800000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: q.ctc || '' });
+  // ---- one input ----
+  const ctcInput = el('input', { type: 'number', min: 0, step: 50000, inputmode: 'numeric', placeholder: 'e.g. 1500000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: q.ctc || '' });
   const echo = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
   const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Start over');
-  const results = el('div', { class: 'quick-results' });
-  const flip = el('div', { class: 'quick-flip' });
-  const table = el('div', { class: 'quick-ladder' });
+  // ---- the answer, then what refines it, then the working ----
+  const answer = el('div', { class: 'quick-answer', 'aria-live': 'polite' });
+  const refine = el('div', { class: 'quick-refine' });
+  const refineNote = el('p', { class: 'muted small quick-refine-note' });
+  const chipRow = el('div', { class: 'quick-chips', role: 'group', 'aria-label': 'Add what applies to you' });
+  const verdict = el('div', { class: 'quick-verdict-box' });
+  const breakdown = el('details', { class: 'quick-breakdown' });
+  const breakdownBody = el('div', { class: 'quick-breakdown-body' });
   const assumePt = el('span');
   const basicInput = el('input', { type: 'number', min: 10, max: 80, step: 1, class: 'quick-basic', value: q.basicPct, 'aria-label': 'Basic pay as a percentage of CTC' });
 
@@ -96,7 +99,7 @@ export function mountQuick(slot, opts) {
     if (!a || a.error) return;
     updateProfile((d) => {
       const prev = fromProfile(d);
-      // a new CTC or Basic % rewrites the salary split; a tick on a deduction leaves any detailed split alone
+      // a new CTC or Basic % rewrites the salary split; adding a deduction leaves any detailed split alone
       let out = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || isEmptyProfile(d) ? fromSalaryStore(d, { ...a.store, regime: a.better }, a.pay) : d;
       out.tax.s80cUsed = q.other80c || 0; out.tax.s80dUsed = q.healthSelf || 0; out.tax.nps1bUsed = q.nps1b || 0;
       if (!q.listedLoan) out.tax.homeLoanInterest = q.homeLoanInterest || 0;
@@ -113,132 +116,152 @@ export function mountQuick(slot, opts) {
   ctcInput.addEventListener('input', () => set({ ctc: +ctcInput.value || 0 }));
   basicInput.addEventListener('change', () => set({ basicPct: Math.min(80, Math.max(10, +basicInput.value || QUICK_DEFAULTS.basicPct)) }));
 
-  // ---- the deduction ticks: built once so typing in them keeps focus ----
+  // ---- the refinements: a chip each; a chip once added becomes a row with its one figure ----
   const rows = DEDUCTIONS.map((d) => {
-    const box = el('input', { type: 'checkbox', checked: ticked.has(d.key) });
+    const chip = el('button', { type: 'button', class: 'quick-chip', 'aria-pressed': 'false' }, [el('span', { class: 'quick-chip-plus', 'aria-hidden': 'true' }, '+'), d.chip]);
     const amount = el('input', { type: 'number', min: 0, step: d.step, inputmode: 'numeric', 'data-echo': 'own', value: q[d.key] || '', 'aria-label': `${d.label}, ₹ ${d.unit}` });
     const hint = el('small', { class: 'quick-hint' });
     const extra = d.key === 'rentMonthly'
       ? el('select', { class: 'quick-city', 'aria-label': 'City you live in' }, CITIES.map((c) => el('option', { value: c, selected: c === q.city }, c === 'Other' ? 'Other city' : c)))
       : null;
     if (extra) extra.addEventListener('change', () => set({ city: extra.value }));
-    const amountWrap = el('span', { class: 'quick-amount' }, ['₹', amount, el('span', { class: 'unit' }, d.unit), extra]);
-    const sync = () => { amountWrap.hidden = !box.checked; row.classList.toggle('on', box.checked); };
-    box.addEventListener('change', () => {
-      if (box.checked) {
-        ticked.add(d.key);
-        if (!(+amount.value > 0)) amount.value = d.dflt != null ? d.dflt : (quickAnswer(q, rates)?.room80c || 50000);
-        set({ [d.key]: +amount.value || 0 });
-        amount.focus({ preventScroll: true });
-      } else { ticked.delete(d.key); set({ [d.key]: 0 }); }
+    const remove = el('button', { type: 'button', class: 'quick-row-remove', 'aria-label': `Remove ${d.label.toLowerCase()}` }, 'Remove');
+    const row = el('div', { class: 'quick-row', hidden: true }, [
+      el('div', { class: 'quick-row-head' }, [el('span', { class: 'quick-row-label' }, d.label), remove]),
+      el('span', { class: 'quick-amount' }, ['₹', amount, el('span', { class: 'unit' }, d.unit), extra]),
+      hint,
+    ]);
+    const sync = () => {
+      const on = added.has(d.key);
+      row.hidden = !on; chip.hidden = on;
+      chip.setAttribute('aria-pressed', String(on));
+    };
+    chip.addEventListener('click', () => {
+      added.add(d.key);
+      if (!(+amount.value > 0)) amount.value = d.dflt != null ? d.dflt : (quickAnswer(q, rates)?.room80c || 50000);
       sync();
+      set({ [d.key]: +amount.value || 0 });
+      amount.focus({ preventScroll: true });
+      amount.select();
     });
+    remove.addEventListener('click', () => { added.delete(d.key); sync(); set({ [d.key]: 0 }); chipRow.querySelector('.quick-chip:not([hidden])')?.focus(); });
     amount.addEventListener('input', () => set({ [d.key]: +amount.value || 0 }));
-    const row = el('div', { class: 'quick-row' }, [el('label', { class: 'quick-tick' }, [box, el('span', {}, d.label)]), amountWrap, hint]);
     sync();
-    return { d, row, box, amount, hint, extra };
+    return { d, row, chip, amount, hint, extra, sync };
   });
+  setChildren(chipRow, rows.map((r) => r.chip));
   const refreshRows = (a) => { for (const r of rows) { r.hint.textContent = r.d.hint(a); if (document.activeElement !== r.amount) r.amount.value = q[r.d.key] || ''; if (r.extra) r.extra.value = q.city; } };
+
+  const regimeName = (r) => (r === 'new' ? 'New regime' : 'Old regime');
+  function paintAnswer(a) {
+    if (!a) {
+      setChildren(answer, [
+        el('div', { class: 'quick-k' }, 'Your monthly take-home'),
+        el('div', { class: 'quick-v quick-v-empty' }, '₹ —'),
+        el('p', { class: 'quick-sub' }, ['Type your CTC above. The answer appears as you type. ', el('a', { href: '/salary' }, 'Or pick a salary from ₹3 lakh to ₹2 crore →')]),
+      ]);
+      return;
+    }
+    if (a.error) { setChildren(answer, el('p', { class: 'notice warn' }, a.error)); return; }
+    const side = (r) => el('div', { class: 'quick-side' + (r === a.better && !a.same ? ' win' : '') }, [
+      el('div', { class: 'quick-side-k' }, regimeName(r)),
+      el('div', { class: 'quick-side-v' }, [inr(a.monthly[r]), el('span', { class: 'quick-per' }, ' a month')]),
+      el('div', { class: 'quick-side-sub' }, a.same ? 'Same either way' : r === a.better ? `Better: ${inr(a.saves)} a year more` : `Tax ${inr(a.tax[r])} a year`),
+    ]);
+    setChildren(answer, [
+      el('div', { class: 'quick-k' }, 'Your monthly take-home'),
+      el('div', { class: 'quick-v' }, inr(a.monthly.best)),
+      el('p', { class: 'quick-sub' }, a.tax.new === 0 && a.tax.old === 0
+        ? `${inrShort(a.inHand.best)} a year. No income tax in either regime at this salary.`
+        : `${inrShort(a.inHand.best)} a year in the ${a.better} regime, after PF, professional tax and ${inr(a.tax[a.better] / 12)} a month of income tax.`),
+      el('div', { class: 'quick-sides' }, [side('new'), side('old')]),
+    ]);
+  }
+
+  // could the old regime win? one sentence while nothing is added; the meter once something is
+  function paintVerdict(a) {
+    const need = a.needed, have = a.claimed.total;
+    refineNote.textContent = a.tax.new === 0 && a.tax.old === 0 ? 'Add what applies to you. At this salary neither regime charges tax, so it will not change the choice.'
+      : a.better === 'old' ? 'Add or change what applies to you. With these, the old regime is ahead.'
+      : a.be.kind === 'impossible' ? 'Add only what applies to you. At this salary the new regime wins whatever you claim.'
+      : need ? `Add only what applies to you. The old regime wins only with more than ${inrShort(need)} of deductions; you have ${inrShort(have)} so far.` : 'Add only what applies to you.';
+    if (!added.size || !need) { setChildren(verdict, []); return; }
+    const pct = Math.min(100, 100 * have / need);
+    const line = a.better === 'old' ? `The old regime wins by ${inr(a.saves)} a year. Tell your employer you want the old regime, or choose it when you file your return.`
+      : `You need ${inr(Math.max(0, need - have))} more in old-regime deductions for it to win. Until then, the new regime.`;
+    setChildren(verdict, [
+      el('div', { class: 'quick-meter-text' }, [el('span', {}, ['Your old-regime deductions: ', el('b', {}, inr(have))]), el('span', {}, ['It wins above ', el('b', {}, inr(need))])]),
+      el('div', { class: 'quick-meter-track', role: 'meter', 'aria-valuemin': 0, 'aria-valuemax': Math.round(need), 'aria-valuenow': Math.round(have), 'aria-label': 'Old-regime deductions against the point where the old regime wins' }, el('span', { class: 'quick-meter-fill' + (a.better === 'old' ? ' past' : ''), style: `width:${pct.toFixed(1)}%` })),
+      el('p', { class: 'quick-verdict' }, line),
+    ]);
+  }
+
+  // the working: CTC down to take-home, line by line, both regimes; it adds up
+  function paintBreakdown(a) {
+    const row = (k, n, o, cls = '') => el('tr', { class: cls }, [el('th', { scope: 'row' }, k), el('td', {}, n), el('td', {}, o)]);
+    const minus = (v) => (v > 0 ? `− ${inr(v)}` : inr(0));
+    const both = (v) => [v, v];
+    const pf = a.pay.employeePf, pt = a.pay.professionalTax, gross = a.pay.grossSalary;
+    const parts = [`your PF ${inr(a.claimed.epf)}`, a.claimed.hra ? `HRA exemption ${inr(a.claimed.hra)}` : '', a.claimed.s80c > a.claimed.epf ? `other 80C ${inr(a.claimed.s80c - a.claimed.epf)}` : '', a.claimed.homeLoan ? `home-loan interest ${inr(a.claimed.homeLoan)}` : '', a.claimed.health ? `health cover ${inr(a.claimed.health)}` : '', a.claimed.nps ? `NPS ${inr(a.claimed.nps)}` : ''].filter(Boolean);
+    setChildren(breakdownBody, [
+      el('div', { class: 'table-wrap' }, el('table', { class: 'compare quick-breakdown-table' }, [
+        el('thead', {}, el('tr', {}, [el('th', {}, 'A year'), el('th', { class: a.better === 'new' ? 'win' : '' }, 'New'), el('th', { class: a.better === 'old' ? 'win' : '' }, 'Old')])),
+        el('tbody', {}, [
+          row('Your CTC', ...both(inr(a.ctc))),
+          gross !== a.ctc ? row('Salary paid', ...both(inr(gross))) : null,
+          row('Your PF', ...both(minus(pf))),
+          row('Professional tax', ...both(minus(pt))),
+          row('Income tax', minus(a.tax.new), minus(a.tax.old)),
+          row('In hand a year', inr(a.inHand.new), inr(a.inHand.old), 'total'),
+          row('In hand a month', inr(a.monthly.new), inr(a.monthly.old), 'total'),
+        ]),
+      ])),
+      el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here. Old-regime deductions counted: ${parts.join(', ')}.`]),
+      el('div', { class: 'quick-links' }, [
+        taxLink ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
+        salaryLink ? el('a', { class: 'quick-link', href: salaryLink.href, onclick: salaryLink.onclick }, salaryLink.text) : null,
+        el('a', { class: 'quick-link', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(a.monthly.best) }, 'salary') }, 'Plan your savings with this →'),
+      ]),
+    ]);
+  }
 
   function paint() {
     const a = quickAnswer(q, rates);
     echo.textContent = q.ctc > 0 ? `${inrShort(q.ctc)} a year` : '';
     assumePt.textContent = inr(q.professionalTax ?? QUICK_DEFAULTS.professionalTax);
-    slot.classList.toggle('has-answer', !!(a && !a.error));
-    if (!a) { setChildren(results, []); flip.hidden = true; paintLadder(null); return; }
-    if (a.error) { setChildren(results, el('p', { class: 'notice warn' }, a.error)); flip.hidden = true; return; }
-    const other = a.better === 'new' ? 'old' : 'new';
-    const taxMonthly = a.tax[a.better] / 12;
-    const max = Math.max(a.tax.new, a.tax.old, 1);
-    const bar = (r) => el('div', { class: 'quick-bar' + (r === a.better ? ' win' : '') }, [
-      el('span', { class: 'quick-bar-k' }, r === 'new' ? 'New regime' : 'Old regime'),
-      el('span', { class: 'quick-bar-track' }, el('span', { class: 'quick-bar-fill', style: `width:${Math.max(2, 100 * a.tax[r] / max).toFixed(1)}%` })),
-      el('span', { class: 'quick-bar-v' }, inr(a.tax[r])),
-    ]);
-    setChildren(results, [
-      el('div', { class: 'quick-tile' }, [
-        el('div', { class: 'quick-k' }, 'In hand each month'),
-        el('div', { class: 'quick-v' }, inr(a.monthly.best)),
-        el('div', { class: 'quick-sub' }, `${inrShort(a.inHand.best)} a year, after ${inr(a.pay.employeePf / 12)} PF, ${inr(a.pay.professionalTax / 12)} professional tax and ${inr(taxMonthly)} income tax a month (${a.better} regime).`),
-        salaryLink ? el('a', { class: 'quick-link', href: salaryLink.href, onclick: salaryLink.onclick }, salaryLink.text) : null,
-        el('a', { class: 'quick-link', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(a.monthly.best) }, 'salary') }, 'Plan your savings with this →'),
-      ]),
-      el('div', { class: 'quick-tile' + (a.same ? '' : ' quick-win') }, [
-        el('div', { class: 'quick-k' }, a.same ? 'Tax is the same in both regimes' : `The ${a.better} regime saves you`),
-        el('div', { class: 'quick-v' }, a.same ? inr(a.tax.new) : [inr(a.saves), el('span', { class: 'quick-per' }, ' a year')]),
-        el('div', { class: 'quick-sub' }, a.same ? (a.tax.new === 0 ? 'No income tax either way after the rebate.' : 'Either regime costs the same on these figures.') : `${inr(a.saves / 12)} a month more in hand than the ${other} regime.`),
-        el('div', { class: 'quick-bars' }, [bar('new'), bar('old')]),
-        taxLink ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
-      ]),
-    ]);
-
-    // ---- could the old regime win? ----
-    flip.hidden = false;
-    const need = a.needed, have = a.claimed.total;
-    const pct = need ? Math.min(100, 100 * have / need) : 100;
-    const verdict = a.tax.new === 0 && a.tax.old === 0 ? 'No tax in either regime at this income, so the choice does not matter.'
-      : a.better === 'old' ? `With these, the old regime wins by ${inr(a.saves)} a year. Tell your employer you want the old regime so the tax taken from your salary matches, or choose it when you file your return.`
-      : a.be.kind === 'impossible' ? 'The new regime wins even if every rupee of your pay were deducted in the old one.'
-      : need ? `You would need ${inr(Math.max(0, need - have))} more in old-regime deductions for it to win. Until then, stay on the new regime.` : '';
-    setChildren(flip.querySelector('.quick-meter'), need ? [
-      el('div', { class: 'quick-meter-text' }, [el('span', {}, ['Your old-regime deductions: ', el('b', {}, inr(have))]), el('span', {}, ['It wins above ', el('b', {}, inr(need))])]),
-      el('div', { class: 'quick-meter-track', role: 'meter', 'aria-valuemin': 0, 'aria-valuemax': Math.round(need), 'aria-valuenow': Math.round(have), 'aria-label': 'Old-regime deductions against the point where the old regime wins' }, el('span', { class: 'quick-meter-fill' + (a.better === 'old' ? ' past' : ''), style: `width:${pct.toFixed(1)}%` })),
-      el('div', { class: 'quick-meter-parts muted small' }, [`Counted: your PF ${inr(a.claimed.epf)}`, a.claimed.hra ? `, HRA exemption ${inr(a.claimed.hra)}` : '', a.claimed.s80c > a.claimed.epf ? `, other 80C ${inr(a.claimed.s80c - a.claimed.epf)}` : '', a.claimed.homeLoan ? `, home-loan interest ${inr(a.claimed.homeLoan)}` : '', a.claimed.health ? `, health cover ${inr(a.claimed.health)}` : '', a.claimed.nps ? `, NPS ${inr(a.claimed.nps)}` : '', '.']),
-    ] : []);
-    const v = flip.querySelector('.quick-verdict'); if (v) v.textContent = verdict;
+    const ok = !!(a && !a.error);
+    slot.classList.toggle('has-answer', ok);
+    paintAnswer(a);
+    refine.hidden = !ok;
+    breakdown.hidden = !ok;
+    if (!ok) return;
+    paintVerdict(a);
+    paintBreakdown(a);
     refreshRows(a);
-    paintLadder(a);
   }
 
-  function paintLadder(a) {
-    if (!showLadder) return;
-    // the table of common salaries fills an empty page; once there is an answer it is only more to read
-    if (a && !a.error) { setChildren(table, []); return; }
-    const rowsData = ladderRows;
-    const near = a ? rowsData.reduce((b, r) => (Math.abs(r.ctc - a.ctc) < Math.abs(b.ctc - a.ctc) ? r : b), rowsData[0]) : null;
-    setChildren(table, [
-      el('div', { class: 'quick-ladder-head' }, [
-        el('h2', {}, a ? 'Salaries around yours' : 'In-hand pay and tax at common salaries'),
-        el('p', { class: 'muted small' }, ['FY 2026-27, the default split below, no deductions beyond PF. Tap a row to use that CTC, or a salary for its full page. ', el('a', { href: '/salary' }, 'Every salary from ₹3 lakh to ₹2 crore →')]),
-      ]),
-      el('div', { class: 'table-wrap' }, el('table', { class: 'compare quick-table' }, [
-        el('thead', {}, el('tr', {}, [el('th', {}, 'CTC'), el('th', {}, 'In hand a month'), el('th', {}, 'Tax, new regime'), el('th', {}, 'Tax, old regime'), el('th', {}, 'Old wins only above')]),),
-        el('tbody', {}, rowsData.map((r) => {
-          const tr = el('tr', { class: r === near ? 'near' : '', tabindex: 0, role: 'button', 'aria-label': `Use a CTC of ${inrShort(r.ctc)}` }, [
-            // the CTC opens that salary's own page; the rest of the row fills the box above
-            el('td', {}, SALARY_CTCS.includes(r.ctc) ? el('a', { href: `/salary/${salarySlug(r.ctc)}`, onclick: (e) => e.stopPropagation() }, inrShort(r.ctc)) : inrShort(r.ctc)), el('td', {}, inr(r.monthly)), el('td', {}, inr(r.newTax)), el('td', {}, inr(r.oldTax)),
-            el('td', {}, r.oldNeeds ? `${inr(r.oldNeeds)} of deductions` : 'no tax either way'),
-          ]);
-          const use = () => { ctcInput.value = r.ctc; set({ ctc: r.ctc }); slot.scrollIntoView({ block: 'start', behavior: 'smooth' }); };
-          tr.addEventListener('click', use);
-          tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); use(); } });
-          return tr;
-        })),
-      ])),
-    ]);
-  }
-
-  flip.append(
-    el('h3', { class: 'quick-flip-title' }, 'Could the old regime still win for you?'),
-    el('p', { class: 'muted small' }, 'Only if your deductions are big enough. Tick what you have; the answer above follows.'),
-    el('div', { class: 'quick-meter' }),
+  refine.append(
+    el('h3', { class: 'quick-refine-title' }, 'Want a more accurate answer?'),
+    refineNote,
+    chipRow,
     el('div', { class: 'quick-rows' }, rows.map((r) => r.row)),
-    el('p', { class: 'quick-verdict' }),
+    verdict,
   );
+  breakdown.append(el('summary', {}, 'See how this adds up'), breakdownBody);
 
   setChildren(slot, [
     el('div', { class: 'card quick' }, [
       el('div', { class: 'quick-top' }, [
-        el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo]), el('small', { class: 'muted' }, ['Cost to company, as on your offer letter. Self-employed or a business? ', el('a', { href: '/tax#detail' }, 'The full tax calculator takes business income'), '.'])]),
+        el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo])]),
         startOver,
       ]),
-      results,
-      flip,
+      answer,
+      refine,
+      breakdown,
       el('p', { class: 'quick-assume muted small' }, [
-        'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC (your own 12% PF comes off your pay), ', assumePt, ' professional tax, age under 60, FY 2026-27. An estimate, not tax advice.',
+        'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/tax#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
       ]),
     ]),
-    table,
   ]);
   paint();
 
@@ -246,7 +269,8 @@ export function mountQuick(slot, opts) {
     q = { ...fromProfile(p), ...(ctc && !p.income.ctc ? { ctc } : {}) };
     ctcInput.value = q.ctc || '';
     basicInput.value = q.basicPct;
-    for (const r of rows) { r.box.checked = q[r.d.key] > 0; r.row.classList.toggle('on', r.box.checked); r.row.querySelector('.quick-amount').hidden = !r.box.checked; }
+    added.clear();
+    for (const r of rows) { if (q[r.d.key] > 0) added.add(r.d.key); r.sync(); }
     paint();
   };
   // Start over: the salary and deductions go from the profile in one undoable step, and the detailed
@@ -257,8 +281,12 @@ export function mountQuick(slot, opts) {
     window.dispatchEvent(new CustomEvent('taxcompass:startover', { detail: { source } }));
     if (!ctc) ctcInput.focus();
   });
-  const off = onProfileChange((p) => { if (!slot.contains(document.activeElement)) fromSaved(p); }, source);
-  live.set(source, off);
+  const offChange = onProfileChange((p) => { if (!slot.contains(document.activeElement)) fromSaved(p); }, source);
+  // a figure typed just before the tab is closed or reloaded is saved, not lost to the debounce
+  const flush = () => { if (document.visibilityState === 'hidden') save.flush(); };
+  window.addEventListener('pagehide', save.flush);
+  document.addEventListener('visibilitychange', flush);
+  live.set(source, () => { offChange(); window.removeEventListener('pagehide', save.flush); document.removeEventListener('visibilitychange', flush); });
 }
 
 /**

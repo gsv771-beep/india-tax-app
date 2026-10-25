@@ -59,9 +59,13 @@ export function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+/** Runs fn once the calls stop for `ms`; .flush() runs a pending call now (before the page goes away). */
 export function debounce(fn, ms = 150) {
-  let t;
-  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  let t, pending = null;
+  const run = () => { clearTimeout(t); const a = pending; pending = null; if (a) fn(...a); };
+  const d = (...args) => { pending = args; clearTimeout(t); t = setTimeout(run, ms); };
+  d.flush = run;
+  return d;
 }
 
 export function setPath(obj, path, value) {
