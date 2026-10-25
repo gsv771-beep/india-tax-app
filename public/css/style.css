@@ -321,11 +321,13 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .quick-per { font-size: .85rem; font-weight: 600; color: var(--muted); }
 .quick-sub { margin: 2px 0 0; font-size: .9rem; color: var(--muted); }
 .quick-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-.quick-side { display: grid; gap: 2px; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid transparent; }
+.quick-side { display: grid; gap: 2px; align-content: start; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid transparent; }
 .quick-side.win { border-color: var(--accent-3); background: var(--accent-soft); }
 .quick-side-k { font-size: .85rem; font-weight: 700; color: var(--muted); }
 .quick-side.win .quick-side-k { color: var(--accent-ink); }
 .quick-side-v { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.quick-side-tax { font-size: .88rem; color: var(--text); margin-top: 2px; }
+.quick-side-tax b { font-variant-numeric: tabular-nums; }
 .quick-side-sub { font-size: .82rem; color: var(--muted); }
 .quick-side.win .quick-side-sub { color: var(--accent-ink); font-weight: 600; }
 /* the refinements */

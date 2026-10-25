@@ -166,7 +166,8 @@ export function mountQuick(slot, opts) {
     const side = (r) => el('div', { class: 'quick-side' + (r === a.better && !a.same ? ' win' : '') }, [
       el('div', { class: 'quick-side-k' }, regimeName(r)),
       el('div', { class: 'quick-side-v' }, [inr(a.monthly[r]), el('span', { class: 'quick-per' }, ' a month')]),
-      el('div', { class: 'quick-side-sub' }, a.same ? 'Same either way' : r === a.better ? `Better: ${inr(a.saves)} a year more` : `Tax ${inr(a.tax[r])} a year`),
+      el('div', { class: 'quick-side-tax' }, a.tax[r] > 0 ? ['Tax ', el('b', {}, inr(a.tax[r])), ' a year'] : 'No income tax'),
+      a.same ? (r === 'new' ? el('div', { class: 'quick-side-sub' }, 'Same either way') : null) : r === a.better ? el('div', { class: 'quick-side-sub' }, `Better by ${inr(a.saves)} a year`) : null,
     ]);
     setChildren(answer, [
       el('div', { class: 'quick-k' }, 'Your monthly take-home'),
