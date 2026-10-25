@@ -41,5 +41,22 @@ const near = (name, a, e, tol = 1) => ok(name, Math.abs(a - e) <= tol, `got ${Ma
 ok('impossible structure returns an error', !!salaryBreakdown({ ctc: 1000000, basicPct: 80, hraPct: 50 }, rates).error);
 ok('zero CTC does not crash', salaryBreakdown({ ctc: 0, basicPct: 40, hraPct: 50 }, rates).monthly === 0);
 
+// ---- the bonus: the CTC carries the target; the payout % moves only what is paid and taxed ----
+{
+  const base = { ctc: 8000000, basicPct: 40, hraPct: 50, variable: 1500000, includeEmployerPf: false, includeGratuity: false, professionalTax: 2400, city: 'Other' };
+  const at = (pct) => salaryBreakdown({ ...base, variablePayoutPct: pct }, rates);
+  const t = at(100), hi = at(120), lo = at(80), none = salaryBreakdown({ ...base, variable: 0 }, rates);
+  ok('bonus at target: gross salary is the CTC', t.grossSalary === 8000000, String(t.grossSalary));
+  ok('a target bonus comes out of the special allowance, not the Basic', t.basic === none.basic && t.special === none.special - 1500000);
+  near('bonus at 120%: ₹3 lakh more is paid', hi.grossSalary, 8300000);
+  near('bonus at 80%: ₹3 lakh less is paid', lo.grossSalary, 7700000);
+  ok('the payout never moves the CTC, Basic or special allowance', [hi, lo].every((r) => r.ctc === t.ctc && r.basic === t.basic && r.special === t.special));
+  ok('more bonus, more tax; less bonus, less tax', hi.tax > t.tax && lo.tax < t.tax);
+  ok('a missing payout is read as 100%', salaryBreakdown(base, rates).grossSalary === t.grossSalary);
+  near('the bonus paid is the target times the payout', hi.variablePaid, 1800000);
+  const eng = compareRegimes({ ...t.inputs, salary: { ...t.inputs.salary, gross: 8000000, variablePay: 1500000, variablePayoutPct: 80 } }, rates);
+  near('the tax engine taxes the bonus as paid (gross ₹80L with a ₹15L target at 80%)', eng.new.income.lines.find((l) => l.id === 'gross_salary').amount, 7700000);
+}
+
 console.log(failures === 0 ? '\nAll salary tests passed.' : `\n${failures} test(s) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

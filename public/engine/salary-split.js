@@ -6,7 +6,8 @@ import { compareRegimes } from '../js/tax-engine.js';
 
 /**
  * p: { ctc, basicPct (of CTC), hraPct (of basic), conveyance (per year), variable (per year),
- *      variableInCtc (default true; false = paid on top of the CTC), variableMonthly, includeEmployerPf, includeGratuity, employerNpsPct (of basic),
+ *      variableInCtc (default true; false = paid on top of the CTC), variablePayoutPct (what is actually paid, % of
+ *      the target; default 100), variableMonthly, includeEmployerPf, includeGratuity, employerNpsPct (of basic),
  *      professionalTax, city, rentPaid, other80c, nps1b, healthSelf, homeLoanInterest, ageBand, regime: 'best'|'old'|'new', fy }
  *
  * Special allowance is the balancing figure: everything in the CTC that the other components do not
@@ -14,6 +15,9 @@ import { compareRegimes } from '../js/tax-engine.js';
  * month conveyance exemption went when the standard deduction came back), so they change the break-up,
  * not the tax. Variable pay paid once a year is kept out of the monthly figure, with the tax split in
  * proportion to pay, because that is what lands in the bank each month.
+ *
+ * The CTC carries the target bonus. A payout above or below target (120%, 80%) changes what is paid and
+ * taxed this year, never the CTC, the Basic or the special allowance.
  */
 export function salaryBreakdown(p, rates) {
   const ctc = Math.max(0, +p.ctc || 0);
@@ -24,11 +28,13 @@ export function salaryBreakdown(p, rates) {
   const employerNps = basic * ((+p.employerNpsPct || 0) / 100);
   const conveyance = Math.max(0, +p.conveyance || 0);
   const variable = Math.max(0, +p.variable || 0);
+  const payoutPct = p.variablePayoutPct == null || p.variablePayoutPct === '' ? 100 : Math.min(300, Math.max(0, +p.variablePayoutPct || 0));
+  const variablePaid = variable * payoutPct / 100;
   // variable pay is either carved out of the CTC or paid on top of it; the second is common for sales roles
   const variableInCtc = p.variableInCtc !== false && p.variableInCtc !== 'top';   // 'ctc' | 'top' (older saves used a boolean)
   const special = ctc - basic - hra - conveyance - (variableInCtc ? variable : 0) - employerPf - gratuity - employerNps;
-  if (special < 0) return { error: 'The components add up to more than the CTC. Reduce Basic, HRA, conveyance, variable pay or the employer contributions, or mark variable pay as paid on top of the CTC.' };
-  const grossSalary = basic + hra + conveyance + variable + special; // what is paid to you through the year, before deductions
+  if (special < 0) return { error: 'The components add up to more than the CTC. Your CTC should include the target bonus; reduce Basic, HRA, conveyance, the bonus or the employer contributions.' };
+  const grossSalary = basic + hra + conveyance + variablePaid + special; // what is paid to you through the year, before deductions
   const employeePf = 0.12 * basic;
   const professionalTax = Math.max(0, +p.professionalTax || 0);
 
@@ -47,12 +53,12 @@ export function salaryBreakdown(p, rates) {
   const tax = taxFor(regime);
   const annual = inHandFor(regime);
   // variable pay paid once a year: keep it out of the monthly figure, and split the tax by share of pay
-  const variableApart = variable > 0 && p.variableMonthly !== true && p.variableMonthly !== 'monthly';
-  const variableTax = variableApart && grossSalary > 0 ? tax * (variable / grossSalary) : 0;
-  const fixedAnnual = annual - (variableApart ? variable - variableTax : 0);
+  const variableApart = variablePaid > 0 && p.variableMonthly !== true && p.variableMonthly !== 'monthly';
+  const variableTax = variableApart && grossSalary > 0 ? tax * (variablePaid / grossSalary) : 0;
+  const fixedAnnual = annual - (variableApart ? variablePaid - variableTax : 0);
   return {
     ctc, totalPackage: ctc + (variableInCtc ? 0 : variable), variableInCtc,
-    basic, hra, conveyance, variable, variableApart, variableTax, variableNet: variable - variableTax,
+    basic, hra, conveyance, variable, payoutPct, variablePaid, variableApart, variableTax, variableNet: variablePaid - variableTax,
     special, employerPf, gratuity, employerNps, grossSalary, employeePf, professionalTax,
     regime, tax, cmp, annual, monthly: fixedAnnual / 12, fixedAnnual,
     inHandOld: inHandFor('old'), inHandNew: inHandFor('new'),
