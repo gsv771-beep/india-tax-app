@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="768e7a74b7">
+  <meta name="tc-build" content="d24bb024b4">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -104,8 +104,8 @@
     <section id="home" class="panel" hidden>
       <div class="hero hero-quick">
         <span class="eyebrow">In-hand salary · Old vs new regime · FY 2026-27</span>
-        <h1>What you take home, and which tax regime wins.</h1>
-        <p>Type your CTC. The answer shows as you type.</p>
+        <h1>How much of your CTC do you actually take home?</h1>
+        <p>Type your annual CTC. Your monthly in-hand pay under both tax regimes shows as you type.</p>
       </div>
       <div id="home-quick" class="quick-slot"></div>
       <div id="home-snapshot" hidden></div>
@@ -145,7 +145,7 @@
               <input type="hidden" data-path="incomeType" value="salary">
             </div>
             <div class="grid" data-for="salary">
-              <label>Gross annual salary or pension (₹)
+              <label>Annual CTC or gross salary (₹) <small>employer PF and gratuity are on top of this, not inside it; a pension goes here too</small>
                 <input type="number" min="0" step="1000" data-path="salary.gross" placeholder="e.g. 1500000">
               </label>
               <label>Annual Basic + DA (₹) <small>on your payslip; usually 40-50% of gross</small>
