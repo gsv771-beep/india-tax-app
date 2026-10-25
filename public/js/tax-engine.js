@@ -244,7 +244,7 @@ export function computeIncome(inputsIn, regime, rates, flags = DEFAULT_FLAGS) {
       const named = basicForBreakup + num(inp.salary.hraReceived) + conveyance + variablePay;
       const parts = [basicForBreakup > 0 ? `Basic + DA ${fmtNum(basicForBreakup)}` : null, num(inp.salary.hraReceived) > 0 ? `HRA ${fmtNum(num(inp.salary.hraReceived))}` : null, conveyance > 0 ? `conveyance ${fmtNum(conveyance)}` : null, variablePay > 0 ? `bonus paid ${fmtNum(variablePay)}${payoutPct !== 100 ? ` (${+payoutPct.toFixed(1)}% of the ${fmtNum(num(inp.salary.variablePay))} target)` : ''}` : null, gross - named > 0 ? `special allowance ${fmtNum(gross - named)}` : null].filter(Boolean);
       push('salary_breakup', `Of which: ${parts.join(', ')}`, 0, { info: true });
-      if (named > gross) notes.push(`The salary components add up to Rs ${fmtNum(named)}, more than the gross salary of Rs ${fmtNum(gross)}. Your CTC or gross should include the target bonus; raise it or reduce a component.`);
+      if (named > gross) notes.push(`The salary components add up to Rs ${fmtNum(named)}, more than the gross salary of Rs ${fmtNum(gross)}. Raise the gross, reduce a component, or mark the bonus as paid on top of the gross.`);
     }
     push('net_salary', 'Income from salary', salary, { subtotal: true });
   }

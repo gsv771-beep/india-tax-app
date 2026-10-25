@@ -10,7 +10,7 @@
 import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
-import { fromSalaryStore, toTaxInputs, ctcOf, payoutOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
+import { fromSalaryStore, toTaxInputs, ctcOf, ctcHeadline, payoutOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
 import { quickAnswer, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 
 const DETAIL = 'taxcompass.detail-open.v1';
@@ -18,7 +18,7 @@ const live = new Map();   // one listener per mount point, replaced when a page 
 
 /** The quick form's figures, from the shared profile. */
 function fromProfile(p) {
-  const i = p.income, ctc = Math.round(ctcOf(i));
+  const i = p.income, ctc = Math.round(ctcHeadline(p));
   const listedLoan = p.loans.some((l) => l.type === 'home' && l.propertyUse === 'self_occupied');
   return {
     ctc: ctc > 0 && p.person.employment !== 'self_employed' ? ctc : 0,
@@ -30,7 +30,7 @@ function fromProfile(p) {
     professionalTax: p.tax.professionalTax,
     other80c: p.tax.s80cUsed || 0, healthSelf: p.tax.s80dUsed || 0, nps1b: p.tax.nps1bUsed || 0,
     // a bonus set in the payslip or the tax form: kept through a new CTC here, and out of the monthly figure
-    variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p),
+    variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p), onTop: !!p.tax.bonusOnTop,
   };
 }
 
@@ -184,7 +184,7 @@ export function mountQuick(slot, opts) {
       el('p', { class: 'quick-sub' }, a.tax.new === 0 && a.tax.old === 0
         ? `${inrShort(a.inHand.best)} a year. No income tax in either regime at this salary.`
         : `${inrShort(a.inHand.best)} a year in the ${a.better} regime, after PF, professional tax and income tax.`),
-      bonus ? el('p', { class: 'quick-sub quick-bonus' }, [`Plus your bonus: ${inr(a.bonus.paid)}${a.bonus.payoutPct !== 100 ? ` (${+a.bonus.payoutPct.toFixed(1)}% of the ${inr(a.bonus.target)} target)` : ''}, about ${inr(a.bonus.net.best)} after tax, paid once a year. `, salaryLink ? el('a', { href: salaryLink.href, onclick: salaryLink.onclick }, 'Change the bonus or its payout in your payslip →') : null]) : null,
+      bonus ? el('p', { class: 'quick-sub quick-bonus' }, [`Plus your bonus${a.store.variableInCtc === 'top' ? ', on top of your CTC' : ''}: ${inr(a.bonus.paid)}${a.bonus.payoutPct !== 100 ? ` (${+a.bonus.payoutPct.toFixed(1)}% of the ${inr(a.bonus.target)} target)` : ''}, about ${inr(a.bonus.net.best)} after tax, paid once a year. `, salaryLink ? el('a', { href: salaryLink.href, onclick: salaryLink.onclick }, 'Change the bonus or its payout in your payslip →') : null]) : null,
       el('div', { class: 'quick-sides' }, [side('new'), side('old')]),
     ]);
   }
@@ -219,7 +219,7 @@ export function mountQuick(slot, opts) {
         el('thead', {}, el('tr', {}, [el('th', {}, 'A year'), el('th', { class: a.better === 'new' ? 'win' : '' }, 'New'), el('th', { class: a.better === 'old' ? 'win' : '' }, 'Old')])),
         el('tbody', {}, [
           row('Your CTC', ...both(inr(a.ctc))),
-          gross !== a.ctc ? row(`Salary paid (bonus at ${+a.bonus.payoutPct.toFixed(1)}%)`, ...both(inr(gross))) : null,
+          gross !== a.ctc ? row(a.store.variableInCtc === 'top' ? 'Salary paid, with the bonus on top' : `Salary paid (bonus at ${+a.bonus.payoutPct.toFixed(1)}%)`, ...both(inr(gross))) : null,
           row('Your PF', ...both(minus(pf))),
           row('Professional tax', ...both(minus(pt))),
           row('Income tax', minus(a.tax.new), minus(a.tax.old)),

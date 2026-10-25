@@ -13,7 +13,7 @@ import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
 import { getProfile, updateProfile } from './profile-store.js';
 import { salaryMonthly } from './budget-sync.js';
 import { quickAnswer } from './quick-engine.js';
-import { fromSalaryStore, ctcOf } from '../engine/profile.js';
+import { fromSalaryStore, ctcOf, ctcHeadline } from '../engine/profile.js';
 import { attachAmountEcho } from './amount-input.js';
 
 export const CATEGORIES = [
@@ -317,7 +317,7 @@ export function renderBudget(appData) {
 
   // Start from the CTC: it is saved as the profile's salary (as the quick answer on the tax page saves it),
   // so this page, the tax page and the in-hand calculator all work from the same figure.
-  const ctcInput = el('input', { type: 'number', min: 0, step: 50000, placeholder: 'e.g. 1800000', 'aria-label': 'Your annual CTC in rupees', value: ctcOf(getProfile().income) > 0 ? Math.round(ctcOf(getProfile().income)) : '' });
+  const ctcInput = el('input', { type: 'number', min: 0, step: 50000, placeholder: 'e.g. 1800000', 'aria-label': 'Your annual CTC in rupees', value: ctcHeadline(getProfile()) > 0 ? Math.round(ctcHeadline(getProfile())) : '' });
   let ctcTimer = null;
   ctcInput.addEventListener('input', () => {
     clearTimeout(ctcTimer);

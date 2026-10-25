@@ -16,8 +16,9 @@ import { compareRegimes } from '../js/tax-engine.js';
  * not the tax. Variable pay paid once a year is kept out of the monthly figure, with the tax split in
  * proportion to pay, because that is what lands in the bank each month.
  *
- * The CTC carries the target bonus. A payout above or below target (120%, 80%) changes what is paid and
- * taxed this year, never the CTC, the Basic or the special allowance.
+ * The bonus is either inside the CTC (it comes out of the special allowance) or paid on top of it. Either
+ * way a payout above or below target (120%, 80%) changes what is paid and taxed this year, never the CTC,
+ * the Basic or the special allowance.
  */
 export function salaryBreakdown(p, rates) {
   const ctc = Math.max(0, +p.ctc || 0);
@@ -33,7 +34,7 @@ export function salaryBreakdown(p, rates) {
   // variable pay is either carved out of the CTC or paid on top of it; the second is common for sales roles
   const variableInCtc = p.variableInCtc !== false && p.variableInCtc !== 'top';   // 'ctc' | 'top' (older saves used a boolean)
   const special = ctc - basic - hra - conveyance - (variableInCtc ? variable : 0) - employerPf - gratuity - employerNps;
-  if (special < 0) return { error: 'The components add up to more than the CTC. Your CTC should include the target bonus; reduce Basic, HRA, conveyance, the bonus or the employer contributions.' };
+  if (special < 0) return { error: 'The components add up to more than the CTC. Reduce Basic, HRA, conveyance, the bonus or the employer contributions, or mark the bonus as paid on top of the CTC.' };
   const grossSalary = basic + hra + conveyance + variablePaid + special; // what is paid to you through the year, before deductions
   const employeePf = 0.12 * basic;
   const professionalTax = Math.max(0, +p.professionalTax || 0);

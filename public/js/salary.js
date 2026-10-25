@@ -26,8 +26,6 @@ export function renderSalary(data) {
   const profile = getProfile();
   const fromProfile = isEmptyProfile(profile) || isBlankAfterReset('salary') ? {} : toSalaryStore(profile);
   const st = { ctc: '', basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variablePayoutPct: 100, variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
-  // the CTC carries the target bonus (an older save may say 'top'); only the payout % moves what is paid
-  st.variableInCtc = 'ctc';
   // a link with ?ctc= (Ask, the salary pages, the tax page) opens at that CTC; nothing is saved until an edit
   const urlCtc = ctcFromUrl();
   if (urlCtc) st.ctc = urlCtc;
@@ -50,8 +48,8 @@ export function renderSalary(data) {
   const out = el('div');
   let last = null;
   const exportCard = calcExportCard('salary', () => last);
-  const variableField = field('variable', 'Target bonus or variable pay per year (₹)', { step: 10000 }, 'the bonus included in your CTC; 0 if none');
-  const ctcField = field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'as on your offer letter, including your target bonus');
+  const variableField = field('variable', 'Target bonus or variable pay per year (₹)', { step: 10000 }, 'the full amount if paid as agreed; 0 if none');
+  const ctcField = field('ctc', 'Annual CTC (₹)', { step: 10000, placeholder: 'e.g. 1200000' }, 'cost to company, as on your offer letter');
   attachSlider(ctcField.querySelector('input'), { max: 100000000, step: 50000 });
   pctToggle({ input: variableField.querySelector('input'), baseInput: ctcField.querySelector('input'), defaultPct: 10, name: 'salary.variable', hint: 'CTC', max: 60 });
   // The CTC is the one question; the structure folds away until someone wants their exact payslip
@@ -66,6 +64,7 @@ export function renderSalary(data) {
     field('conveyance', 'Conveyance allowance per year (₹)', { step: 1000 }, 'taxable since 2018; it only changes the break-up'),
     variableField,
     el('div', { class: 'two' }, [
+      field('variableInCtc', 'Variable pay is', { options: [['ctc', 'Part of my CTC'], ['top', 'Paid on top of my CTC']] }),
       field('variablePayoutPct', 'Bonus actually paid (% of target)', { step: 5 }, '100 if paid as agreed; 120 or 80 if it paid more or less'),
       field('variableMonthly', 'Paid', { options: [['yearly', 'Once a year, separately'], ['monthly', 'Every month with salary']] }),
     ]),
@@ -117,7 +116,7 @@ export function renderSalary(data) {
       ],
       why: [
         el('p', {}, `Of a ${inr(r.ctc)} CTC, ${inr(r.grossSalary)} is paid to you as salary; employer PF of ${inr(r.employerPf)} and gratuity of ${inr(r.gratuity)} are yours but not paid monthly. From the salary come your own PF (${inr(r.employeePf)}), professional tax and ${inr(r.tax)} of income tax under the ${r.regime} regime.${Math.abs(otherInHand - r.annual) > 1 ? ` Under the ${otherRegime} regime you would take home ${inr(otherInHand / 12)} a month.` : ''}`),
-        r.variableApart ? el('p', {}, `The bonus of ${inr(r.variablePaid)}${r.payoutPct !== 100 ? ` (${+r.payoutPct.toFixed(1)}% of the ${inr(r.variable)} target in your CTC)` : ' (the target in your CTC)'} is kept out of the monthly figure because it is paid separately: about ${inr(r.variableNet)} of it reaches you after tax.`) : null,
+        r.variableApart ? el('p', {}, `The bonus of ${inr(r.variablePaid)}${r.payoutPct !== 100 ? ` (${+r.payoutPct.toFixed(1)}% of the ${inr(r.variable)} target in your CTC)` : ' (the target in your CTC)'}${r.variableInCtc ? '' : `, paid on top of the ${inr(r.ctc)} CTC,`} is kept out of the monthly figure because it is paid separately: about ${inr(r.variableNet)} of it reaches you after tax.`) : null,
       ],
       next: [
         { label: 'Plan where it goes', note: `Put ${inr(r.monthly)} a month into a budget and see what is genuinely free`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(r.monthly) }, 'salary'), primary: true },

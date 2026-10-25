@@ -58,5 +58,32 @@ ok('zero CTC does not crash', salaryBreakdown({ ctc: 0, basicPct: 40, hraPct: 50
   near('the tax engine taxes the bonus as paid (gross ₹80L with a ₹15L target at 80%)', eng.new.income.lines.find((l) => l.id === 'gross_salary').amount, 7700000);
 }
 
+// ---- a bonus paid on top of the CTC: the CTC and its split stay; the bonus adds to what is paid ----
+{
+  const base = { ctc: 8000000, basicPct: 40, hraPct: 50, variable: 1500000, includeEmployerPf: false, includeGratuity: false, professionalTax: 2400, city: 'Other' };
+  const inside = salaryBreakdown(base, rates), top = salaryBreakdown({ ...base, variableInCtc: 'top' }, rates), top80 = salaryBreakdown({ ...base, variableInCtc: 'top', variablePayoutPct: 80 }, rates);
+  ok('on top: the special allowance keeps the whole balance of the CTC', top.special === inside.special + 1500000 && top.basic === inside.basic);
+  near('on top at 100%: ₹95 lakh is paid', top.grossSalary, 9500000);
+  near('on top at 80%: ₹92 lakh is paid', top80.grossSalary, 9200000);
+  ok('on top: the package is the CTC plus the target', top.totalPackage === 9500000 && top.ctc === 8000000);
+}
+// ---- the profile keeps the offer-letter CTC when the bonus is on top (it used to show ₹95 lakh) ----
+{
+  const { emptyProfile, fromTaxInputs, toTaxInputs, toSalaryStore, fromSalaryStore, ctcHeadline, ctcOf } = await import('../public/engine/profile.js');
+  const form = { salary: { gross: 8000000, basicDa: 3200000, hraReceived: 1600000, conveyance: 0, variablePay: 1500000, variableOnTop: true, variablePayoutPct: 100, professionalTax: 2400 }, employer: {}, deductions: {}, incomeType: 'salary' };
+  const p = fromTaxInputs(emptyProfile(), form);
+  ok('tax form, bonus on top: the profile CTC is the offer-letter ₹80 lakh', p.income.ctc === 8000000 && ctcHeadline(p) === 8000000, String(p.income.ctc));
+  ok('... and everything the employer pays is ₹95 lakh', ctcOf(p.income) === 9500000);
+  const back = toTaxInputs(p);
+  ok('... and it reads back into the form as ₹80 lakh with the bonus on top', back.salary.gross === 8000000 && back.salary.variableOnTop === true && back.salary.variablePay === 1500000);
+  const st = toSalaryStore(p);
+  ok('... and into the payslip as ₹80 lakh, bonus on top, Basic 40%', st.ctc === 8000000 && st.variableInCtc === 'top' && Math.abs(st.basicPct - 40) < 0.01);
+  const r = salaryBreakdown(st, rates);
+  const p2 = fromSalaryStore(p, st, r);
+  ok('the payslip writes it back unchanged', p2.income.ctc === 8000000 && p2.tax.bonusOnTop === true && ctcOf(p2.income) === 9500000);
+  const inside = fromTaxInputs(emptyProfile(), { ...form, salary: { ...form.salary, variableOnTop: false } });
+  ok('bonus inside the CTC: the CTC stays ₹80 lakh and nothing is on top', inside.income.ctc === 8000000 && ctcOf(inside.income) === 8000000 && inside.tax.bonusOnTop === false);
+}
+
 console.log(failures === 0 ? '\nAll salary tests passed.' : `\n${failures} test(s) FAILED.`);
 process.exit(failures === 0 ? 0 : 1);

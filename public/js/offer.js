@@ -6,7 +6,7 @@
 import { inr, inrShort, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { compareOffers, OFFER_DEFAULTS } from '../engine/offer.js';
 import { getProfile } from './profile-store.js';
-import { isEmptyProfile, ctcOf } from '../engine/profile.js';
+import { isEmptyProfile, ctcHeadline } from '../engine/profile.js';
 import { attachSlider, enhanceMoneyInputs } from './amount-input.js';
 import { resultLayout } from './result-layout.js';
 import { setHandoff } from './handoff.js';
@@ -22,7 +22,7 @@ export function renderOffer({ rates }) {
     a: { name: 'Current job', ...OFFER_DEFAULTS, bonusKind: 'retention', ...(saved.a || {}) },
     b: { name: 'New offer', ...OFFER_DEFAULTS, ...(saved.b || {}) },
   };
-  if (!saved.a && !blank) { const p = getProfile(); if (!isEmptyProfile(p) && ctcOf(p.income) > 0) st.a.ctc = Math.round(ctcOf(p.income)); }
+  if (!saved.a && !blank) { const p = getProfile(); if (!isEmptyProfile(p) && ctcHeadline(p) > 0) st.a.ctc = Math.round(ctcHeadline(p)); }
   const save = () => { clearBlankAfterReset('offer'); try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
   const out = el('div');
   const rerender = debounce(() => paint(), 80);
