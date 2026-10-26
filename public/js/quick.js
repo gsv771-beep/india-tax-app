@@ -89,7 +89,8 @@ export function mountQuick(slot, opts) {
   const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Start over');
   // ---- the answer, then what refines it, then the working ----
   const answer = el('div', { class: 'quick-answer', 'aria-live': 'polite' });
-  const refine = el('div', { class: 'quick-refine' });
+  const refine = el('details', { class: 'quick-refine quick-fold' });
+  const refineBadge = el('span', { class: 'quick-fold-badge' });
   const refineNote = el('p', { class: 'muted small quick-refine-note' });
   const chipRow = el('div', { class: 'quick-chips', role: 'group', 'aria-label': 'Add what applies to you' });
   const verdict = el('div', { class: 'quick-verdict-box' });
@@ -97,6 +98,10 @@ export function mountQuick(slot, opts) {
   const breakdownBody = el('div', { class: 'quick-breakdown-body' });
   const assumePt = el('span');
   const basicInput = el('input', { type: 'number', min: 10, max: 80, step: 1, class: 'quick-basic', value: q.basicPct, 'aria-label': 'Basic pay as a percentage of CTC' });
+  // the assumptions are part of the working, so they sit inside 'See how this adds up'
+  const assume = el('p', { class: 'quick-assume muted small' }, [
+        'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/tax#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
+      ]);
 
   const save = debounce(() => {
     if (!q.ctc) {
@@ -204,9 +209,10 @@ export function mountQuick(slot, opts) {
     return { d, row, chip, amount, note, sync };
   });
   setChildren(adjChips, adjRows.map((r) => r.chip));
-  const adjust = el('div', { class: 'quick-refine quick-adjust' }, [
-    el('h3', { class: 'quick-refine-title' }, 'What is left each month?'),
-    el('p', { class: 'muted small quick-refine-note' }, 'Take off EMIs and anything else that comes out of your pay, or add money that comes in on top. These do not change your tax.'),
+  const adjBadge = el('span', { class: 'quick-fold-badge' });
+  const adjust = el('details', { class: 'quick-refine quick-fold quick-adjust', open: adjAdded.size > 0 }, [
+    el('summary', {}, [el('span', { class: 'quick-fold-title' }, 'Take off EMIs, or add other income'), adjBadge]),
+    el('p', { class: 'muted small quick-refine-note' }, 'Home, personal or car loan EMIs, anything else that comes out of your pay, or money that comes in on top. Your tax does not change.'),
     adjChips,
     el('div', { class: 'quick-rows' }, adjRows.map((r) => r.row)),
   ]);
@@ -303,6 +309,7 @@ export function mountQuick(slot, opts) {
         salaryLink ? el('a', { class: 'quick-link', href: salaryLink.href, onclick: salaryLink.onclick }, salaryLink.text) : null,
         el('a', { class: 'quick-link', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(a.monthly.best) }, 'salary') }, 'Plan your savings with this →'),
       ]),
+      assume,
     ]);
   }
 
@@ -321,10 +328,13 @@ export function mountQuick(slot, opts) {
     paintBreakdown(a);
     refreshRows(a);
     refreshAdj();
+    refineBadge.textContent = added.size ? `${added.size} added` : '';
+    adjBadge.textContent = adjAdded.size ? `${adjAdded.size} added` : '';
   }
 
+  refine.open = added.size > 0;
   refine.append(
-    el('h3', { class: 'quick-refine-title' }, 'Want a more accurate answer?'),
+    el('summary', {}, [el('span', { class: 'quick-fold-title' }, 'Add rent, home loan, 80C and more'), refineBadge]),
     refineNote,
     chipRow,
     el('div', { class: 'quick-rows' }, rows.map((r) => r.row)),
@@ -342,9 +352,6 @@ export function mountQuick(slot, opts) {
       refine,
       adjust,
       breakdown,
-      el('p', { class: 'quick-assume muted small' }, [
-        'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/tax#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
-      ]),
     ]),
   ]);
   paint();
@@ -357,6 +364,9 @@ export function mountQuick(slot, opts) {
     for (const r of rows) { if (q[r.d.key] > 0) added.add(r.d.key); r.sync(); }
     adjAdded.clear();
     for (const r of adjRows) { if (+q.inhand?.[r.d.key] > 0) adjAdded.add(r.d.key); r.sync(); }
+    // a section holding figures opens by itself; one that is empty keeps whatever the person left it as
+    if (added.size) refine.open = true;
+    if (adjAdded.size) adjust.open = true;
     paint();
   };
   // Start over: the salary and deductions go from the profile in one undoable step, and the detailed

@@ -1073,3 +1073,33 @@ details.r-why[open] > summary { margin-bottom: 8px; }
 .income-note:empty { display: none; }
 .income-note .btn-link { font-weight: 700; }
 .quick-breakdown-body .table-wrap + .table-wrap { margin-top: 12px; }
+
+/* ---- phone: one answer, then everything else one tap away ---- */
+.quick-fold { border-top: 1px solid var(--line); margin-top: 16px; }
+.quick-fold > summary { display: flex; align-items: center; gap: 10px; padding: 14px 0 6px; cursor: pointer; list-style: none; font-weight: 700; }
+.quick-fold > summary::-webkit-details-marker { display: none; }
+.quick-fold > summary::after { content: '▾'; margin-left: auto; color: var(--muted); transition: transform .15s; }
+.quick-fold[open] > summary::after { transform: rotate(180deg); }
+.quick-fold-title { color: var(--accent-2); }
+.quick-fold-badge { white-space: nowrap; flex: none; font-size: .78rem; font-weight: 700; color: var(--accent-ink); background: var(--accent-soft); border-radius: 999px; padding: 2px 9px; }
+.quick-fold-badge:empty { display: none; }
+.quick-fold + .quick-fold { margin-top: 0; }
+.quick-fold + .quick-breakdown { margin-top: 0; }
+.quick-breakdown .quick-assume { margin-top: 12px; }
+@media (max-width: 560px) {
+  /* the two regimes as two lines, not two cramped cards */
+  .quick-sides { grid-template-columns: 1fr; gap: 6px; }
+  .quick-side { grid-template-columns: 1fr auto; column-gap: 10px; align-items: baseline; }
+  .quick-side-v { font-size: 1.05rem; text-align: right; }
+  .quick-side-v .quick-per { font-size: .78rem; }
+  .quick-side-k { white-space: nowrap; }
+  .quick-side-tax, .quick-side-sub { font-size: .8rem; grid-column: 1 / -1; }
+  .quick-sub { font-size: .85rem; }
+  .quick-left-v { font-size: 1.2rem; }
+  /* the Ask pill shrinks to the mascot once there is an answer to read */
+  body:has(.quick-slot.has-answer) .ask-toggle.ask-labelled { padding: 4px; border-radius: 50%; }
+  body:has(.quick-slot.has-answer) .ask-toggle.ask-labelled .ask-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  /* the footer keeps the disclaimer; About and sources are on the About page */
+  .footer-about, .footer-sources { display: none; }
+  .site-footer { padding-top: 22px; }
+}
