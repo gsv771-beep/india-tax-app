@@ -105,5 +105,18 @@ ok('Basic of 80% with PF and gratuity: components exceed CTC is reported', !!qui
   ok('a 120% payout raises the year and the tax, not the month much', hi.inHand.best > withBonus.inHand.best && hi.tax.new > withBonus.tax.new && hi.bonus.paid === 1800000);
 }
 
+// ---- corporate NPS through payroll (80CCD(2)): out of the CTC, deductible in both regimes, capped ----
+{
+  const plain = quickAnswer({ ctc: 2500000 }, rates), nps = quickAnswer({ ctc: 2500000, employerNpsPct: 10 }, rates);
+  near('25L with 10% employer NPS: ₹1,25,000 goes to NPS', nps.pay.employerNps, 125000);
+  near('... new-regime tax falls to ₹2,86,000 (taxable ₹23 lakh)', nps.tax.new, 286000);
+  near('... and ₹1,61,383 a month reaches the bank', nps.monthly.new, 1936600 / 12);
+  ok('... the old-regime tax falls too', nps.tax.old < plain.tax.old);
+  ok('... CTC = NPS + PF + professional tax + tax + in hand', Math.abs(2500000 - nps.pay.employerNps - nps.pay.employeePf - nps.pay.professionalTax - nps.tax.new - nps.inHand.new) < 1);
+  const over = quickAnswer({ ctc: 2500000, employerNpsPct: 20 }, rates), cap14 = quickAnswer({ ctc: 2500000, employerNpsPct: 14 }, rates);
+  ok('above 14% of Basic the new regime gives no more relief: the tax stays the same', over.tax.new === cap14.tax.new, `${over.tax.new} vs ${cap14.tax.new}`);
+  near('... while the extra 6% of Basic still leaves the monthly pay', cap14.monthly.new - over.monthly.new, 0.06 * 1250000 / 12);
+}
+
 console.log(failures ? `\n${failures} failure(s)` : '\nAll quick-answer tests passed');
 process.exit(failures ? 1 : 0);

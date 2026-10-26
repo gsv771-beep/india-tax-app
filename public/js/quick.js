@@ -32,6 +32,7 @@ function fromProfile(p) {
     other80c: p.tax.s80cUsed || 0, healthSelf: p.tax.s80dUsed || 0, nps1b: p.tax.nps1bUsed || 0,
     // a bonus set in the payslip or the tax form: kept through a new CTC here, and out of the monthly figure
     variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p), onTop: !!p.tax.bonusOnTop,
+    employerNpsPct: i.basic > 0 && i.employerNps > 0 ? Math.round(1000 * i.employerNps / i.basic) / 10 : 0,
     inhand: { ...p.inhand },
     loanEmi: (type) => Math.round(p.loans.filter((l) => l.type === type).reduce((s, l) => s + (l.emi || 0), 0)),
   };
@@ -50,7 +51,7 @@ const adjTotal = (inhand) => ADJUST.reduce((s, d) => s + d.sign * (+inhand?.[d.k
 const DEDUCTIONS = [
   { key: 'rentMonthly', label: 'Rent you pay', unit: 'a month', step: 1000, hint: () => 'the old regime exempts part of your HRA; pick your city' },
   { key: 'other80c', label: '80C investments: PPF, ELSS, life insurance, tuition fees', unit: 'a year', step: 5000, hint: (a) => !a ? 'on top of your PF' : a.room80c > 0 ? `your PF already counts ${inr(a.claimed.epf)} of the ${inrShort(LIMIT_80C)} limit, so ${inr(a.room80c)} is left` : `your PF (${inr(a.claimed.epf)} a year) already fills the ${inrShort(LIMIT_80C)} limit, so more here does not lower the tax` },
-  { key: 'nps1b', label: 'NPS you pay into yourself', unit: 'a year', step: 5000, hint: () => 'up to ₹50,000 counts, over the 80C limit (80CCD(1B))' },
+  { key: 'nps1b', label: 'NPS you pay into yourself (not through your employer)', unit: 'a year', step: 5000, hint: () => 'up to ₹50,000 counts, over the 80C limit (80CCD(1B))' },
   { key: 'homeLoanInterest', label: 'Home loan interest, house you live in', unit: 'a year', step: 10000, hint: () => 'interest only, not the EMI; up to ₹2 lakh counts' },
   { key: 'healthSelf', label: 'Health insurance premium', unit: 'a year', step: 1000, hint: () => 'for you and your family; up to ₹25,000 counts (80D)' },
 ];
@@ -86,7 +87,7 @@ export function mountQuick(slot, opts) {
   const knownBonus = (x) => (x.variable > 0 ? (x.onTop ? 'top' : 'ctc') : x.ctc > 0 ? 'none' : null);
   let bonusKind = knownBonus(q);
   let asking = !bonusKind;   // the bonus question is on screen: until answered, or while its amount is being typed
-  let deeper = DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0);
+  let deeper = DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0) || q.employerNpsPct > 0;
 
   // ---- 1. the CTC, and nothing else ----
   const ctcInput = el('input', { type: 'number', min: 0, step: 50000, inputmode: 'numeric', placeholder: 'e.g. 1500000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: q.ctc || '' });
@@ -140,7 +141,7 @@ export function mountQuick(slot, opts) {
     updateProfile((d) => {
       const prev = fromProfile(d);
       // a new CTC, Basic % or bonus rewrites the salary split; a deduction leaves any detailed split alone
-      const resplit = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || prev.variable !== q.variable || prev.onTop !== q.onTop || isEmptyProfile(d);
+      const resplit = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || prev.variable !== q.variable || prev.onTop !== q.onTop || Math.abs(prev.employerNpsPct - (q.employerNpsPct || 0)) > 0.05 || isEmptyProfile(d);
       let out = resplit ? fromSalaryStore(d, { ...a.store, regime: a.better }, a.pay) : d;
       out.tax.s80cUsed = q.other80c || 0; out.tax.s80dUsed = q.healthSelf || 0; out.tax.nps1bUsed = q.nps1b || 0;
       if (!q.listedLoan) out.tax.homeLoanInterest = q.homeLoanInterest || 0;
@@ -180,6 +181,11 @@ export function mountQuick(slot, opts) {
     return { d, node, input, hint, city };
   };
   const fields = DEDUCTIONS.map(qField);
+  // corporate NPS: a % of Basic the employer pays into NPS out of the CTC (80CCD(2), both regimes)
+  const npsPctInput = el('input', { type: 'number', min: 0, max: 30, step: 1, inputmode: 'decimal', placeholder: '0', class: 'quick-pct', value: q.employerNpsPct || '', 'aria-label': 'Employer NPS, % of Basic' });
+  const npsHint = el('small', { class: 'quick-hint' });
+  npsPctInput.addEventListener('input', () => set({ employerNpsPct: Math.min(30, Math.max(0, +npsPctInput.value || 0)) }));
+  const npsField = el('label', { class: 'quick-q-field' }, [el('span', {}, 'Employer NPS through your salary (corporate NPS)'), el('span', { class: 'quick-amount' }, [npsPctInput, el('span', { class: 'unit' }, '% of Basic')]), npsHint]);
   const adjFields = ADJUST.map((d) => {
     const input = el('input', { type: 'number', min: 0, step: 500, inputmode: 'numeric', 'data-echo': 'own', placeholder: '0', value: q.inhand?.[d.key] || '', 'aria-label': `${d.label}, ₹ a month` });
     const note = d.note ? el('input', { type: 'text', maxlength: 60, class: 'quick-note', placeholder: d.notePh, value: q.inhand?.[d.note] || '', 'aria-label': `${d.label}: what it is` }) : null;
@@ -196,7 +202,7 @@ export function mountQuick(slot, opts) {
   ]);
   const deeperBody = el('div', { class: 'quick-deeper-body', hidden: true }, [
     deeperIntro,
-    el('div', { class: 'quick-q-grid' }, fields.map((f) => f.node)),
+    el('div', { class: 'quick-q-grid' }, [...fields.map((f) => f.node), npsField]),
     verdict,
     adjFold,
   ]);
@@ -204,6 +210,8 @@ export function mountQuick(slot, opts) {
   deeperBtn.addEventListener('click', () => { deeper = true; paint(); fields[0].input.focus({ preventScroll: false }); });
 
   const refreshFields = (a) => {
+    if (document.activeElement !== npsPctInput) npsPctInput.value = q.employerNpsPct || '';
+    npsHint.textContent = a.pay.employerNps > 0 ? `${inr(a.pay.employerNps)} a year, out of your CTC. Up to 14% of Basic counts in the new regime, 10% in the old${(q.employerNpsPct || 0) > 14 ? '; the part above that is still taxed' : ''}.` : 'if your employer offers it: usually 10% or 14% of Basic, taken out of your CTC; it lowers the tax in both regimes';
     for (const f of fields) { f.hint.textContent = f.d.hint(a); if (document.activeElement !== f.input) f.input.value = q[f.d.key] || ''; if (f.city) f.city.value = q.city; }
     for (const f of adjFields) { if (document.activeElement !== f.input) f.input.value = q.inhand?.[f.d.key] || ''; if (f.note && document.activeElement !== f.note) f.note.value = q.inhand?.[f.d.note] || ''; }
   };
@@ -224,6 +232,7 @@ export function mountQuick(slot, opts) {
       el('div', { class: 'quick-k' }, bonus ? 'Your monthly salary in hand, before bonus' : 'Your monthly salary in hand'),
       el('div', { class: 'quick-v' }, inr(a.monthly.best)),
       el('p', { class: 'quick-sub' }, `In the ${a.better} regime, after ${inr(a.pay.employeePf / 12)} PF (12% of Basic, taken as ${+q.basicPct.toFixed(1)}% of your CTC), ${inr(a.pay.professionalTax / 12)} professional tax and income tax.`),
+      a.pay.employerNps > 0 ? el('p', { class: 'quick-sub' }, `Another ${inr(a.pay.employerNps / 12)} a month goes to your NPS account (employer NPS, ${+(+q.employerNpsPct).toFixed(1)}% of Basic), and lowers your tax in both regimes.`) : null,
       bonus ? el('p', { class: 'quick-sub quick-bonus' }, `Plus your bonus, ${kindText}: ${inr(a.bonus.paid)} a year, about ${inr(a.bonus.net.best)} after tax.`) : null,
       adjTotal(q.inhand) !== 0 ? leftLine(a) : null,
       el('div', { class: 'quick-sides' }, [row('new'), row('old')]),
@@ -266,7 +275,9 @@ export function mountQuick(slot, opts) {
         el('thead', {}, el('tr', {}, [el('th', {}, 'A year'), el('th', { class: a.better === 'new' ? 'win' : '' }, 'New'), el('th', { class: a.better === 'old' ? 'win' : '' }, 'Old')])),
         el('tbody', {}, [
           row('Your CTC', ...both(inr(a.ctc))),
-          gross !== a.ctc ? row(a.store.variableInCtc === 'top' ? 'Salary paid, with the bonus on top' : `Salary paid (bonus at ${+a.bonus.payoutPct.toFixed(1)}%)`, ...both(inr(gross))) : null,
+          a.store.variableInCtc === 'top' && a.bonus.paid > 0 ? row('Bonus on top of the CTC', ...both(`+ ${inr(a.bonus.paid)}`))
+            : a.bonus.paid !== a.bonus.target ? row(`Bonus paid at ${+a.bonus.payoutPct.toFixed(1)}% of target`, ...both(`${a.bonus.paid > a.bonus.target ? '+' : '−'} ${inr(Math.abs(a.bonus.paid - a.bonus.target))}`)) : null,
+          a.pay.employerNps > 0 ? row('Employer NPS, to your NPS account', ...both(minus(a.pay.employerNps))) : null,
           row('Your PF', ...both(minus(pf))),
           row('Professional tax', ...both(minus(pt))),
           row('Income tax', minus(a.tax.new), minus(a.tax.old)),
@@ -343,7 +354,7 @@ export function mountQuick(slot, opts) {
     // a salary saved elsewhere answers the bonus question; an emptied one asks it again
     if (!asking) bonusKind = q.ctc > 0 ? knownBonus(q) : null;
     if (!bonusKind) asking = true;
-    if (DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0)) deeper = true;
+    if (DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0) || q.employerNpsPct > 0) deeper = true;
     adjFold.open = adjFold.open || ADJUST.some((d) => +q.inhand?.[d.key] > 0);
     paint();
   };

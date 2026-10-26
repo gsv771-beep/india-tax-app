@@ -1069,3 +1069,4 @@ body:has(#home:not([hidden])) .profile-panel:not(.open), body:has(#tax:not([hidd
 }
 /* the first screen is the question alone: the footer starts below the fold */
 #home:not([hidden]) { min-height: 100svh; }
+.quick-flow .quick-amount input.quick-pct { width: 90px; }
