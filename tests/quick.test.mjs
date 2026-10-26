@@ -19,7 +19,7 @@ ok('no CTC -> no answer', quickAnswer({ ctc: 0 }, rates) === null);
 // agrees with the in-hand salary calculator at its own defaults, so the link from one to the other shows the same figure
 {
   const a = quickAnswer({ ctc: 1800000 }, rates);
-  const s = salaryBreakdown({ ctc: 1800000, basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best' }, rates);
+  const s = salaryBreakdown({ ctc: 1800000, basicPct: 50, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best' }, rates);
   near('18L: monthly in-hand equals the salary calculator', a.monthly.best, s.monthly);
   near('18L: new-regime tax equals the salary calculator', a.tax.new, s.cmp.new.tax.total);
   ok('18L with nothing but PF: the new regime wins', a.better === 'new' && a.saves > 0, `saves ${a.saves}`);
@@ -45,9 +45,9 @@ ok('no CTC -> no answer', quickAnswer({ ctc: 0 }, rates) === null);
   ok('24,000 a year short of it: the new regime still wins', under.better === 'new', `old ${under.tax.old} new ${under.tax.new}`);
 }
 
-// rent in a metro, a home loan and every deduction: the old regime wins at 18L
+// rent in a metro, a home loan and every deduction: the old regime wins at 18L (80C filled to ₹1.5 lakh over the ₹1,08,000 PF)
 {
-  const a = quickAnswer({ ctc: 1800000, rentMonthly: 25000, city: 'Mumbai', homeLoanInterest: 200000, other80c: 63600, healthSelf: 25000, nps1b: 50000 }, rates);
+  const a = quickAnswer({ ctc: 1800000, rentMonthly: 30000, city: 'Mumbai', homeLoanInterest: 200000, other80c: 42000, healthSelf: 25000, nps1b: 50000 }, rates);
   ok('rent + home loan + full 80C, 80D and NPS: old regime wins', a.better === 'old', `old ${a.tax.old} new ${a.tax.new}`);
   ok('HRA exemption is counted for rent in a metro', a.claimed.hra > 0, `hra ${a.claimed.hra}`);
   ok('home-loan interest is capped at 2 lakh', quickAnswer({ ctc: 1800000, homeLoanInterest: 500000 }, rates).claimed.homeLoan === 200000);

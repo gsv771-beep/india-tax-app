@@ -73,7 +73,7 @@ export function renderOffer({ rates }) {
         bonusField,
       ]),
       // the rest only matters to some offers: one fold, open when something in it is already filled
-      el('details', { class: 'opts fold', open: +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 40 || o.pfInCtc === true || +o.hikePct > 0 }, [
+      el('details', { class: 'opts fold', open: +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 50 || o.pfInCtc === true || +o.hikePct > 0 }, [
         el('summary', {}, key === 'a' ? 'More: stock, rent, structure' : 'More: relocation, stock, rent, structure'),
         key === 'a' ? null : el('div', { class: 'offer-sub' }, [
           num('relocation', 'Relocation allowance (₹, paid once)', { step: 10000, placeholder: '0', slider: { max: 500000, step: 10000 } }, 'year 1'),
@@ -82,7 +82,7 @@ export function renderOffer({ rates }) {
         num('stockPerYear', 'Stock vesting each year (₹, ESOP or RSU)', { step: 25000, placeholder: '0', slider: { max: 5000000, step: 25000 } }, 'at today’s share price; taxed as salary when it vests; not cash'),
         el('label', {}, [el('span', { class: 'lbl' }, 'City'), select('city', [['metro', 'Metro: Mumbai, Delhi, Kolkata, Chennai'], ['other', 'Elsewhere, including Bengaluru, Pune, Hyderabad']])]),
         num('rentMonthly', 'Rent you will pay (₹ a month)', { step: 1000, placeholder: '0', slider: { max: 200000, step: 1000 } }, 'for the HRA exemption in the old regime'),
-        num('basicPct', 'Basic (% of CTC)', { step: 1, max: 80, slider: { min: 20, max: 70, step: 1 } }, '40% is common; check the annexure'),
+        num('basicPct', 'Basic (% of CTC)', { step: 1, max: 80, slider: { min: 20, max: 70, step: 1 } }, '50% assumed; check the annexure'),
         el('label', { class: 'check' }, [pf, 'Employer PF and gratuity are inside this CTC (only if the offer letter says so)']),
         num('hikePct', 'Hike you expect for year 2 (%)', { step: 1, max: 100, slider: { max: 50, step: 1 } }, 'on the fixed pay'),
       ]),

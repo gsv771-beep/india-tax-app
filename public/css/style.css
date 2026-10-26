@@ -771,65 +771,12 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 .fb-toggle { padding: 10px 16px; border-radius: 999px; border: none; background: var(--accent); color: #fff; font: inherit; font-weight: 700; cursor: pointer; box-shadow: var(--shadow-lg); }
 .fb-toggle:hover { background: var(--accent-2); }
 .fb-row { display: flex; gap: 8px; }
-/* Ask TaxCompass (js/ask.js): the chat panel beside Feedback */
 /* Ask: a compass with a face, its needle for a nose. Idle it bobs, blinks and swings the needle. */
-.ask-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 5px 16px 5px 5px; background: var(--surface); color: var(--accent-2); border: 2px solid var(--accent-3); animation: ask-bob 3.6s ease-in-out 4; }
-.ask-toggle:hover { background: var(--accent-soft); }
-.ask-toggle .mascot { width: 40px; height: 40px; }
-.ask-toggle-label { display: grid; text-align: left; line-height: 1.15; }
-.ask-toggle-label small { font-size: .7rem; font-weight: 600; color: var(--muted); }
-.ask-toggle-label span { font-weight: 800; white-space: nowrap; }
-.ask-toggle[aria-expanded="true"] { animation: none; }
-.mascot { display: block; flex: none; overflow: visible; }
-.mascot .m-rim { fill: var(--accent); }
-.mascot .m-face { fill: #fffaf0; }
-.mascot .m-tick { stroke: var(--gold); stroke-width: 2.4; stroke-linecap: round; }
-.mascot .m-n { fill: var(--accent); font: 800 7.5px/1 var(--font); text-anchor: middle; }
-.mascot .m-eyes { fill: #1c2321; transform-origin: 32px 30px; animation: ask-blink 4.8s infinite; }
-.mascot .m-needle { transform-origin: 32px 36px; animation: ask-needle 3.2s ease-in-out infinite; }
-.mascot .m-needle-n { fill: #d64545; }
-.mascot .m-needle-s { fill: #4a5550; }
-.mascot .m-smile { fill: none; stroke: #1c2321; stroke-width: 2; stroke-linecap: round; }
-.mascot .m-cheek { fill: #f3a5a5; opacity: .7; }
-.ask-waving { animation: ask-hop .9s ease-in-out 3; }
-.ask-waving .m-needle { animation: ask-spin 1.2s ease-in-out 2; }
-@keyframes ask-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-@keyframes ask-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
-@keyframes ask-needle { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg); } }
-@keyframes ask-spin { 0% { transform: rotate(0); } 70% { transform: rotate(380deg); } 100% { transform: rotate(360deg); } }
-@keyframes ask-hop { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-8px) rotate(-6deg); } 60% { transform: translateY(0) rotate(4deg); } }
-@media (prefers-reduced-motion: reduce) { .ask-toggle, .ask-waving, .mascot .m-eyes, .mascot .m-needle { animation: none !important; } }
-.ask-title { display: flex; align-items: center; gap: 8px; }
-.ask-title .mascot { width: 30px; height: 30px; }
-/* "Did you know?": in the panel's greeting, and once a visit as a bubble beside the mascot */
-.ask-tip { display: grid; gap: 4px; }
-.ask-tip strong { font-size: 1rem; color: var(--accent-2); margin: 0; }
-.ask-tip-kicker { font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--old); }
-.ask-more { background: none; border: none; padding: 0; color: var(--accent-2); cursor: pointer; text-decoration: underline; font: inherit; font-weight: 600; font-size: .88rem; }
-.ask-tease { position: relative; width: min(290px, calc(100vw - 32px)); padding: 12px 14px; background: var(--surface); border: 2px solid var(--accent-3); border-radius: 14px 14px 4px 14px; box-shadow: var(--shadow-lg); font-size: .9rem; display: grid; gap: 4px; animation: ask-pop .35s ease-out; }
-.ask-tease[hidden] { display: none; }
-.ask-tease strong { color: var(--accent-2); font-size: 1rem; padding-right: 20px; }
-.ask-tease p { margin: 0 0 6px; }
-.ask-tease .btn { justify-self: start; text-decoration: none; }
-.ask-tease-close { position: absolute; top: 4px; right: 6px; }
-@keyframes ask-pop { from { opacity: 0; transform: translateY(8px) scale(.96); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .ask-tease { animation: none; } }
-.ask-panel { width: min(420px, calc(100vw - 24px)); display: flex; flex-direction: column; max-height: min(640px, calc(100vh - 110px)); }
-.ask-intro { margin: 4px 0 10px; }
-.ask-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 2px 2px 8px; min-height: 120px; }
-.ask-msg { border-radius: 12px; padding: 9px 12px; font-size: .92rem; max-width: 92%; }
-.ask-msg p { margin: 0; }
-.ask-msg strong { display: block; margin-bottom: 3px; }
-.ask-you { align-self: flex-end; background: var(--accent); color: #fff; }
-.ask-bot { align-self: flex-start; background: var(--surface-2); border: 1px solid var(--line); }
-.ask-links { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
-.ask-links .btn { text-decoration: none; }
-.ask-link { font-weight: 600; font-size: .88rem; }
-.ask-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.ask-chips button { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 5px 11px; font: inherit; font-size: .82rem; cursor: pointer; color: var(--text); text-align: left; }
-.ask-chips button:hover { border-color: var(--accent-3); color: var(--accent); }
-.ask-form { display: flex; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
-.ask-form input { flex: 1; min-width: 0; }
+
+
+
+
+
 .fb-panel { width: min(380px, calc(100vw - 36px)); padding: 16px; box-shadow: var(--shadow-lg); }
 .fb-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .fb-form { display: grid; gap: 10px; }
@@ -848,19 +795,8 @@ abbr.gl:hover, abbr.gl:focus { background: var(--accent-soft); outline: none; bo
 @media (max-width: 560px) {
   /* clear of the browser's own bar and of the screen edge, so it reads as part of the page */
   .fb { right: 16px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
-  /* Ask keeps its label until it has been opened once, then on a phone it is the mascot alone */
-  .ask-toggle { padding: 4px 16px 4px 4px; }
-  .ask-toggle:not(.ask-labelled) { padding: 4px; border-radius: 50%; }
-  .ask-toggle:not(.ask-labelled) .mascot { width: 48px; height: 48px; }
-  .ask-toggle:not(.ask-labelled) .ask-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-  .site-footer { padding-bottom: 112px; }
   /* an open panel is a full-screen sheet over the visible viewport, above the keyboard */
-  .fb .fb-panel { position: fixed; left: 0; right: 0; top: var(--vv-top, 0px); height: var(--vv-h, 100dvh); width: auto; max-height: none; margin: 0; border: none; border-radius: 0; box-shadow: none; z-index: 60; overflow-y: auto; padding: 14px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }
-  .fb .fb-panel.ask-panel { display: flex; flex-direction: column; overflow: hidden; }
-  .fb .ask-panel .ask-log { flex: 1; min-height: 0; }
-  .fb .ask-form input, .fb .fb-form textarea, .fb .fb-form input { font-size: 16px; }   /* 16px or more: iOS does not zoom the page on focus */
-  .fb.panel-open .fb-row, .fb.panel-open .ask-tease { display: none; }
-  .fb .ask-panel:focus-within .ask-intro { display: none; }   /* typing: the conversation gets the room */
+  .fb .fb-panel { position: fixed; left: 0; right: 0; top: var(--vv-top, 0px); height: var(--vv-h, 100dvh); width: auto; max-height: none; margin: 0; border: none; border-radius: 0; box-shadow: none; z-index: 60; overflow-y: auto; padding: 14px 16px calc(12px + env(safe-area-inset-bottom, 0px)); }   /* 16px or more: iOS does not zoom the page on focus */
   html.sheet-open, html.sheet-open body { overflow: hidden; }
 }
 /* offer comparison: the two offers side by side, the result under them */
@@ -1096,10 +1032,40 @@ details.r-why[open] > summary { margin-bottom: 8px; }
   .quick-side-tax, .quick-side-sub { font-size: .8rem; grid-column: 1 / -1; }
   .quick-sub { font-size: .85rem; }
   .quick-left-v { font-size: 1.2rem; }
-  /* the Ask pill shrinks to the mascot once there is an answer to read */
-  body:has(.quick-slot.has-answer) .ask-toggle.ask-labelled { padding: 4px; border-radius: 50%; }
-  body:has(.quick-slot.has-answer) .ask-toggle.ask-labelled .ask-toggle-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   /* the footer keeps the disclaimer; About and sources are on the About page */
   .footer-about, .footer-sources { display: none; }
   .site-footer { padding-top: 22px; }
 }
+
+/* ---- the salary question, one step at a time (js/quick.js) ---- */
+.quick-flow { max-width: 720px; margin-inline: auto; padding: 24px; }
+#home .hero-quick { max-width: 720px; margin-inline: auto; text-align: left; }
+.quick-flow .quick-in-label { font-size: 1.1rem; }
+.quick-flow input.quick-ctc { width: 100%; max-width: 360px; }
+.quick-privacy { margin: 8px 0 0; }
+.quick-slot.has-answer .quick-privacy, .quick-slot.asking .quick-privacy { display: none; }
+.quick-step { margin-top: 20px; }
+.quick-step[hidden], .quick-answer[hidden], .quick-deeper-body[hidden], .quick-deeper-btn[hidden] { display: none; }
+.quick-q { margin: 0 0 10px; font-weight: 700; font-size: 1.05rem; }
+.quick-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-choice { padding: 10px 16px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+.quick-choice:hover, .quick-choice:focus-visible { border-color: var(--accent-3); }
+.quick-choice[aria-pressed="true"] { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
+.quick-q-field { display: grid; gap: 6px; margin-top: 14px; font-weight: 600; font-size: .95rem; }
+.quick-q-field[hidden] { display: none; }
+.quick-q-grid { display: grid; gap: 4px 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.quick-q-grid .quick-q-field { margin-top: 12px; }
+.quick-flow .quick-amount input { width: 150px; }
+.quick-deeper { padding-top: 4px; }
+.quick-deeper-btn { width: 100%; }
+.quick-link-btn { background: none; border: 0; padding: 0; color: var(--accent-2); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.quick-bonus-kind { margin-top: 10px; }
+/* the tax page's deeper tools and the profile bar wait until there is something to go deeper on */
+#tax:not(:has(.quick-slot.has-answer)) > .detail-toggle { display: none; }
+body:has(#home:not([hidden])) .profile-panel:not(.open), body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
+@media (max-width: 560px) {
+  .quick-flow { padding: 18px 16px; }
+  .quick-choice { flex: 1 1 100%; text-align: left; }
+}
+/* the first screen is the question alone: the footer starts below the fold */
+#home:not([hidden]) { min-height: 100svh; }

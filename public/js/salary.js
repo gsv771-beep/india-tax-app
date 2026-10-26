@@ -25,7 +25,7 @@ export function renderSalary(data) {
   // The shared profile wins over this calculator's own memory whenever it has anything in it.
   const profile = getProfile();
   const fromProfile = isEmptyProfile(profile) || isBlankAfterReset('salary') ? {} : toSalaryStore(profile);
-  const st = { ctc: '', basicPct: 40, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variablePayoutPct: 100, variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
+  const st = { ctc: '', basicPct: 50, hraPct: 50, conveyance: 0, variable: 0, variableInCtc: 'ctc', variablePayoutPct: 100, variableMonthly: 'yearly', includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0, professionalTax: 2400, city: 'Other', rentPaid: 0, other80c: 0, nps1b: 0, healthSelf: 0, ageBand: 'below_60', regime: 'best', ...saved, ...fromProfile };
   // a link with ?ctc= (Ask, the salary pages, the tax page) opens at that CTC; nothing is saved until an edit
   const urlCtc = ctcFromUrl();
   if (urlCtc) st.ctc = urlCtc;
@@ -54,13 +54,13 @@ export function renderSalary(data) {
   pctToggle({ input: variableField.querySelector('input'), baseInput: ctcField.querySelector('input'), defaultPct: 10, name: 'salary.variable', hint: 'CTC', max: 60 });
   // The CTC is the one question; the structure folds away until someone wants their exact payslip
   // anyone who has already set their own structure sees it open
-  const customised = +st.basicPct !== 40 || +st.hraPct !== 50 || +st.conveyance > 0 || +st.variable > 0 || +st.rentPaid > 0 || +st.employerNpsPct > 0 || +st.other80c > 0 || +st.nps1b > 0 || +st.healthSelf > 0 || st.regime !== 'best' || st.includeEmployerPf === false;
+  const customised = +st.basicPct !== 50 || +st.hraPct !== 50 || +st.conveyance > 0 || +st.variable > 0 || +st.rentPaid > 0 || +st.employerNpsPct > 0 || +st.other80c > 0 || +st.nps1b > 0 || +st.healthSelf > 0 || st.regime !== 'best' || st.includeEmployerPf === false;
   const inputs = el('div', { class: 'card inputs' }, [
     ctcField,
     el('details', { class: 'opts fold salary-structure', open: customised }, [
     el('summary', {}, 'Your exact salary structure'),
     el('div', { class: 'wide-grid' }, [
-    el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, 'usually 35 to 50%'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
+    el('div', { class: 'two' }, [field('basicPct', 'Basic as % of CTC', { step: 1 }, '50% assumed; check your offer letter'), field('hraPct', 'HRA as % of Basic', { step: 5 }, '50% in metros, 40% elsewhere')]),
     field('conveyance', 'Conveyance allowance per year (₹)', { step: 1000 }, 'taxable since 2018; it only changes the break-up'),
     variableField,
     el('div', { class: 'two' }, [

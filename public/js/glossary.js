@@ -28,10 +28,10 @@ export function initGlossary({ glossary }) {
       el('h3', {}, t.term),
       el('p', {}, t.def),
     ])));
-    if (!terms.length) list.append(el('div', { class: 'notice' }, 'No matching terms. Try another word, or ask with the Ask button at the bottom of the page.'));
+    if (!terms.length) list.append(el('div', { class: 'notice' }, 'No matching terms. Try another word.'));
   }
 
-  // /glossary?q=HRA (from Ask TaxCompass) opens on that term, on arrival or on a later link
+  // /glossary?q=HRA opens on that term, on arrival or on a later link
   const fromUrl = () => { const q = new URLSearchParams(location.search).get('q'); if (q != null && location.pathname.startsWith('/glossary')) { search.value = q; activeCat = 'all'; renderCats(); render(); } };
   window.addEventListener('routechange', fromUrl);
   search.addEventListener('input', render);

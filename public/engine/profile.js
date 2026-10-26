@@ -240,7 +240,7 @@ export function toSalaryStore(p) {
   const i = p.income;
   const ctc = ctcHeadline(p);
   return {
-    ctc, basicPct: ctc ? +(100 * i.basic / ctc).toFixed(4) : 40, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
+    ctc, basicPct: ctc ? +(100 * i.basic / ctc).toFixed(4) : 50, hraPct: i.basic ? +(100 * i.hra / i.basic).toFixed(4) : 50,
     conveyance: num(i.conveyance), variable: num(i.variablePay), variableInCtc: p.tax.bonusOnTop ? 'top' : 'ctc', variablePayoutPct: payoutOf(p),
     includeEmployerPf: i.employerPf > 0, includeGratuity: i.gratuity > 0, employerNpsPct: i.basic ? +(100 * i.employerNps / i.basic).toFixed(4) : 0,
     city: p.location.city, rentPaid: p.location.housing === 'rent' ? p.location.rentPaid : 0,

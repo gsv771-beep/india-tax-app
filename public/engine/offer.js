@@ -22,7 +22,7 @@ import { compareRegimes } from '../js/tax-engine.js';
 
 export const OFFER_DEFAULTS = {
   ctc: '', variablePct: 0, variableOnTop: false, payoutPct: 100, joiningBonus: 0, bonusKind: 'joining',
-  relocation: 0, relocationBills: false, stockPerYear: 0, basicPct: 40, pfInCtc: false, city: 'metro', rentMonthly: 0,
+  relocation: 0, relocationBills: false, stockPerYear: 0, basicPct: 50, pfInCtc: false, city: 'metro', rentMonthly: 0,
   professionalTax: 2400, hikePct: 0,
 };
 
@@ -46,13 +46,13 @@ export function offerYear(raw, rates, { year = 1 } = {}) {
   const relocationTaxable = o.relocationBills ? 0 : relocation;
   const stock = Math.max(0, num(o.stockPerYear));
   // Basic is quoted as a share of the CTC; keep the same rupee Basic when the variable part is set aside
-  const basicPctOfFixed = fixedBase > 0 ? num(o.basicPct, 40) * ctc / fixedBase : 0;
+  const basicPctOfFixed = fixedBase > 0 ? num(o.basicPct, 50) * ctc / fixedBase : 0;
   const metro = o.city === 'metro';
   const b = salaryBreakdown({
     ctc: fixedCtc, basicPct: basicPctOfFixed, hraPct: metro ? 50 : 40, includeEmployerPf: o.pfInCtc === true, includeGratuity: o.pfInCtc === true,
     professionalTax: num(o.professionalTax, 2400), city: metro ? 'Mumbai' : 'Other', rentPaid: num(o.rentMonthly) * 12, regime: 'best',
   }, rates);
-  if (b.error) return { error: `Basic at ${num(o.basicPct, 40)}% leaves no room for the rest of the CTC. Lower it.` };
+  if (b.error) return { error: `Basic at ${num(o.basicPct, 50)}% leaves no room for the rest of the CTC. Lower it.` };
 
   // everything taxable on top of the fixed salary: variable pay, the bonus, taxable relocation, vested stock
   const taxWith = (extra) => compareRegimes({ ...b.inputs, salary: { ...b.inputs.salary, gross: b.inputs.salary.gross + extra } }, rates);

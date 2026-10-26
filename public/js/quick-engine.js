@@ -7,7 +7,7 @@
  *     paid, % of it; onTop: the bonus is paid over and above the CTC rather than inside it. The monthly figures leave the bonus out, because it is paid once; the yearly ones include it.
  *   ladder(rates)  -> the same answer at common CTCs, for the table shown before anything is typed
  *
- * The salary split is the in-hand calculator's own (salary.js), with its defaults (Basic 40% of CTC, HRA
+ * The salary split is the in-hand calculator's own (salary.js), with its defaults (Basic 50% of CTC, HRA
  * 50% of Basic, employer PF and gratuity on top of the CTC rather than inside it, ₹2,400 professional tax), so following a link
  * from here to that calculator shows the same figure. Pure; no DOM.
  */
@@ -15,7 +15,7 @@ import { salaryBreakdown } from '../engine/salary-split.js';
 import { compareRegimes, mergeInputs } from './tax-engine.js';
 import { breakEven } from './tax-insights.js';
 
-export const QUICK_DEFAULTS = { basicPct: 40, hraPct: 50, professionalTax: 2400, city: 'Other' };
+export const QUICK_DEFAULTS = { basicPct: 50, hraPct: 50, professionalTax: 2400, city: 'Other' };
 export const LADDER_CTCS = [600000, 800000, 1000000, 1200000, 1500000, 1800000, 2000000, 2500000, 3000000, 4000000, 5000000];
 export const LIMIT_80C = 150000;
 

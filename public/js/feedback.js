@@ -57,7 +57,7 @@ export function initFeedback() {
   close.addEventListener('click', () => setOpen(false));
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !panel.hidden) setOpen(false); });
   document.addEventListener('click', (e) => { if (e.target.closest('[data-open-feedback]')) { e.preventDefault(); setOpen(true); } });
-  // the corner holds the panels above a row of buttons; Ask TaxCompass (ask.js) adds its own to both
+  // the corner holds the feedback panel above its row
   document.body.append(el('div', { class: 'fb' }, [panel, el('div', { class: 'fb-row' })]));
   trackViewport();
 }

@@ -90,6 +90,6 @@ export function snapshot(p, { rates, mix, loanPolicy, equityPct = 60, years = 10
 
 /** A starter profile from a CTC alone: 40% basic, 50% of basic as HRA, employer PF and gratuity on top of the CTC. */
 export function seedFromCtc(p, ctc, rates) {
-  const st = { ...toSalaryStore(p), ctc: Math.max(0, num(ctc)), basicPct: 40, hraPct: 50, includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0 };
+  const st = { ...toSalaryStore(p), ctc: Math.max(0, num(ctc)), basicPct: 50, hraPct: 50, includeEmployerPf: false, includeGratuity: false, employerNpsPct: 0 };
   return { store: st, breakdown: salaryBreakdown(st, rates) };
 }
