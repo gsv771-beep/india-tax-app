@@ -2,6 +2,7 @@
  * Capital gains calculator: pure computation (tested) and the UI.
  * Rules and the Cost Inflation Index come from data/capital_gains.json.
  */
+import { moreFold } from './calculators.js';
 import { inr, pct, el, setChildren, disclaimer, beginPrompt } from './util.js';
 import { calcExportCard } from './calc-export-card.js';
 import { resultLayout } from './result-layout.js';
@@ -281,7 +282,9 @@ export function renderCapitalGains(app) {
   const impRow = el('div', { class: 'two' }, [impAmount.node, impFy.node]);
   const inputsCard = el('div', { class: 'card inputs' }, [
     asset.node, el('div', { class: 'two' }, [buyDate.node, sellDate.node]),
-    cost.node, fmv2001.node, impRow, sale.node, expenses.node, fmv2018.node, otherLtcg.node, resident.node, slab.node, reliefFold,
+    cost.node, fmv2001.node, sale.node, fmv2018.node, slab.node,
+    moreFold('Sale expenses, improvements, other gains this year', +st.expenses > 0 || +st.impAmount > 0 || +st.otherEquityLtcgThisYear > 0, [expenses.node, impRow, otherLtcg.node, resident.node]),
+    reliefFold,
   ]);
 
   function render() {

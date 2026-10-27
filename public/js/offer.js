@@ -68,13 +68,13 @@ export function renderOffer({ rates }) {
       el('div', { class: 'offer-name' }, [el('span', { class: 'offer-tag' }, key.toUpperCase()), name]),
       num('ctc', 'CTC on the offer letter (₹ a year)', { step: 50000, placeholder: 'e.g. 2400000', slider: { max: 20000000, step: 50000 } }),
       variableBlock,
-      el('div', { class: 'offer-sub' }, [
-        el('label', {}, [el('span', { class: 'lbl' }, 'One-time bonus'), kind]),
-        bonusField,
-      ]),
       // the rest only matters to some offers: one fold, open when something in it is already filled
-      el('details', { class: 'opts fold', open: +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 50 || o.pfInCtc === true || +o.hikePct > 0 }, [
-        el('summary', {}, key === 'a' ? 'More: stock, rent, structure' : 'More: relocation, stock, rent, structure'),
+      el('details', { class: 'opts fold', open: +o.joiningBonus > 0 || +o.relocation > 0 || +o.stockPerYear > 0 || +o.rentMonthly > 0 || o.city !== 'metro' || +o.basicPct !== 50 || o.pfInCtc === true || +o.hikePct > 0 }, [
+        el('summary', {}, key === 'a' ? 'More: bonus, stock, rent, structure' : 'More: bonus, relocation, stock, rent, structure'),
+        el('div', { class: 'offer-sub' }, [
+          el('label', {}, [el('span', { class: 'lbl' }, 'One-time bonus'), kind]),
+          bonusField,
+        ]),
         key === 'a' ? null : el('div', { class: 'offer-sub' }, [
           num('relocation', 'Relocation allowance (₹, paid once)', { step: 10000, placeholder: '0', slider: { max: 500000, step: 10000 } }, 'year 1'),
           check('relocationBills', 'Reimbursed against bills, so not taxed'),

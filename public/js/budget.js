@@ -6,7 +6,7 @@
  */
 import { inr, pct, el, setChildren, disclaimer, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { resultLayout } from './result-layout.js';
-import { sipFV } from './calculators.js';
+import { sipFV, moreFold } from './calculators.js';
 import { loadExcelJS, X, headerRow, dataRow, sheetTitle, toBase64, safeFileName } from './xlsx-style.js';
 import { saveFileCard } from './save-card.js';
 import { setHandoff, takeHandoff, handoffNote } from './handoff.js';
@@ -336,16 +336,17 @@ export function renderBudget(appData) {
   const expenseList = el('div', { class: 'rows' });
   const investList = el('div', { class: 'rows' });
 
+  // an expense is a name and an amount; only one added by hand asks which category it is
   function expenseRow(e) {
-    const cat = el('select', { 'aria-label': 'Expense category' }, CATEGORIES.map((c) => el('option', { value: c, selected: c === e.category }, c)));
-    const note = el('input', { type: 'text', placeholder: 'note (optional)', value: e.note || '', maxlength: 60, 'aria-label': 'Note about this expense' });
-    const amt = el('input', { type: 'number', min: 0, step: 100, placeholder: '₹ / month', value: e.amount || '', 'aria-label': 'Amount per month in rupees' });
+    const cat = e.custom
+      ? el('select', { 'aria-label': 'Expense category' }, CATEGORIES.map((c) => el('option', { value: c, selected: c === e.category }, c)))
+      : el('span', { class: 'expense-name' }, e.note ? `${e.category} (${e.note})` : e.category);
+    const amt = el('input', { type: 'number', min: 0, step: 100, placeholder: '₹ a month', value: e.amount || '', 'aria-label': `${e.category}, amount per month in rupees` });
     const del = el('button', { type: 'button', class: 'icon-btn', title: 'Remove', 'aria-label': 'Remove expense' }, '×');
-    cat.addEventListener('change', () => { e.category = cat.value; refresh(); });
-    note.addEventListener('input', () => { e.note = note.value; save(); });
+    if (e.custom) cat.addEventListener('change', () => { e.category = cat.value; refresh(); });
     amt.addEventListener('input', () => { e.amount = amt.value; refresh(); });
     del.addEventListener('click', () => { state.expenses = state.expenses.filter((x) => x !== e); row.remove(); refresh(); });
-    const row = el('div', { class: 'row expense-row' }, [cat, note, amt, del]);
+    const row = el('div', { class: 'row expense-row' }, [cat, amt, del]);
     return row;
   }
   function investRow(inv) {
@@ -364,7 +365,7 @@ export function renderBudget(appData) {
     const row = el('div', { class: 'row invest-row' }, [type, name, amt, el('span', { class: 'unit' }, [rate, '%']), el('span', { class: 'unit' }, [yrs, 'yrs']), del]);
     return row;
   }
-  const addExpense = (category = 'Others') => { const e = { id: uid(), category, note: '', amount: '' }; state.expenses.push(e); expenseList.append(expenseRow(e)); expenseList.lastChild.querySelector('input[type=number]').focus(); };
+  const addExpense = (category = 'Others') => { const e = { id: uid(), category, note: '', amount: '', custom: true }; state.expenses.push(e); expenseList.append(expenseRow(e)); expenseList.lastChild.querySelector('input[type=number]').focus(); };
   const addInvest = (type) => { const inv = { id: uid(), type, name: type === 'rd' ? 'Recurring deposit' : 'Mutual fund SIP', amount: '', ratePct: type === 'rd' ? 6.7 : 12, years: type === 'rd' ? 5 : 10 }; state.investments.push(inv); investList.append(investRow(inv)); refresh(); };
 
   for (const e of state.expenses) expenseList.append(expenseRow(e));
@@ -373,14 +374,15 @@ export function renderBudget(appData) {
   // append() turns a null into the text "null"; setChildren drops it
   setChildren(left, [
     handoff ? handoffNote(handoff.from, `Income set to ${inr(state.income)} a month from `) : null,
-    el('label', { class: 'budget-ctc' }, ['Your annual CTC (₹)', el('small', {}, ['fills the take-home below; the same salary the ', el('a', { href: '/tax' }, 'Tax & salary'), ' page uses']), ctcInput]),
-    el('label', {}, ['Monthly take-home income (₹)', el('small', {}, 'after tax and deductions, as credited to your bank'), incomeInput]),
+    el('label', {}, ['Monthly take-home (₹)', el('small', {}, 'what reaches your bank each month'), incomeInput]),
     incomeNote,
-    el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), el('div', { class: 'row-head' }, ['Category', 'Note', 'Amount', ''].map((t) => el('span', {}, t))), expenseList,
-      el('div', { class: 'chips' }, CATEGORIES.map((c) => el('button', { type: 'button', onclick: () => addExpense(c) }, '+ ' + c)))]),
-    el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly investments'), el('div', { class: 'row-head invest-head' }, ['Type', 'Name', 'Amount', 'Return', 'Term', ''].map((t) => el('span', {}, t))), investList,
-      el('div', { class: 'chips' }, [el('button', { type: 'button', onclick: () => addInvest('sip') }, '+ SIP'), el('button', { type: 'button', onclick: () => addInvest('rd') }, '+ Recurring deposit')])]),
-    el('div', { class: 'form-actions' }, el('button', { type: 'button', class: 'btn secondary', onclick: () => { state = { ...defaultState(), incomeFrom: 'none' }; save(); root.replaceWith(renderBudget(appData)); } }, 'Start over')),
+    el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'Monthly expenses'), expenseList,
+      el('button', { type: 'button', class: 'btn-link budget-add', onclick: () => addExpense() }, '+ Add an expense')]),
+    moreFold('SIPs and deposits, or start from your CTC', state.investments.some((i) => +i.amount > 0), [
+      el('div', { class: 'opt-title' }, 'Monthly investments'), el('div', { class: 'row-head invest-head' }, ['Type', 'Name', 'Amount', 'Return', 'Term', ''].map((t) => el('span', {}, t))), investList,
+      el('div', { class: 'chips' }, [el('button', { type: 'button', onclick: () => addInvest('sip') }, '+ SIP'), el('button', { type: 'button', onclick: () => addInvest('rd') }, '+ Recurring deposit')]),
+      el('label', { class: 'budget-ctc' }, ['Or work the take-home out from your annual CTC (₹)', el('small', {}, ['the same salary the ', el('a', { href: '/tax' }, 'Tax & salary'), ' page uses']), ctcInput]),
+    ]),
   ]);
 
   // right side: the answer, why, what to do next, then the working

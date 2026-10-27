@@ -68,8 +68,7 @@ export function renderGoal({ schemes }) {
   const inputs = el('div', { class: 'card inputs' }, [
     el('label', {}, ['What is the money for?', typeSel]),
     childRow, daughterRow, F.years.node, F.cost.node,
-    mix.node,
-    el('details', { class: 'opts fold' }, [el('summary', {}, 'Assumptions (change what you know better)'), F.inflation.node, F.equityRate.node, F.safeRate.node]),
+    el('details', { class: 'opts fold' }, [el('summary', {}, 'More options: how much in equity, and the assumptions'), mix.node, F.inflation.node, F.equityRate.node, F.safeRate.node]),
   ]);
 
   function syncType() {
