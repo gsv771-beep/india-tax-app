@@ -644,7 +644,6 @@ function renderNext(inputs, cmp) {
       : action('See your monthly take-home', `What reaches your bank each month under the ${better} regime`, '/#payslip'),
     el('div', { class: 'r-also' }, [
       el('span', {}, 'Also:'),
-      also('Put the saving to work', '/calculators/compare', 'PPF, FD, funds and NPS compared after tax, at your slab'),
       gains ? also('Work out the capital gains', '/calculators/capital-gains', 'From a sale, or from your broker’s Tax P&L file')
         : also('Sold shares or property?', '/calculators/capital-gains', 'The gain, the exemptions, and what reinvesting saves'),
     ]),

@@ -1,6 +1,6 @@
 /**
  * Historical mutual fund returns, by category: loading and summaries. They set the default return
- * assumptions in Compare investments and the equity mix; no fund or category is put forward as a pick.
+ * assumptions in the retirement and goal planners' equity mix; no fund or category is put forward as a pick.
  *
  * Data: public/data/mf_returns.json, built by tools/build-mf-returns.mjs from AMFI NAV history.
  */
