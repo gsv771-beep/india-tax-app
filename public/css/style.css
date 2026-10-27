@@ -1082,3 +1082,17 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 #tax > .panel-head { max-width: 720px; margin-inline: auto; }
 .footer-legal { margin: 12px 0 0; font-size: .72rem; line-height: 1.5; color: rgba(255, 255, 255, .6); }
 @media (min-width: 801px) { .footer-grid { grid-template-columns: 1.4fr 1fr; } }
+
+/* the reverse question: a two-way switch above the box (js/quick.js) */
+.quick-modes { display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); max-width: 100%; }
+.quick-mode { padding: 7px 14px; border: 0; border-radius: 999px; background: none; color: var(--muted); font: inherit; font-size: .88rem; font-weight: 600; cursor: pointer; }
+.quick-mode[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.quick-in-wrap { flex: 1; min-width: 0; }
+.quick-in-wrap > [hidden] { display: none; }
+.quick-use { margin-top: 12px; }
+.quick-hike { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; font-weight: 600; font-size: .95rem; }
+.quick-hike[hidden] { display: none; }
+.quick-hike-out { font-weight: 600; color: var(--accent-ink); }
+@media (max-width: 560px) { .quick-mode { padding: 7px 10px; font-size: .82rem; } }
+/* trying out a take-home: the payslip and full form wait until it becomes the CTC */
+#tax:has(.quick-slot.wanting) > .detail-toggle, #tax:has(.quick-slot.wanting):not(.show-detail) > .detail-body { display: none; }
