@@ -2,7 +2,7 @@
 // Run: node tests/calculators.test.mjs
 
 import { emi, simulateLoan, lumpsumFV, sipFV, requiredSip } from '../public/js/calculators.js';
-import { summariseCategories, matchNear, matchExceeds, fundsFor, metricOf } from '../public/js/funds.js';
+import { summariseCategories, metricOf } from '../public/js/funds.js';
 
 let failures = 0;
 const near = (name, actual, expected, tol = 1) => { const ok = Math.abs(actual - expected) <= tol; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}: got ${Math.round(actual)}, expected ${expected}`); if (!ok) failures++; };
@@ -79,20 +79,6 @@ near('Required SIP inverts SIP FV', requiredSip(2323391, 12, 10), 10000, 1);
   const cats3 = summariseCategories(data, 3);
   ok('uses 3y rolling median for short horizons', cats3.find((c) => c.category === 'Flexi Cap').typical === 16);
 
-  const m12 = matchNear(cats5, 12);
-  ok('12% target matches Balanced Advantage and Flexi Cap', m12.matches.slice(0, 2).map((c) => c.category).sort().join() === 'Balanced Advantage,Flexi Cap', m12.matches.map((c) => c.category).join());
-  ok('12% target has no expectation warning', m12.note === null);
-  const m30 = matchNear(cats5, 30);
-  ok('30% target raises the too-high note', m30.note && m30.note.kind === 'high' && m30.note.best.category === 'Small Cap');
-  const m2 = matchNear(cats5, 2);
-  ok('2% target raises the conservative note', m2.note && m2.note.kind === 'low');
-
-  const ex = matchExceeds(cats5, 8.5);
-  ok('exceeds 8.5% excludes Liquid', !ex.find((c) => c.category === 'Liquid'));
-  ok('exceeds is ordered lowest risk first', ex[0].category === 'Balanced Advantage', ex.map((c) => c.category).join());
-
-  const ff = fundsFor(data, 'Flexi Cap', 10, 13.6, 'near');
-  ok('fundsFor orders by closeness', ff[0].metric === 13.5 && ff[1].metric === 14);
   ok('metricOf falls back to 3y when 5y missing', metricOf({ r3: [9, 1, 20] }, 10) === 9);
 }
 

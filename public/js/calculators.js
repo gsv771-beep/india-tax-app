@@ -1,6 +1,5 @@
 import { inr, inrShort, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { lineChart, columnChart, shortINR } from './charts.js';
-import { renderFundPanel } from './funds.js';
 import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
@@ -375,12 +374,10 @@ const VIEWS = {
       ['reduce_emi', 'the same tenure and pay a lower EMI'],
     ], 'reduce_tenure');
     const out = el('div');
-    const fundBox = el('div');
-    let fundKey = '';
 
     const render = () => {
       const p = v(P), r = v(R), y = v(Y), n = Math.round(y * 12);
-      if (!(p > 0)) { setChildren(out, [beginPrompt('Enter the loan amount to begin.')]); fundKey = ''; return; }
+      if (!(p > 0)) { setChildren(out, [beginPrompt('Enter the loan amount to begin.')]); return; }
       const cm = 0, preEmi = 0;
       const stepPct = step.pct(), stepAmt = step.amount();
       const hasStep = stepPct > 0 || stepAmt > 0;
@@ -475,21 +472,11 @@ const VIEWS = {
           charts,
           el('h3', {}, 'Year-by-year schedule' + (scen ? ' (with your changes)' : '')),
           el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, head.map((h) => el('th', {}, h)))), el('tbody', {}, rows)])),
-          fundBox,
         ],
         detailsLabel: 'Show the charts and the year-by-year schedule',
         foot: [disclaimer(['loan', 'invest'])],
       }));
 
-      const key = `${r}|${y}`;
-      if (key !== fundKey) {
-        fundKey = key;
-        renderFundPanel(fundBox, {
-          mode: 'exceeds', target: r, horizon: y,
-          title: 'Invest instead of prepaying?',
-          intro: `Prepaying returns exactly your loan rate of ${r}% a year, guaranteed and tax-free. These fund categories have typically returned more than that over ${y >= 5 ? 5 : 3}-year periods, but with losses along the way and taxes on gains. Lower risk first.`,
-        });
-      }
     };
     remember('emi', [P.input, R.input, Y.input, ...step.inputs, L.input, LM.input, A.input, AS.input, M.input]);
     // Pre-fill from the first loan in the shared profile (a handoff from another tool wins over it);
@@ -564,12 +551,10 @@ const VIEWS = {
       lumpList.append(entry.row);
     };
     const out = el('div');
-    const fundBox = el('div');
-    let fundKey = '';
     const render = () => {
       const a = v(A), r = v(R), y = v(Y), sp = step.pct(), sa = step.amount(), ls = lumpsOf();
       const lumpTotal = ls.reduce((s, l) => s + l.amount, 0);
-      if (!(a > 0) && !(lumpTotal > 0)) { setChildren(out, [beginPrompt('Enter a monthly SIP, or add a lump sum, to begin.')]); fundKey = ''; return; }
+      if (!(a > 0) && !(lumpTotal > 0)) { setChildren(out, [beginPrompt('Enter a monthly SIP, or add a lump sum, to begin.')]); return; }
       const at = (k, withStep) => sipFV(a, r, k, withStep ? sp : 0, withStep ? sa : 0, ls);
       const flat = at(y, false);
       const stepped = sp > 0 || sa > 0 ? at(y, true) : null;
@@ -616,20 +601,10 @@ const VIEWS = {
           el('div', { class: 'viz-title' }, 'How it grows'),
           lineChart({ series, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => `After ${Math.round(x)} years`, height: 240, ariaLabel: 'SIP growth by year' }),
           el('p', { class: 'muted small' }, 'Instalments are assumed at the start of each month (annuity-due), the convention most Indian SIP calculators use; lump sums earn from the end of the year you add them, and everything compounds monthly at the annual rate divided by 12. Returns are illustrative and not guaranteed.'),
-          fundBox,
         ],
-        detailsLabel: 'Show the growth chart and what funds have actually returned',
+        detailsLabel: 'Show the growth chart',
         foot: [disclaimer('invest')],
       }));
-      const key = `${r}|${y}`;
-      if (key !== fundKey) {
-        fundKey = key;
-        renderFundPanel(fundBox, {
-          mode: 'near', target: r, horizon: y,
-          title: `What has historically delivered about ${r}% a year?`,
-          intro: `Fund categories whose typical ${y >= 5 ? '5' : '3'}-year rolling return sits close to the ${r}% you assumed, with the worst and best stretches investors in them have actually lived through.${lumpTotal > 0 ? ' A lump sum is exposed to the timing of a single entry, so look hard at the worst window.' : ''}`,
-        });
-      }
     };
     const debouncedRender = debounce(render, 80);
     remember('sip', [A.input, R.input, Y.input, ...step.inputs]);
