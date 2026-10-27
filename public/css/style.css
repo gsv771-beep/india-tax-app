@@ -1078,3 +1078,9 @@ body:has(#home:not([hidden])) .profile-panel:not(.open), body:has(#tax:not([hidd
 .more-fold-what { font-weight: 500; font-size: .85rem; color: var(--muted); text-transform: none; letter-spacing: normal; }
 /* a calculator's title says what it does; the line under it only repeated that */
 #calculators:not(.on-index) #calc-intro { display: none; }
+/* Tax & salary before an answer: the card alone, unless the full form was asked for by name */
+#tax:not(.show-detail):not(:has(.quick-slot.has-answer)) > .detail-body { display: none; }
+#tax.show-detail:not(:has(.quick-slot.has-answer)) > .detail-toggle { display: block; }
+.tax-business-link { max-width: 720px; margin: 10px auto 0; font-size: .88rem; }
+#tax:has(.quick-slot.has-answer) .tax-business-link, #tax.show-detail .tax-business-link { display: none; }
+#tax:not([hidden]) { min-height: 100svh; }
