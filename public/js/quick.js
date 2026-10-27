@@ -11,6 +11,7 @@
 import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
+import { countEvent } from './feedback.js';
 import { fromSalaryStore, toTaxInputs, ctcOf, ctcHeadline, payoutOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
 import { quickAnswer, ctcForInHand, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 
@@ -143,12 +144,12 @@ export function mountQuick(slot, opts) {
   const pfInput = el('input', { type: 'checkbox' });
   const pfNote = el('span', { class: 'quick-basis-note muted small' });
   const pfBox = el('label', { class: 'quick-basis', hidden: true }, [pfInput, el('span', {}, [el('span', {}, 'My CTC includes employer PF and gratuity'), pfNote])]);
-  pfInput.addEventListener('change', () => set({ pfInCtc: pfInput.checked }));
+  pfInput.addEventListener('change', () => { if (pfInput.checked) countEvent('pfin'); set({ pfInCtc: pfInput.checked }); });
   // a hike on the CTC: what it adds to the take-home, after the tax on it
   const hikeInput = el('input', { type: 'number', min: 0, max: 200, step: 1, inputmode: 'decimal', placeholder: 'e.g. 10', class: 'quick-pct', 'aria-label': 'Hike you expect, percent' });
   const hikeOut = el('span', { class: 'quick-hike-out', 'aria-live': 'polite' });
   const hikeBox = el('label', { class: 'quick-hike', hidden: true }, [el('span', {}, 'Expecting a hike?'), el('span', { class: 'quick-amount' }, [hikeInput, el('span', { class: 'unit' }, '%')]), hikeOut]);
-  hikeInput.addEventListener('input', () => { hike = Math.max(0, +hikeInput.value || 0); paint(); });
+  hikeInput.addEventListener('input', () => { hike = Math.max(0, +hikeInput.value || 0); if (hike > 0) countEvent('hike'); paint(); });
 
   // ---- 2. the bonus ----
   const kindBtn = (kind, text) => el('button', { type: 'button', class: 'quick-choice', 'data-kind': kind, 'aria-pressed': 'false' }, text);
@@ -217,7 +218,7 @@ export function mountQuick(slot, opts) {
   ctcInput.addEventListener('input', () => { example = false; set({ ctc: readRupees(ctcInput.value) }); });
   // one tap to a worked answer, before typing anything: a ₹15 lakh CTC, no bonus, nothing saved
   const exampleBtn = el('button', { type: 'button', class: 'quick-link-btn quick-example' }, 'Or see an example: ₹15 lakh CTC');
-  exampleBtn.addEventListener('click', () => { example = true; bonusKind = 'none'; asking = false; ctcInput.value = rupees(1500000); set({ ctc: 1500000, variable: 0, onTop: false }); });
+  exampleBtn.addEventListener('click', () => { countEvent('example'); example = true; bonusKind = 'none'; asking = false; ctcInput.value = rupees(1500000); set({ ctc: 1500000, variable: 0, onTop: false }); });
   ctcInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !bonusStep.hidden) { e.preventDefault(); kindBtns[0].focus(); } });
   basicInput.addEventListener('change', () => set({ basicPct: Math.min(80, Math.max(10, +basicInput.value || QUICK_DEFAULTS.basicPct)) }));
   for (const b of kindBtns) b.addEventListener('click', () => {
@@ -268,7 +269,7 @@ export function mountQuick(slot, opts) {
     adjFold,
   ]);
   const deeperBox = el('div', { class: 'quick-step quick-deeper', hidden: true }, [deeperBtn, deeperBody]);
-  deeperBtn.addEventListener('click', () => { deeper = true; paint(); fields[0].input.focus({ preventScroll: false }); });
+  deeperBtn.addEventListener('click', () => { countEvent('deeper'); deeper = true; paint(); fields[0].input.focus({ preventScroll: false }); });
 
   const refreshFields = (a) => {
     if (document.activeElement !== npsPctInput) npsPctInput.value = q.employerNpsPct || '';
@@ -428,6 +429,8 @@ export function mountQuick(slot, opts) {
       : `Unticked: they are paid on top of the CTC, as many offer letters show. Tick if yours lists them inside it.`;
     if (a && a.error) { paintAnswer(a); return; }
     if (!ok) return;
+    // the funnel: an answer was shown (once a tab), and whether it came from the reverse question
+    if (source === 'quick:tax') { countEvent('answer'); if (wanting) countEvent('want'); }
     paintAnswer(a, need);
     if (!wanting) {
       const h = hike > 0 ? quickAnswer({ ...q, ctc: Math.round(q.ctc * (1 + hike / 100)) }, rates) : null;

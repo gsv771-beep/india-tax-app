@@ -15,6 +15,7 @@ export function escapeHtml(s) {
 export async function ensureSchema(db) {
   await db.batch([
     db.prepare('CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL DEFAULT 0)'),
+    db.prepare('CREATE TABLE IF NOT EXISTS counter_days (day TEXT NOT NULL, name TEXT NOT NULL, value INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (day, name))'),
     db.prepare('CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, name TEXT NOT NULL, email TEXT, rating INTEGER, message TEXT NOT NULL, page TEXT, ua TEXT, public_ok INTEGER NOT NULL DEFAULT 0, approved INTEGER NOT NULL DEFAULT 0)'),
   ]);
   // Databases created before the public wall: add the two columns once. SQLite has no IF NOT EXISTS for columns.
@@ -41,8 +42,15 @@ export function adminAuthorised(request, env) {
   return diff === 0;
 }
 
-export async function bump(db, name) {
+/** The calendar day in India (IST, UTC+5:30), as YYYY-MM-DD: the day a count is filed under. */
+export function istDay(now = Date.now()) {
+  return new Date(now + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
+/** Add one to a counter: its running total, and that day's count. Numbers only; nothing about the visitor. */
+export async function bump(db, name, now = Date.now()) {
   await db.prepare('INSERT INTO counters (name, value) VALUES (?, 1) ON CONFLICT(name) DO UPDATE SET value = value + 1').bind(name).run();
+  await db.prepare('INSERT INTO counter_days (day, name, value) VALUES (?, ?, 1) ON CONFLICT(day, name) DO UPDATE SET value = value + 1').bind(istDay(now), name).run();
 }
 
 export function brevoConfigured(env) {
