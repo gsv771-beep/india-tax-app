@@ -202,7 +202,7 @@ const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
   debt: { keys: ['taxcompass.debt.v1'] }, offer: { keys: ['taxcompass.offer.v1'] },
-  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, compare: { keys: ['taxcompass.compare.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
+  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
 };
 function resetCalc(key, { fromStartOver = false } = {}) {
   const spec = CALC_KEYS[key] || {};
@@ -351,7 +351,6 @@ const VIEWS = {
   'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData)),
   salary: () => import('./salary.js').then((m) => m.renderSalary(appData)),
   home: () => import('./home-buy.js').then((m) => m.renderHomeBuying(appData)),
-  compare: () => import('./compare.js').then((m) => m.renderCompare(appData)),
   retirement: () => import('./retirement.js').then((m) => m.renderRetirement(appData)),
   goal: () => import('./goal.js').then((m) => m.renderGoal(appData)),
   debt: () => import('./debt.js').then((m) => m.renderDebt(appData)),
@@ -594,7 +593,6 @@ const VIEWS = {
         next: [
           !stepped && a > 0 ? { label: 'Step it up each year', note: 'Raising the SIP with your pay is the biggest lever you have', onclick: goToStepUp, primary: true } : null,
           { label: 'Tie it to a goal', note: 'A child’s education, a house: what it will cost, and the SIP that gets there', href: '/calculators/goal' },
-          { label: 'Where should this money go?', note: 'PPF, FD, funds and NPS compared after tax', href: '/calculators/compare' },
           { label: 'Will it be enough to retire?', note: 'What you save, what you will spend, and the year it runs out', href: '/calculators/retirement' },
         ],
         details: [

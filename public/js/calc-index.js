@@ -32,8 +32,7 @@ const GROUPS = [
   {
     title: 'Money going out to work',
     items: [
-      { href: '/calculators/compare', icon: '📈', q: 'Where should this money go?', d: 'PPF, FD, debt and equity funds, gold and NPS compared after tax, at your slab and your horizon.', line: (s) => (s && s.surplus.monthly > 0 ? `You have about ${inr(s.surplus.monthly)} a month to place.` : null) },
-      { href: '/calculators/sip', icon: '📊', q: 'What will my SIP grow into?', d: 'A monthly SIP with step-ups and lump sums, against what fund categories have actually returned.', line: () => null },
+      { href: '/calculators/sip', icon: '📊', q: 'What will my SIP grow into?', d: 'A monthly SIP with step-ups and lump sums, and what it could grow into.', line: () => null },
       { href: '/nps', icon: '🏛️', q: 'Is NPS worth it for me?', d: 'How it works, the corpus and pension at 60, and the one deduction the new regime still allows.', line: () => null },
     ],
   },

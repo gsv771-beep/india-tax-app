@@ -421,7 +421,6 @@ export function renderBudget(appData) {
       next: [
         !s.deficit && spare >= 500 ? { label: `Put ${inr(spare)} a month to work`, note: 'What it grows into as a SIP', href: '/calculators/sip', onclick: () => setHandoff('sip', { monthly: spare }, 'budget'), primary: true } : null,
         s.deficit ? { label: 'Which loan to clear first', note: 'If debt is where the gap goes, the order matters', href: '/calculators/debt', primary: true } : null,
-        { label: 'Where should it go?', note: 'PPF, FD, funds and NPS compared after tax', href: '/calculators/compare' },
         { label: 'Give it a goal', note: 'A child’s education, a house: the SIP that gets there', href: '/calculators/goal' },
       ],
       details: [

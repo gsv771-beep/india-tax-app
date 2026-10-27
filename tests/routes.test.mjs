@@ -22,7 +22,7 @@ ok('retired insurance tool resolves to the money-tools index', metaFor('/calcula
 ok('schemes alias resolves to NPS', metaFor('/schemes').tab === 'nps');
 ok('trailing slash ignored', metaFor('/nps/').url === 'https://taxcompass.org/nps');
 ok('every title carries the site name', Object.keys(PAGES).filter((t) => t !== 'tax').every((t) => /· TaxCompass India$/.test(metaFor('/' + t).title)) && /TaxCompass India/.test(metaFor('/').title) && Object.keys(CALCS).filter((c) => !REMOVED['/calculators/' + c]).every((c) => /· TaxCompass India$/.test(metaFor('/calculators/' + c).title)));
-ok('compare route has its title', /Where should this money go/.test(metaFor('/calculators/compare').title));
+ok('the retired compare-investments tool resolves to the money-tools index', metaFor('/calculators/compare').url === 'https://taxcompass.org/calculators');
 ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip')) === JSON.stringify({ tab: 'calculators', sub: 'sip' }));
 
 // the page shell: two elements with one id means getElementById silently picks the first (a results

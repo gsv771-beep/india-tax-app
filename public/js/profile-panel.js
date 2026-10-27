@@ -150,7 +150,7 @@ export function initProfilePanel() {
       el('button', { type: 'button', class: 'btn secondary small-btn', onclick: () => set((d) => { d.loans.push({ type: 'home', outstanding: 0, rate: 8.5, remainingMonths: 240, emi: 0, propertyUse: d.location.housing === 'own' ? 'self_occupied' : 'none' }); }, true) }, '+ Add a loan'),
     ]);
 
-    const investments = group('What you hold today', INVESTMENT_BUCKETS.map((b) => numField(`${BUCKET_LABELS[b]} (₹)`, (d) => d.investments[b], (d, v) => { d.investments[b] = v; }, { step: 25000, slider: 50000000 })), 'Current value of each bucket. Used for allocation and post-tax projections.');
+    const investments = group('What you hold today', INVESTMENT_BUCKETS.map((b) => numField(`${BUCKET_LABELS[b]} (₹)`, (d) => d.investments[b], (d, v) => { d.investments[b] = v; }, { step: 25000, slider: 50000000 })), 'Current value of each bucket. Used for allocation and projections.');
 
     const cashflow = group('Cash flow (per month)', [
       numField('Free to invest or prepay (₹/month)', (d) => d.cashflow.monthlySurplus, (d, v) => { d.cashflow.monthlySurplus = v; }, { step: 2500, slider: 1000000 }, 'income less expenses'),

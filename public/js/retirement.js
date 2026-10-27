@@ -140,7 +140,6 @@ export function renderRetirement({ schemes }) {
       next: [
         buildCard,
         bucketsCard,
-        r.gap > 0 ? { label: 'Where should the extra savings go?', note: 'PPF, NPS, funds and more, after tax', href: '/calculators/compare', primary: true } : null,
         { label: 'How NPS fits in', note: 'The pension, the lump sum at 60, and its tax', href: '/nps' },
       ],
       details: [

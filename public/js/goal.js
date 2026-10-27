@@ -124,7 +124,6 @@ export function renderGoal({ schemes }) {
       ],
       next: [
         whereCard,
-        { label: 'Where the safe part earns most', note: 'PPF, FD, debt funds and more, after tax', href: '/calculators/compare' },
         st.type === 'house' ? { label: 'What the house will really cost', note: 'Stamp duty, GST and registration on top of the price', href: '/calculators/home' } : null,
         { label: 'And retirement?', note: 'The goal that has no fixed date and no second chance', href: '/calculators/retirement' },
       ],
