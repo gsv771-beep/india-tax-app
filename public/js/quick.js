@@ -33,6 +33,7 @@ function fromProfile(p) {
     // a bonus set in the payslip or the tax form: kept through a new CTC here, and out of the monthly figure
     variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p), onTop: !!p.tax.bonusOnTop,
     employerNpsPct: i.basic > 0 && i.employerNps > 0 ? Math.round(1000 * i.employerNps / i.basic) / 10 : 0,
+    pfInCtc: i.employerPf > 0 || i.gratuity > 0,
     inhand: { ...p.inhand },
     loanEmi: (type) => Math.round(p.loans.filter((l) => l.type === type).reduce((s, l) => s + (l.emi || 0), 0)),
   };
@@ -75,6 +76,22 @@ export function wantFromUrl() {
   const v = Math.round(+s.get('want'));
   return v > 0 && v < 1e8 ? v : 0;
 }
+// money boxes show Indian grouping as you type (25,00,000) and are read back as plain numbers
+const rupees = (n) => (+n > 0 ? Math.round(+n).toLocaleString('en-IN') : '');
+const readRupees = (s) => +String(s || '').replace(/[^\d]/g, '') || 0;
+function groupAsTyped(input) {
+  input.addEventListener('input', () => {
+    const before = input.value, caret = input.selectionStart ?? before.length;
+    const digitsLeft = before.slice(0, caret).replace(/\D/g, '').length;
+    const after = rupees(readRupees(before));
+    if (after === before) return;
+    input.value = after;
+    // keep the caret after the same number of digits
+    let pos = 0, seen = 0;
+    while (pos < after.length && seen < digitsLeft) { if (/\d/.test(after[pos])) seen++; pos++; }
+    try { input.setSelectionRange(pos, pos); } catch {}
+  });
+}
 const WANT = 'taxcompass.want.v1';   // localStorage: { mode, want } for the reverse question
 const mounts = new Map();   // source -> the slot and options, so a ?ctc= link can refill a card already on the page
 if (typeof window !== 'undefined') window.addEventListener('routechange', () => {
@@ -99,7 +116,7 @@ export function mountQuick(slot, opts) {
   let deeper = DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0) || q.employerNpsPct > 0;
   // the reverse question (the CTC to ask for, for a take-home), on the landing page only
   const allowWant = source === 'quick:tax';
-  let mode = 'ctc', want = 0, hike = 0;
+  let mode = 'ctc', want = 0, hike = 0, example = false;   // example: the ₹15 lakh sample is on screen, not the person's own salary
   if (allowWant && !ctc) {
     const w = wantFromUrl();
     if (w != null) { mode = 'want'; want = w; }
@@ -108,17 +125,25 @@ export function mountQuick(slot, opts) {
   const keepWant = () => { try { localStorage.setItem(WANT, JSON.stringify({ mode, want })); } catch {} };
 
   // ---- 1. the CTC, and nothing else ----
-  const ctcInput = el('input', { type: 'number', min: 0, step: 50000, inputmode: 'numeric', placeholder: 'e.g. 1500000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: q.ctc || '' });
+  const ctcInput = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'e.g. 15,00,000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: rupees(q.ctc) });
+  groupAsTyped(ctcInput);
   const echo = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
   const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Start over');
-  const wantInput = el('input', { type: 'number', min: 0, step: 5000, inputmode: 'numeric', placeholder: 'e.g. 200000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'The take-home you want each month, in rupees', value: want || '' });
+  const wantInput = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'e.g. 2,00,000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'The take-home you want each month, in rupees', value: rupees(want) });
+  groupAsTyped(wantInput);
   const wantEcho = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
   const ctcLabel = el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo])]);
   const wantLabel = el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Take-home you want (₹ a month)'), el('span', { class: 'quick-in-row' }, [wantInput, wantEcho])]);
   const modeBtns = [['ctc', 'I know my CTC'], ['want', 'I know the in-hand I want']].map(([m, t]) => el('button', { type: 'button', class: 'quick-mode', 'data-mode': m, 'aria-pressed': 'false' }, t));
   const modeSwitch = allowWant ? el('div', { class: 'quick-modes', role: 'group', 'aria-label': 'What you know' }, modeBtns) : null;
   for (const b of modeBtns) b.addEventListener('click', () => { mode = b.dataset.mode; keepWant(); paint(); (mode === 'want' ? wantInput : ctcInput).focus(); });
-  wantInput.addEventListener('input', () => { want = Math.max(0, +wantInput.value || 0); keepWant(); paint(); });
+  wantInput.addEventListener('input', () => { want = readRupees(wantInput.value); keepWant(); paint(); });
+  // what the CTC holds: most of the difference between a CTC and the salary paid is employer PF and
+  // gratuity, so the assumption is shown as a choice under the answer, not buried in the working
+  const pfInput = el('input', { type: 'checkbox' });
+  const pfNote = el('span', { class: 'quick-basis-note muted small' });
+  const pfBox = el('label', { class: 'quick-basis', hidden: true }, [pfInput, el('span', {}, [el('span', {}, 'My CTC includes employer PF and gratuity'), pfNote])]);
+  pfInput.addEventListener('change', () => set({ pfInCtc: pfInput.checked }));
   // a hike on the CTC: what it adds to the take-home, after the tax on it
   const hikeInput = el('input', { type: 'number', min: 0, max: 200, step: 1, inputmode: 'decimal', placeholder: 'e.g. 10', class: 'quick-pct', 'aria-label': 'Hike you expect, percent' });
   const hikeOut = el('span', { class: 'quick-hike-out', 'aria-live': 'polite' });
@@ -128,7 +153,8 @@ export function mountQuick(slot, opts) {
   // ---- 2. the bonus ----
   const kindBtn = (kind, text) => el('button', { type: 'button', class: 'quick-choice', 'data-kind': kind, 'aria-pressed': 'false' }, text);
   const kindBtns = [kindBtn('none', 'No'), kindBtn('ctc', 'Yes, part of my CTC'), kindBtn('top', 'Yes, on top of my CTC')];
-  const bonusInput = el('input', { type: 'number', min: 0, step: 10000, inputmode: 'numeric', 'data-echo': 'own', placeholder: 'e.g. 200000', class: 'quick-bonus-amount', value: q.variable || '', 'aria-label': 'Bonus or variable pay a year, in rupees' });
+  const bonusInput = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', 'data-echo': 'own', placeholder: 'e.g. 2,00,000', class: 'quick-bonus-amount', value: rupees(q.variable), 'aria-label': 'Bonus or variable pay a year, in rupees' });
+  groupAsTyped(bonusInput);
   const bonusAmount = el('label', { class: 'quick-q-field', hidden: true }, [el('span', {}, 'How much, a year, if paid in full?'), el('span', { class: 'quick-amount' }, ['₹', bonusInput])]);
   const bonusStep = el('div', { class: 'quick-step', hidden: true }, [
     el('p', { class: 'quick-q' }, 'Do you get a bonus or variable pay?'),
@@ -146,11 +172,11 @@ export function mountQuick(slot, opts) {
   const assumePt = el('span');
   const basicInput = el('input', { type: 'number', min: 10, max: 80, step: 1, class: 'quick-basic', value: q.basicPct, 'aria-label': 'Basic pay as a percentage of CTC' });
   const assume = el('p', { class: 'quick-assume muted small' }, [
-    'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
+    'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
   ]);
 
   const save = debounce(() => {
-    if (mode === 'want') return;   // a take-home being tried out is not a salary: nothing is saved
+    if (mode === 'want' || example) return;   // a take-home being tried out, or the sample, is not a salary: nothing is saved
     if (!q.ctc) {
       // an emptied CTC box empties the salary it had saved, and the detailed calculators' own copies of
       // it, so the old figure does not come back on this page or the next visit
@@ -173,7 +199,7 @@ export function mountQuick(slot, opts) {
     updateProfile((d) => {
       const prev = fromProfile(d);
       // a new CTC, Basic % or bonus rewrites the salary split; a deduction leaves any detailed split alone
-      const resplit = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || prev.variable !== q.variable || prev.onTop !== q.onTop || Math.abs(prev.employerNpsPct - (q.employerNpsPct || 0)) > 0.05 || isEmptyProfile(d);
+      const resplit = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || prev.variable !== q.variable || prev.onTop !== q.onTop || Math.abs(prev.employerNpsPct - (q.employerNpsPct || 0)) > 0.05 || prev.pfInCtc !== !!q.pfInCtc || isEmptyProfile(d);
       let out = resplit ? fromSalaryStore(d, { ...a.store, regime: a.better }, a.pay) : d;
       out.tax.s80cUsed = q.other80c || 0; out.tax.s80dUsed = q.healthSelf || 0; out.tax.nps1bUsed = q.nps1b || 0;
       if (!q.listedLoan) out.tax.homeLoanInterest = q.homeLoanInterest || 0;
@@ -188,15 +214,18 @@ export function mountQuick(slot, opts) {
   }, 700);
 
   const set = (patch, { persist = true } = {}) => { q = { ...q, ...patch }; paint(); if (persist) save(); };
-  ctcInput.addEventListener('input', () => set({ ctc: +ctcInput.value || 0 }));
+  ctcInput.addEventListener('input', () => { example = false; set({ ctc: readRupees(ctcInput.value) }); });
+  // one tap to a worked answer, before typing anything: a ₹15 lakh CTC, no bonus, nothing saved
+  const exampleBtn = el('button', { type: 'button', class: 'quick-link-btn quick-example' }, 'Or see an example: ₹15 lakh CTC');
+  exampleBtn.addEventListener('click', () => { example = true; bonusKind = 'none'; asking = false; ctcInput.value = rupees(1500000); set({ ctc: 1500000, variable: 0, onTop: false }); });
   ctcInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !bonusStep.hidden) { e.preventDefault(); kindBtns[0].focus(); } });
   basicInput.addEventListener('change', () => set({ basicPct: Math.min(80, Math.max(10, +basicInput.value || QUICK_DEFAULTS.basicPct)) }));
   for (const b of kindBtns) b.addEventListener('click', () => {
     bonusKind = b.dataset.kind;
     if (bonusKind === 'none') { asking = false; set({ variable: 0, onTop: false }); }
-    else { set({ variable: +bonusInput.value || 0, onTop: bonusKind === 'top' }); bonusInput.focus({ preventScroll: true }); }
+    else { set({ variable: readRupees(bonusInput.value), onTop: bonusKind === 'top' }); bonusInput.focus({ preventScroll: true }); }
   });
-  bonusInput.addEventListener('input', () => set({ variable: Math.max(0, +bonusInput.value || 0) }));
+  bonusInput.addEventListener('input', () => set({ variable: readRupees(bonusInput.value) }));
   // the amount is done when the box is left or Enter is pressed: the question folds into one line
   const doneBonus = () => { if (bonusKind && bonusKind !== 'none' && q.variable > 0) { asking = false; paint(); } };
   bonusInput.addEventListener('change', doneBonus);
@@ -284,7 +313,7 @@ export function mountQuick(slot, opts) {
       r === b && need[other] && need[other].ctc > need[r].ctc ? el('div', { class: 'quick-side-sub' }, `Asks for ${inr(need[other].ctc - need[r].ctc)} less`) : null,
     ]) : null;
     const use = el('button', { type: 'button', class: 'btn secondary small-btn quick-use' }, `Carry on with ${inrShort(need[b].ctc)} as my CTC`);
-    use.addEventListener('click', () => { mode = 'ctc'; keepWant(); ctcInput.value = need[b].ctc; set({ ctc: need[b].ctc }); ctcInput.focus({ preventScroll: true }); });
+    use.addEventListener('click', () => { mode = 'ctc'; keepWant(); ctcInput.value = rupees(need[b].ctc); set({ ctc: need[b].ctc }); ctcInput.focus({ preventScroll: true }); });
     setChildren(answer, [
       el('div', { class: 'quick-k' }, 'Ask for a CTC of'),
       el('div', { class: 'quick-v' }, inr(need[b].ctc)),
@@ -335,6 +364,8 @@ export function mountQuick(slot, opts) {
           a.store.variableInCtc === 'top' && a.bonus.paid > 0 ? row('Bonus on top of the CTC', ...both(`+ ${inr(a.bonus.paid)}`))
             : a.bonus.paid !== a.bonus.target ? row(`Bonus paid at ${+a.bonus.payoutPct.toFixed(1)}% of target`, ...both(`${a.bonus.paid > a.bonus.target ? '+' : '−'} ${inr(Math.abs(a.bonus.paid - a.bonus.target))}`)) : null,
           a.pay.employerNps > 0 ? row('Employer NPS, to your NPS account', ...both(minus(a.pay.employerNps))) : null,
+          a.pay.employerPf > 0 ? row('Employer PF, inside the CTC', ...both(minus(a.pay.employerPf))) : null,
+          a.pay.gratuity > 0 ? row('Gratuity, inside the CTC', ...both(minus(a.pay.gratuity))) : null,
           row('Your PF', ...both(minus(pf))),
           row('Professional tax', ...both(minus(pt))),
           row('Income tax', minus(a.tax.new), minus(a.tax.old)),
@@ -351,7 +382,7 @@ export function mountQuick(slot, opts) {
           el('tr', { class: 'total' }, [el('th', { scope: 'row' }, 'Left each month'), el('td', {}, (a.monthly.best + adjTotal(q.inhand) < 0 ? '−' : '') + inr(Math.abs(a.monthly.best + adjTotal(q.inhand))))]),
         ]),
       ])) : null,
-      el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here. Old-regime deductions counted: ${parts.join(', ')}.`]),
+      el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. ${a.pay.employerPf > 0 ? 'Employer PF and gratuity are inside this CTC, so they come off it above.' : `Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here.`} Old-regime deductions counted: ${parts.join(', ')}.`]),
       el('div', { class: 'quick-links' }, [
         // the payslip and the full form work from a saved salary, which a take-home being tried out is not
         taxLink && mode !== 'want' ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
@@ -364,10 +395,11 @@ export function mountQuick(slot, opts) {
 
   function paint() {
     const wanting = mode === 'want';
+    exampleBtn.hidden = wanting || q.ctc > 0;
     slot.classList.toggle('wanting', wanting);
     for (const b of modeBtns) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
     ctcLabel.hidden = wanting; wantLabel.hidden = !wanting;
-    if (document.activeElement !== wantInput) wantInput.value = want || '';
+    if (document.activeElement !== wantInput) wantInput.value = rupees(want);
     wantEcho.textContent = want > 0 ? `${inr(want)} a month` : '';
     const hasCtc = wanting ? want >= 10000 : q.ctc >= 100000;
     let a = null, need = null;
@@ -379,7 +411,7 @@ export function mountQuick(slot, opts) {
     bonusStep.hidden = !hasCtc || !asking;
     for (const b of kindBtns) b.setAttribute('aria-pressed', String(b.dataset.kind === bonusKind));
     bonusAmount.hidden = !(bonusKind === 'ctc' || bonusKind === 'top');
-    if (document.activeElement !== bonusInput) bonusInput.value = q.variable || '';
+    if (document.activeElement !== bonusInput) bonusInput.value = rupees(q.variable);
     const ok = !!(a && !a.error) && hasCtc && !!bonusKind;
     slot.classList.toggle('has-answer', ok);
     slot.classList.toggle('asking', hasCtc && !bonusKind);
@@ -389,6 +421,11 @@ export function mountQuick(slot, opts) {
     deeperBtn.hidden = deeper;
     deeperBody.hidden = !deeper;
     hikeBox.hidden = !ok || wanting;
+    pfBox.hidden = !ok;
+    pfInput.checked = !!q.pfInCtc;
+    if (a && !a.error) pfNote.textContent = q.pfInCtc
+      ? `Ticked: ${inr(a.pay.employerPf + a.pay.gratuity)} of the CTC is employer PF and gratuity, saved for you rather than paid, so the salary paid is ${inr(a.pay.grossSalary)}.`
+      : `Unticked: they are paid on top of the CTC, as many offer letters show. Tick if yours lists them inside it.`;
     if (a && a.error) { paintAnswer(a); return; }
     if (!ok) return;
     paintAnswer(a, need);
@@ -411,9 +448,10 @@ export function mountQuick(slot, opts) {
         el('div', { class: 'quick-in-wrap' }, [ctcLabel, wantLabel]),
         startOver,
       ]),
-      el('p', { class: 'quick-privacy muted small' }, 'No sign-up. What you type stays on this device.'),
+      el('p', { class: 'quick-privacy muted small' }, ['As on your offer letter. No sign-up; what you type stays on this device. ', exampleBtn]),
       bonusStep,
       answer,
+      pfBox,
       hikeBox,
       deeperBox,
       breakdown,
@@ -423,7 +461,7 @@ export function mountQuick(slot, opts) {
 
   const fromSaved = (p) => {
     q = { ...fromProfile(p), ...(ctc && !p.income.ctc ? { ctc } : {}) };
-    ctcInput.value = q.ctc || '';
+    ctcInput.value = rupees(q.ctc);
     basicInput.value = q.basicPct;
     // a salary saved elsewhere answers the bonus question; an emptied one asks it again
     if (!asking) bonusKind = q.ctc > 0 ? knownBonus(q) : null;

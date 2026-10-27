@@ -1096,3 +1096,10 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 @media (max-width: 560px) { .quick-mode { padding: 7px 10px; font-size: .82rem; } }
 /* trying out a take-home: the payslip and full form wait until it becomes the CTC */
 #tax:has(.quick-slot.wanting) > .detail-toggle, #tax:has(.quick-slot.wanting):not(.show-detail) > .detail-body { display: none; }
+/* the CTC basis under the answer, and the sample link on the empty card */
+.quick-basis { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; font-weight: 600; font-size: .95rem; cursor: pointer; }
+.quick-basis[hidden] { display: none; }
+.quick-basis input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+.quick-basis-note { display: block; font-weight: 400; margin-top: 2px; }
+.quick-example { display: inline; font-size: inherit; }
+.quick-example[hidden] { display: none; }

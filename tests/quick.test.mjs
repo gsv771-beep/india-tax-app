@@ -135,5 +135,16 @@ ok('Basic of 80% with PF and gratuity: components exceed CTC is reported', !!qui
   ok('nothing wanted, no answer', ctcForInHand(0, {}, rates) === null);
 }
 
+// ---- a CTC that includes employer PF and gratuity ----
+{
+  const out = quickAnswer({ ctc: 2500000 }, rates), inside = quickAnswer({ ctc: 2500000, pfInCtc: true }, rates);
+  near('PF inside the CTC: employer PF is 12% of the ₹12.5 lakh Basic', inside.pay.employerPf, 150000);
+  near('... gratuity is 4.81% of Basic', inside.pay.gratuity, 60125);
+  near('... so ₹22,89,875 is paid as salary', inside.pay.grossSalary, 2289875);
+  ok('... and less reaches the bank than when they are on top', inside.monthly.best < out.monthly.best);
+  ok('... CTC = employer PF + gratuity + your PF + professional tax + tax + in hand', Math.abs(2500000 - inside.pay.employerPf - inside.pay.gratuity - inside.pay.employeePf - inside.pay.professionalTax - inside.tax.new - inside.inHand.new) < 1);
+  ok('... and the CTC to ask for rises to match', ctcForInHand(150000, { pfInCtc: true }, rates).new.ctc > ctcForInHand(150000, {}, rates).new.ctc);
+}
+
 console.log(failures ? `\n${failures} failure(s)` : '\nAll quick-answer tests passed');
 process.exit(failures ? 1 : 0);
