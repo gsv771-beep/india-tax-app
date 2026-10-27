@@ -127,9 +127,16 @@ function initQuick(data) {
   const taxBody = document.getElementById('tax-detail');
   const fold = detailFold('tax', taxBody, { label: 'Full tax calculation: every allowance, exemption and deduction ▾', openLabel: 'Hide the full tax calculation ▴' });
   taxBody.before(fold.button);
+  // until there is an answer the page is the card alone; the full form shows only when asked for by
+  // name (#detail: a business, or a link from elsewhere)
+  const tax = document.getElementById('tax');
+  const asked = () => tax.classList.toggle('show-detail', location.hash === '#detail' || location.hash === '#payslip');
+  asked();
+  tax.querySelector('.tax-business-link a')?.addEventListener('click', (e) => { e.preventDefault(); history.replaceState(history.state, '', '#detail'); asked(); fold.open(); });
   // a #payslip or #detail link to this page opens that fold under the quick answer
   window.addEventListener('routechange', (e) => {
     if (e.detail.tab !== 'tax') return;
+    asked();
     if (location.hash === '#detail') fold.open();
     if (location.hash === '#payslip') slip.open();
   });

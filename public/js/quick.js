@@ -378,22 +378,22 @@ export function mountQuick(slot, opts) {
 
 /**
  * A detailed tool under the quick answer, folded until asked for. Opens by itself on its own hash link
- * (#detail, #payslip) and remembers being opened, per tool. onOpen runs each time it opens.
+ * (#detail, #payslip); otherwise every visit starts with it closed. onOpen runs each time it opens.
  */
 export function detailFold(key, container, { label, openLabel, hash = '#detail', onOpen }) {
-  const read = () => { try { return JSON.parse(localStorage.getItem(DETAIL) || '{}'); } catch { return {}; } };
+  // an open state remembered by an older version is dropped: the page always starts clean
+  try { localStorage.removeItem(DETAIL); } catch {}
   const btn = el('button', { type: 'button', class: 'detail-toggle', 'aria-expanded': 'false' });
-  const setOpen = (v, { remember = true, scroll = false } = {}) => {
+  const setOpen = (v, { scroll = false } = {}) => {
     container.classList.toggle('detail-closed', !v);
     btn.setAttribute('aria-expanded', String(v));
     btn.textContent = v ? openLabel : label;
-    if (remember) { try { localStorage.setItem(DETAIL, JSON.stringify({ ...read(), [key]: v })); } catch {} }
     if (v && onOpen) onOpen();
     if (v) window.dispatchEvent(new Event('resize'));   // charts drawn while hidden re-measure
     // after the router's own scroll to the top, which runs once the route has been handled
     if (v && scroll) setTimeout(() => btn.scrollIntoView({ block: 'start', behavior: 'smooth' }), 60);
   };
   btn.addEventListener('click', () => setOpen(container.classList.contains('detail-closed')));
-  setOpen(location.hash === hash || !!read()[key], { remember: false, scroll: location.hash === hash });
+  setOpen(location.hash === hash, { scroll: location.hash === hash });
   return { button: btn, open: (scroll = true) => setOpen(true, { scroll }) };
 }
