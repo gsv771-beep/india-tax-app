@@ -91,8 +91,20 @@ const SESSION = 'taxcompass.session.v1';
 function once(flag) {
   try { const s = JSON.parse(sessionStorage.getItem(SESSION) || '{}'); if (s[flag]) return false; s[flag] = 1; sessionStorage.setItem(SESSION, JSON.stringify(s)); return true; } catch { return true; }
 }
+// ?nocount on any page stops this browser counting (the site's owner, testing); ?count turns it back on
+const NOCOUNT = 'taxcompass.nocount.v1';
+function readNoCountSwitch() {
+  try {
+    const u = new URL(location.href);
+    if (!u.searchParams.has('nocount') && !u.searchParams.has('count')) return;
+    if (u.searchParams.has('nocount')) localStorage.setItem(NOCOUNT, '1'); else localStorage.removeItem(NOCOUNT);
+    u.searchParams.delete('nocount'); u.searchParams.delete('count');
+    history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+  } catch {}
+}
+const notCounting = () => { try { return localStorage.getItem(NOCOUNT) === '1'; } catch { return false; } };
 export function countEvent(event) {
-  if (!once(event)) return;
+  if (notCounting() || !once(event)) return;
   fetch('/api/counter', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event }), keepalive: true }).catch(() => {});
 }
 let counts = null;
@@ -100,6 +112,7 @@ const n = (x) => (x || 0).toLocaleString('en-IN');
 /** The latest counts, once fetched: { counts: { visits, comparisons, workbooks, calculations }, calculators: { emi: n } } */
 export function getCounts() { return counts; }
 export async function initCounter() {
+  readNoCountSwitch();
   countEvent('visit');
   try {
     const res = await fetch('/api/counter');

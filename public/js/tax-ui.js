@@ -318,7 +318,8 @@ function render(inputs, rates, flags) {
   lastInputs = inputs;
   const result = compareRegimes(inputs, rates, flags);
   // a comparison counts only when the person is on this page; re-renders from profile edits elsewhere do not
-  if ((result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) && !document.getElementById('tax').hidden) countEvent('compare');
+  // counted only when the full form is open on screen: it also calculates, folded away, for every returning visitor
+  if ((result.new.tax.totalIncome > 0 || result.old.tax.totalIncome > 0) && document.getElementById('tax-form')?.offsetParent) countEvent('compare');
   renderHeadline(result, inputs, rates, flags);
   renderWarnings(result);
   renderBusiness(inputs, result, rates, flags);

@@ -10,12 +10,13 @@ const ok = (name, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}
 
 /** Minimal fake of the D1 API used by the functions: batch/prepare/bind/run/all. */
 function fakeDb() {
-  const counters = new Map(); const feedback = [];
+  const counters = new Map(); const feedback = []; const days = new Map();
   const stmt = (sql) => ({
     _args: [],
     bind(...a) { this._args = a; return this; },
     async run() {
       if (/INSERT INTO counters/.test(sql)) { const [name] = this._args; counters.set(name, (counters.get(name) || 0) + 1); return { success: true }; }
+      if (/INSERT INTO counter_days/.test(sql)) { const [day, name] = this._args; const k = `${day}|${name}`; days.set(k, (days.get(k) || 0) + 1); return { success: true }; }
       if (/INSERT INTO feedback/.test(sql)) { const [ts, name, email, rating, message, page, ua, public_ok] = this._args; feedback.push({ id: feedback.length + 1, ts, name, email, rating, message, page, ua, public_ok: public_ok || 0, approved: 0 }); return { success: true }; }
       if (/UPDATE feedback SET approved/.test(sql)) { const [approved, id] = this._args; const row = feedback.find((r) => r.id === id); if (row) row.approved = approved; return { success: true }; }
       if (/ALTER TABLE/.test(sql)) throw new Error('duplicate column');   // as SQLite does once the column exists
@@ -23,6 +24,7 @@ function fakeDb() {
     },
     async all() {
       if (/FROM counters/.test(sql)) return { results: [...counters].map(([name, value]) => ({ name, value })) };
+      if (/FROM counter_days/.test(sql)) { const [since] = this._args; return { results: [...days].map(([k, value]) => { const [day, name] = k.split('|'); return { day, name, value }; }).filter((r) => r.day >= since).sort((a, b) => a.day.localeCompare(b.day)) }; }
       if (/COUNT\(rating\)/.test(sql)) { const rated = feedback.filter((r) => r.rating != null); return { results: [{ count: rated.length, average: rated.length ? rated.reduce((a, r) => a + r.rating, 0) / rated.length : null }] }; }
       if (/WHERE approved = 1/.test(sql)) return { results: feedback.filter((r) => r.approved === 1).slice().reverse() };
       if (/FROM feedback ORDER BY/.test(sql)) return { results: feedback.slice().reverse().map(({ email, ua, ...r }) => r) };   // the real query names its columns
@@ -62,6 +64,16 @@ const post = (fn, body, env = {}) => fn({ request: new Request('http://x/api', {
   const j = await (await counterGet({ env })).json();
   ok('counter: counts visits and comparisons', j.available && j.counts.visits === 2 && j.counts.comparisons === 1 && j.counts.workbooks === 0, JSON.stringify(j.counts));
   ok('counter: calculations total includes the comparison, per calculator kept', j.counts.calculations === 4 && j.calculators.emi === 2 && j.calculators.sip === 1, JSON.stringify(j.calculators));
+  // the landing card's funnel, and the day-by-day view
+  for (const e of ['answer', 'answer', 'deeper', 'want', 'example', 'hike', 'pfin']) await post(counterPost, { event: e }, env);
+  const f = await (await counterGet({ env })).json();
+  ok('counter: funnel events counted', f.counts.answers === 2 && f.counts.deeper === 1 && f.counts.reverse === 1 && f.counts.examples === 1 && f.counts.hikes === 1 && f.counts.pfInCtc === 1, JSON.stringify(f.counts));
+  ok('counter: no days unless asked for', !('days' in f));
+  const d = await (await counterGet({ env, request: new Request('https://x.org/api/counter?days=7') })).json();
+  const { istDay } = await import('../functions/_lib.js');
+  const today = d.days && d.days.find((r) => r.day === istDay());
+  ok('counter: ?days=7 gives today, filed under the IST date', today && today.visits === 2 && today.answers === 2 && today.calculations === 4, JSON.stringify(d.days));
+  ok('counter: IST day rolls over at midnight India time, not UTC', istDay(Date.UTC(2026, 9, 27, 18, 31)) === '2026-10-28' && istDay(Date.UTC(2026, 9, 27, 18, 29)) === '2026-10-27');
 }
 
 // send-workbook: the profile source takes a .json file; workbooks still need .xlsx. Brevo is stubbed.
