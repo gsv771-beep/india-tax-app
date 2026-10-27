@@ -8,8 +8,8 @@ export const SITE = 'TaxCompass India';
 export const ORIGIN = 'https://taxcompass.org';
 
 export const PAGES = {
-  home: { title: 'TaxCompass India: in-hand salary and old vs new tax regime from your CTC', desc: 'Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Add your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.' },
-  tax: { title: 'Salary and tax calculator: in-hand pay and old vs new regime', desc: 'Type your CTC for your monthly take-home and the income tax under the old and new regimes, FY 2026-27. Open your payslip (Basic, HRA, variable pay, PF) or the full tax calculation, line by line, when you want the detail.' },
+  // the landing page: the salary question, then the payslip and the full tax calculation (it was /tax)
+  tax: { title: 'TaxCompass India: in-hand salary and old vs new tax regime from your CTC', desc: 'Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Add your rent, home loan, 80C and NPS to see if the old regime can still win. Free, and nothing you type leaves your browser.' },
   calculators: { title: 'Money tools: tax, salary, loans, investing and goals', desc: 'Practical calculators for salary, expenses, EMI, SIP, home buying, capital gains, debt, retirement and goals, connected by one private profile in your browser.' },
   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
   glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
@@ -56,13 +56,13 @@ export function ctcWords(ctc) {
 
 export const ALIASES = { schemes: 'nps', decide: 'calculators', decisions: 'calculators' };
 /** Removed pages and where they went; public/_redirects carries the same map for the edge. */
-/** '/calculators/salary' became the payslip fold of Tax & salary; the edge sends it to /tax, keeping ?ctc=. */
-export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/tax', '/calculators/insurance': '/calculators', '/calculators/salary': '/tax#payslip' };
+/** '/calculators/salary' became the payslip fold of Tax & salary, and /tax became the landing page: the edge sends both to /, keeping ?ctc=. */
+export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/', '/calculators/insurance': '/calculators', '/calculators/salary': '/#payslip', '/tax': '/' };
 
 export function parsePath(pathname) {
   const parts = String(pathname || '/').replace(/\/+$/, '').split('/').filter(Boolean);
   const first = ALIASES[parts[0]] || parts[0];
-  const tab = !parts.length || first === 'index.html' ? 'home' : PAGES[first] ? first : 'tax';
+  const tab = !parts.length || first === 'index.html' ? 'tax' : PAGES[first] ? first : 'tax';
   return { tab, sub: parts[1] || null };
 }
 
@@ -79,6 +79,6 @@ export function metaFor(pathname) {
     }
   }
   const page = tab === 'calculators' && CALCS[sub] ? CALCS[sub] : PAGES[tab];
-  const path = tab === 'home' ? '/' : tab === 'calculators' ? (CALCS[sub] ? `/calculators/${sub}` : sub ? '/calculators/emi' : '/calculators') : `/${tab}`;
-  return { title: tab === 'home' ? page.title : `${page.title} · ${SITE}`, desc: page.desc, url: ORIGIN + path, tab, sub };
+  const path = tab === 'tax' ? '/' : tab === 'calculators' ? (CALCS[sub] ? `/calculators/${sub}` : sub ? '/calculators/emi' : '/calculators') : `/${tab}`;
+  return { title: tab === 'tax' ? page.title : `${page.title} · ${SITE}`, desc: page.desc, url: ORIGIN + path, tab, sub };
 }

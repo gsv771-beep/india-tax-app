@@ -155,7 +155,7 @@ export function renderInsurance({ insurance }) {
       ]) : null,
       el('p', { class: 'muted small' }, 'Premiums here are indicative ranges for a healthy person buying online, not quotes: yours depends on medicals, smoking, occupation and insurer. Nothing on this page is sold to you, and no insurer pays to be here.'),
       el('div', { class: 'btn-row' }, [
-        el('a', { class: 'btn secondary', href: '/tax' }, 'What the premiums save in tax (80C and 80D)'),
+        el('a', { class: 'btn secondary', href: '/' }, 'What the premiums save in tax (80C and 80D)'),
         el('a', { class: 'btn secondary', href: '/calculators/goal' }, 'Plan the goals this cover protects'),
       ]),
       disclaimer('invest'),

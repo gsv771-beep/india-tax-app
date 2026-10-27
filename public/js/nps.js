@@ -107,7 +107,7 @@ function projector(nps) {
         el('p', { class: 'explain' }, `Contributing ${inr(r.monthly)} a month for ${r.years} years, rising ${st.stepUpPct}% a year and earning ${st.returnPct}%, builds about ${inrShort(r.corpus)}. Using ${pct(r.annuityShare, 0)} of it to buy an annuity at ${st.annuityRatePct}% gives roughly ${inr(r.pension)} a month for life, and you take ${inr(r.lump)} as a lump sum${r.lumpTaxable > 0 ? `, of which ${inr(r.lumpTaxable)} is taxable at your slab because only 60% of the corpus is exempt` : ', all of it tax-free'}.`),
       ],
       next: [
-        { label: 'What NPS saves you in tax', note: 'Employer NPS is the one deduction the new regime still allows', href: '/tax', primary: true },
+        { label: 'What NPS saves you in tax', note: 'Employer NPS is the one deduction the new regime still allows', href: '/', primary: true },
         { label: 'Where NPS fits in retirement', note: 'Will the money last, and what to do at 60', href: '/calculators/retirement' },
       ],
       details: [
@@ -148,7 +148,7 @@ function taxSection(nps) {
       el('p', {}, 'Three separate benefits, often confused. Your own contribution counts within the ₹1.5 lakh 80C limit and gets an extra ₹50,000 under 80CCD(1B), both old regime only. Your employer\'s contribution is deductible in both regimes, up to 14% of Basic + DA in the new regime, and this is the single most valuable deduction left in the new regime for a private-sector employee.'),
       el('div', { class: 'table-wrap' }, el('table', { class: 'compare schemes-table' }, [el('thead', {}, el('tr', {}, [el('th', {}, 'Item'), el('th', { class: 'left' }, 'Limit'), el('th', {}, 'Old regime'), el('th', {}, 'New regime')])), el('tbody', {}, rows)])),
       el('p', { class: 'muted small' }, tax.anti_double_deduction),
-      el('p', {}, [el('a', { href: '/tax' }, 'See what employer NPS would save you'), ' in the tax comparison, under "Where the room is".']),
+      el('p', {}, [el('a', { href: '/' }, 'See what employer NPS would save you'), ' in the tax comparison, under "Where the room is".']),
     ]),
   ]);
 }

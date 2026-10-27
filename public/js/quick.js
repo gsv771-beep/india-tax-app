@@ -115,7 +115,7 @@ export function mountQuick(slot, opts) {
   const assumePt = el('span');
   const basicInput = el('input', { type: 'number', min: 10, max: 80, step: 1, class: 'quick-basic', value: q.basicPct, 'aria-label': 'Basic pay as a percentage of CTC' });
   const assume = el('p', { class: 'quick-assume muted small' }, [
-    'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/tax#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
+    'Assumes Basic ', basicInput, '% of CTC, HRA half of Basic, employer PF and gratuity on top of the CTC, ', assumePt, ' professional tax, age under 60, FY 2026-27. Self-employed? ', el('a', { href: '/#detail' }, 'The full calculator takes business income'), '. An estimate, not tax advice.',
   ]);
 
   const save = debounce(() => {

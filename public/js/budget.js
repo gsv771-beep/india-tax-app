@@ -381,7 +381,7 @@ export function renderBudget(appData) {
     moreFold('SIPs and deposits, or start from your CTC', state.investments.some((i) => +i.amount > 0), [
       el('div', { class: 'opt-title' }, 'Monthly investments'), el('div', { class: 'row-head invest-head' }, ['Type', 'Name', 'Amount', 'Return', 'Term', ''].map((t) => el('span', {}, t))), investList,
       el('div', { class: 'chips' }, [el('button', { type: 'button', onclick: () => addInvest('sip') }, '+ SIP'), el('button', { type: 'button', onclick: () => addInvest('rd') }, '+ Recurring deposit')]),
-      el('label', { class: 'budget-ctc' }, ['Or work the take-home out from your annual CTC (₹)', el('small', {}, ['the same salary the ', el('a', { href: '/tax' }, 'Tax & salary'), ' page uses']), ctcInput]),
+      el('label', { class: 'budget-ctc' }, ['Or work the take-home out from your annual CTC (₹)', el('small', {}, ['the same salary the ', el('a', { href: '/' }, 'Tax & salary'), ' page uses']), ctcInput]),
     ]),
   ]);
 

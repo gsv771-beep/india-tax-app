@@ -641,7 +641,7 @@ function renderNext(inputs, cmp) {
   // one next step stands out, the others are a line of links (as on every calculator)
   setChildren(box, [
     biz ? action('Plan the advance tax', 'The instalments and dates are in the card above', '#tax-business')
-      : action('See your monthly take-home', `What reaches your bank each month under the ${better} regime`, '/tax#payslip'),
+      : action('See your monthly take-home', `What reaches your bank each month under the ${better} regime`, '/#payslip'),
     el('div', { class: 'r-also' }, [
       el('span', {}, 'Also:'),
       also('Put the saving to work', '/calculators/compare', 'PPF, FD, funds and NPS compared after tax, at your slab'),

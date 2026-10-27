@@ -5,8 +5,6 @@ import { initCalculators, showCalc, mountPayslip } from './calculators.js';
 import { initGlossaryTooltips } from './tooltips.js';
 import { initFeedback, initCounter } from './feedback.js';
 import { initFeedbackBadge } from './feedback-wall.js';
-import { initHome } from './home.js';
-import { initSnapshot } from './snapshot.js';
 import { mountQuick, detailFold } from './quick.js';
 import { initBudgetSync } from './budget-sync.js';
 import { initThemeSwitch } from './theme.js';
@@ -145,11 +143,6 @@ function initQuick(data) {
     salaryLink: { href: '#payslip', text: 'Your payslip, line by line →', onclick: (e) => { e.preventDefault(); slip.open(); } },
     taxLink: { href: '#detail', text: 'Every line of the tax, both regimes →', onclick: (e) => { e.preventDefault(); fold.open(); } },
   });
-  mountQuick(document.getElementById('home-quick'), {
-    rates, source: 'quick:home',
-    salaryLink: { href: '/tax#payslip', text: 'Your payslip, line by line →' },
-    taxLink: { href: '/tax#detail', text: 'Every line of the tax, both regimes →' },
-  });
 }
 
 async function boot() {
@@ -175,8 +168,6 @@ async function boot() {
     initGlossaryTooltips(glossary);
     initProfilePanel();
     initProfileUndo();
-    initHome(appData);
-    initSnapshot(appData);
     initTax(appData);
     initQuick(appData);
     initBudgetSync(appData);

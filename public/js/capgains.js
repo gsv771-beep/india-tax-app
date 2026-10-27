@@ -436,5 +436,5 @@ function addToTaxComparison(r) {
   else if (r.longTerm && !r.slabAlways) add(s.capitalGains, 'ltcgOther', r.taxableGain);
   else add(s.otherIncome, 'other', r.gain); // slab-rate gains are taxed like other income
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
-  location.href = '/tax';
+  location.href = '/';
 }
