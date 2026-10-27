@@ -183,10 +183,10 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
       el('div', { class: 'opt-title' }, 'The property'),
       el('div', { class: 'two' }, [F.city.node, F.price.node]),
       F.status.node,
+    ]),
+    fold('More about the property: builder charges, buyer, brokerage, interiors', [
       F.builderMode.node, F.builderPct.node,
       builderItems,
-    ]),
-    fold('More about the property', [
       F.buyer.node, F.affordable.node, F.brokerageOnNew.node, F.brokerageRate.node,
       el('div', { class: 'two' }, [F.legalAndValuation.node, F.interiors.node]),
     ]),

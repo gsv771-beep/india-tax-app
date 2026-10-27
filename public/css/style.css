@@ -883,7 +883,9 @@ tr.hra-least td { background: var(--accent-soft); }
 .budget { grid-template-columns: minmax(320px, 520px) 1fr; }
 .rows { display: grid; gap: 6px; }
 .row { display: grid; gap: 6px; align-items: center; }
-.expense-row { grid-template-columns: 1.3fr 1fr .9fr 28px; }
+.expense-row { grid-template-columns: 1.4fr 1fr 28px; align-items: center; }
+.expense-name { font-weight: 600; font-size: .92rem; }
+.budget-add { margin-top: 8px; }
 .invest-row { grid-template-columns: 1.1fr 1fr .8fr .7fr .7fr 28px; }
 .row-head { display: grid; gap: 6px; grid-template-columns: 1.3fr 1fr .9fr 28px; font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 4px 0 2px; }
 .row-head.invest-head { grid-template-columns: 1.1fr 1fr .8fr .7fr .7fr 28px; }
@@ -1070,3 +1072,9 @@ body:has(#home:not([hidden])) .profile-panel:not(.open), body:has(#tax:not([hidd
 /* the first screen is the question alone: the footer starts below the fold */
 #home:not([hidden]) { min-height: 100svh; }
 .quick-flow .quick-amount input.quick-pct { width: 90px; }
+
+/* calculators: the first answer's inputs, then one closed 'More options' (calculators.js moreFold) */
+.more-fold > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-weight: 700; color: var(--accent-2); }
+.more-fold-what { font-weight: 500; font-size: .85rem; color: var(--muted); text-transform: none; letter-spacing: normal; }
+/* a calculator's title says what it does; the line under it only repeated that */
+#calculators:not(.on-index) #calc-intro { display: none; }

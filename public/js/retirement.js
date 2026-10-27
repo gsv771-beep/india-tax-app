@@ -59,15 +59,16 @@ export function renderRetirement({ schemes }) {
   const eqField = field('equityRate', 'Equity returns (% a year)', { step: 0.1, max: 30, placeholder: String(rates.equity) }, rates.sources.equity);
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
-      el('div', { class: 'opt-title' }, 'Five things'),
       el('div', { class: 'two' }, [field('age', 'Your age', { step: 1, max: 80, placeholder: 'e.g. 35' }), field('retireAt', 'Retire at', { step: 1, max: 80 })]),
       field('monthlyExpenses', 'What you spend a month today (₹)', { step: 5000, placeholder: 'e.g. 80000' }, 'the household, not just you'),
       field('saved', 'Saved and invested so far (₹)', { step: 100000, placeholder: 'e.g. 2500000' }, 'EPF, PPF, NPS, funds, deposits: everything meant for later'),
       field('monthlyInvesting', 'Going into savings each month (₹)', { step: 1000, placeholder: 'e.g. 40000' }, 'EPF included; it is savings too'),
     ]),
-    el('div', { class: 'opts' }, [el('div', { class: 'opt-title' }, 'How much risk'), mixBefore.node, mixAfter.node]),
+    // the equity mix and the assumptions have plain defaults: one closed section holds them all
     el('details', { class: 'opts fold' }, [
-      el('summary', {}, 'Assumptions (plain defaults; change what you know better)'),
+      el('summary', {}, 'More options: how much in equity, and the assumptions'),
+      el('div', { class: 'opt-title' }, 'How much risk'), mixBefore.node, mixAfter.node,
+      el('div', { class: 'opt-title' }, 'Assumptions'),
       el('div', { class: 'two' }, [field('inflationPct', 'Prices rise each year (%)', { step: 0.5, max: 15 }), field('expensesAfterPct', 'Spending after retiring, as % of today', { step: 5, max: 150 }, 'no commute or EMI, more on health')]),
       el('div', { class: 'two' }, [eqField, field('safeRate', 'Safe money returns (% a year)', { step: 0.1, max: 15, placeholder: String(rates.safe) }, rates.sources.safe)]),
       el('div', { class: 'two' }, [field('planUntil', 'Plan for money until age', { step: 1, max: 100 }), field('stepUpPct', 'Raise savings each year by (%)', { step: 1, max: 30 }, 'as your income grows')]),

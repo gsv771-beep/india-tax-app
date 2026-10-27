@@ -310,6 +310,10 @@ function splitBar(aLabel, a, bLabel, b) {
     ]),
   ]);
 }
+/** Everything beyond the first answer, in one closed section: opens by itself when it holds a choice. */
+export function moreFold(summary, open, children) {
+  return el('details', { class: 'opts fold more-fold', open: !!open }, [el('summary', {}, ['More options', el('span', { class: 'more-fold-what' }, summary)]), ...children.filter(Boolean)]);
+}
 function calcShell(inputs, out) {
   return el('div', { class: 'calc' }, [el('div', { class: 'card inputs' }, inputs), el('div', {}, out)]);
 }
@@ -360,12 +364,6 @@ const VIEWS = {
     const R = field('Interest rate (% p.a.)', { value: 8.5, min: 0, step: 0.05 });
     const Y = field('Tenure (years)', { value: 20, min: 1, max: 40, step: 1 });
     attachSlider(P.input, { max: 50000000, step: 100000 }); attachSlider(R.input, { min: 0, max: 20, step: 0.05 }); attachSlider(Y.input, { min: 1, max: 30, step: 1 });
-    // Optional: work the loan out from the price and the down payment, and estimate pre-EMI interest
-    // if the bank releases it in stages while the home is being built.
-    const PR = field(`Property price (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'optional' });
-    const DP = field(`Down payment (${RUPEE})`, { value: '', min: 0, step: 100000, placeholder: 'optional' });
-    const CM = field('Under construction: months until the last release', { value: '', min: 0, max: 120, step: 1, placeholder: '0 or blank = released in one go' }, 'the loan is released evenly over these months; you pay interest only on what is released, then the EMI starts');
-    const syncFromPrice = () => { if (v(PR) > 0) { P.input.value = Math.max(0, Math.round(v(PR) - v(DP))); P.input.readOnly = true; P.input.title = 'price less down payment'; } else { P.input.readOnly = false; P.input.title = ''; } };
     const step = stepUpControl('EMI');
 
     const L = field(`Lump sum amount (${RUPEE})`, { value: 0, min: 0, step: 10000 }, 'leave 0 if none');
@@ -382,10 +380,8 @@ const VIEWS = {
 
     const render = () => {
       const p = v(P), r = v(R), y = v(Y), n = Math.round(y * 12);
-      if (!(p > 0)) { setChildren(out, [beginPrompt(v(PR) > 0 ? 'The down payment covers the whole price: there is no loan to plan.' : 'Enter the loan amount, or a property price and down payment, to begin.')]); fundKey = ''; return; }
-      // pre-EMI while the loan is released evenly over the construction months
-      const cm = Math.round(v(CM));
-      const preEmi = cm > 0 ? Array.from({ length: cm }, (_, k) => (p * (k + 1) / cm) * (r / 1200)).reduce((s, x) => s + x, 0) : 0;
+      if (!(p > 0)) { setChildren(out, [beginPrompt('Enter the loan amount to begin.')]); fundKey = ''; return; }
+      const cm = 0, preEmi = 0;
       const stepPct = step.pct(), stepAmt = step.amount();
       const hasStep = stepPct > 0 || stepAmt > 0;
       const hasLump = v(L) > 0, hasAnnual = v(A) > 0, hasPrepay = hasLump || hasAnnual;
@@ -398,13 +394,11 @@ const VIEWS = {
         lumpsum: { amount: v(L), atMonth: Math.round(v(LM)) }, annualPrepay: v(A), annualPrepayStartYear: Math.round(v(AS)) || 1, mode,
       }) : null;
       const show = scen || base;
-      lastEmi = { p, r, y, base, scen, mode, stepPct, stepAmt, lump: v(L), lumpMonth: Math.round(v(LM)), annual: v(A), annualStart: Math.round(v(AS)) || 1, preEmi, cm, price: v(PR), down: v(DP) };
+      lastEmi = { p, r, y, base, scen, mode, stepPct, stepAmt, lump: v(L), lumpMonth: Math.round(v(LM)), annual: v(A), annualStart: Math.round(v(AS)) || 1, preEmi, cm, price: 0, down: 0 };
       const saved = scen ? base.totalInterest - scen.totalInterest : 0;
       const monthsSaved = scen ? base.months - scen.months : 0;
 
       const stats = [stat('Monthly EMI' + (hasStep ? ' (first year)' : ''), inr(base.emi), true)];
-      if (v(PR) > 0) stats.push(stat('Loan = price − down payment', inr(p)));
-      if (preEmi > 0) stats.push(stat(`Pre-EMI interest, ${cm} months`, inr(preEmi)));
       if (hasStep) stats.push(stat('EMI in the final year', inr(scen.maxEmi)));
       if (scen && mode === 'reduce_emi') stats.push(stat('EMI after prepayments', inr(scen.finalEmi)));
       stats.push(stat('Total interest', inr(show.totalInterest)));
@@ -449,6 +443,7 @@ const VIEWS = {
       ])) : null;
       // the prepayment controls live in the inputs; "try one" takes you there
       const goToPrepay = () => {
+        more.open = true;
         const title = [...document.querySelectorAll('#calc-body .card.inputs .opt-title')].find((t) => /Prepay principal/.test(t.textContent));
         if (!title) return;
         title.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -480,7 +475,6 @@ const VIEWS = {
           charts,
           el('h3', {}, 'Year-by-year schedule' + (scen ? ' (with your changes)' : '')),
           el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [el('thead', {}, el('tr', {}, head.map((h) => el('th', {}, h)))), el('tbody', {}, rows)])),
-          el('p', { class: 'muted small' }, `Tax note: for a self-occupied home, interest up to ${RUPEE}2,00,000 is deductible in the old regime only. For a let-out home, interest is deductible in both regimes but a loss cannot be set off against salary in the new regime.`),
           fundBox,
         ],
         detailsLabel: 'Show the charts and the year-by-year schedule',
@@ -498,22 +492,18 @@ const VIEWS = {
       }
     };
     remember('emi', [P.input, R.input, Y.input, ...step.inputs, L.input, LM.input, A.input, AS.input, M.input]);
-    remember('emi-price', [PR.input, DP.input, CM.input]);
     // Pre-fill from the first loan in the shared profile (a handoff from another tool wins over it);
     // edits to amount, rate or tenure write back to the profile.
     const loan = isBlankAfterReset('emi') ? null : getProfile().loans[0];
-    if (loan && loan.outstanding > 0 && !(v(PR) > 0)) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
+    if (loan && loan.outstanding > 0) { P.input.value = Math.round(loan.outstanding); R.input.value = loan.rate; Y.input.value = Math.max(1, Math.round(loan.remainingMonths / 12)); }
     const emiHandoff = takeHandoff('emi');
     if (emiHandoff) {
       // a worked example starts clean, so the loan shows exactly the example's figures
-      if (emiHandoff.values.fresh) { [PR, DP, CM].forEach((f) => fill(f.input, '')); fill(step.inputs[0], 'none'); fill(L.input, 0); fill(A.input, emiHandoff.values.annualPrepay || 0); fill(AS.input, 1); fill(M.input, 'reduce_tenure'); }
+      if (emiHandoff.values.fresh) { fill(step.inputs[0], 'none'); fill(L.input, 0); fill(A.input, emiHandoff.values.annualPrepay || 0); fill(AS.input, 1); fill(M.input, 'reduce_tenure'); }
       if (emiHandoff.values.stepUpPct > 0) { fill(step.inputs[0], 'pct'); fill(step.inputs[1], emiHandoff.values.stepUpPct); }
       fill(R.input, +(+emiHandoff.values.ratePct).toFixed(2)); fill(Y.input, emiHandoff.values.years);
-      if (emiHandoff.values.price > 0) { fill(PR.input, emiHandoff.values.price); fill(DP.input, emiHandoff.values.downPayment || 0); fill(CM.input, emiHandoff.values.constructionMonths || 0); }
-      else fill(P.input, emiHandoff.values.principal);
+      fill(P.input, emiHandoff.values.principal);
     }
-    syncFromPrice();
-    [PR, DP, CM].forEach((f) => f.input.addEventListener('input', () => { syncFromPrice(); debounce(render, 80)(); }));
     // Typing here is a what-if, not a fact: a loan you are only considering must not turn up in the
     // profile, and from there in the debt tool, as one you already have. Saving is a deliberate act.
     const saveNote = el('div', { class: 'muted small' });
@@ -531,16 +521,8 @@ const VIEWS = {
     [P, R, Y, L, LM, A, AS].forEach((f) => f.input.addEventListener('input', debounce(render, 80)));
     step.inputs.forEach((i) => { i.addEventListener('input', debounce(render, 80)); i.addEventListener('change', render); });
     M.input.addEventListener('change', render);
-    render();
-    return calcShell([
-      emiHandoff ? handoffNote(emiHandoff.from, emiHandoff.values.note ? `Prefilled with ${emiHandoff.values.note}, from ` : undefined) : null,
-      P.node, R.node, Y.node,
-      el('div', { class: 'opts' }, [
-        el('div', { class: 'opt-title' }, 'Buying a home?'),
-        el('p', { class: 'opt-help' }, 'Enter the price and your down payment and the loan amount fills itself in. If the home is under construction, say how long the bank will take to release the whole loan.'),
-        el('div', { class: 'two' }, [PR.node, DP.node]),
-        CM.node,
-      ]),
+    // the loan, the rate and the years answer the question; everything else waits in one closed section
+    const more = moreFold('Step-up EMI, prepayments, save to profile', step.mode() !== 'none' || v(L) > 0 || v(A) > 0, [
       step.node,
       el('div', { class: 'opts' }, [
         el('div', { class: 'opt-title' }, 'Prepay principal'),
@@ -550,6 +532,12 @@ const VIEWS = {
         M.node,
       ]),
       saveRow,
+    ]);
+    render();
+    return calcShell([
+      emiHandoff ? handoffNote(emiHandoff.from, emiHandoff.values.note ? `Prefilled with ${emiHandoff.values.note}, from ` : undefined) : null,
+      P.node, R.node, Y.node,
+      more,
     ], [out, calcExportCard('emi', () => lastEmi)]);
   },
 

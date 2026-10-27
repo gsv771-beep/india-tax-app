@@ -7,6 +7,7 @@
  * a 50:50 blend of published asset-class figures. Every rate is editable on the page and labelled.
  * Engine: engine/post-tax.js.
  */
+import { moreFold } from './calculators.js';
 import { inr, pct, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset } from './util.js';
 import { INSTRUMENTS, RISK_PROFILES, compareAll, postTax, poTdRate } from '../engine/post-tax.js';
 import { loadFunds, summariseCategories } from './funds.js';
@@ -103,11 +104,9 @@ export function renderCompare({ rates, schemes }) {
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
       el('div', { class: 'opt-title' }, 'The question'),
-      F.amount.node, F.years.node, F.riskProfile.node,
-      el('div', { class: 'two' }, [F.slabRate.node, F.regime.node]),
-      F.has80CRoom.node, F.ltcgExemptionAvailable.node,
+      F.amount.node, F.years.node, F.riskProfile.node, F.slabRate.node,
     ]),
-    ratesFold,
+    moreFold('Regime, unused exemptions, assumed returns', st.regime === 'old' || !st.ltcgExemptionAvailable, [F.regime.node, F.has80CRoom.node, F.ltcgExemptionAvailable.node, ratesFold]),
   ]);
   syncVisibility();
   buildRateInputs();

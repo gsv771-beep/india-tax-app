@@ -1,2 +1,2 @@
 // Written by tools/stamp.mjs; do not edit. Must equal <meta name="tc-build"> in index.html.
-export const BUILD = 'b6818d2f04';
+export const BUILD = '7c5ab227d1';
