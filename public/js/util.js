@@ -83,10 +83,13 @@ const DISCLAIMERS = {
   invest: 'Projections and historical returns are for information only and are not investment advice. Please consult a SEBI-registered investment adviser or your financial advisor before investing.',
   loan: 'This is an illustration for information only and is not financial advice. Please consult your bank or financial advisor before changing your loan, and your tax consultant or chartered accountant for the tax treatment of interest.',
 };
-/** Standard disclaimer block. kind: 'tax' | 'invest' | 'loan' | array of kinds */
-export function disclaimer(kind = 'tax') {
-  const kinds = [].concat(kind);
-  return el('div', { class: 'disclaimer', role: 'note' }, [el('strong', {}, 'Please note. '), kinds.map((k) => DISCLAIMERS[k]).join(' ')]);
+/**
+ * The disclaimer now sits once, in small print at the foot of every page (index.html .footer-legal),
+ * so a tool no longer carries its own box. Kept as a no-op so callers need not change; DISCLAIMERS
+ * stays the wording the footer line is drawn from.
+ */
+export function disclaimer() {
+  return document.createDocumentFragment();
 }
 
 /**
