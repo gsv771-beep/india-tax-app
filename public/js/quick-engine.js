@@ -78,3 +78,29 @@ export function ladder(rates, ctcs = LADDER_CTCS) {
     return { ctc, monthly: a.monthly.best, newTax: a.tax.new, oldTax: a.tax.old, better: a.better, saves: a.saves, oldNeeds: a.be.kind === 'need' ? a.needed : null };
   });
 }
+
+/**
+ * The reverse question: the CTC to ask for so that `wantMonthly` reaches the bank each month.
+ *   ctcForInHand(wantMonthly, q, rates) -> { new: { ctc, a }, old: { ctc, a }, best: 'new'|'old' } | null
+ * q carries everything else the forward answer takes (bonus, deductions, Basic %, city...). For each
+ * regime it finds the smallest CTC, in whole ₹1,000s, whose monthly take-home (before any once-a-year
+ * bonus) is at least the target, by bisection on the forward answer itself, so the CTC it names
+ * always ties back exactly. Take-home rises with CTC except across the old regime's 87A rebate edge,
+ * where the search still lands on a CTC that meets the target.
+ */
+export function ctcForInHand(wantMonthly, q, rates) {
+  const want = num(wantMonthly);
+  if (!want) return null;
+  const at = (ctc) => quickAnswer({ ...q, ctc }, rates);
+  const solve = (r) => {
+    const ok = (ctc) => { const a = at(ctc); return a && !a.error && a.monthly[r] >= want - 0.5; };
+    // the CTC is at least a year of the take-home (plus a bonus carved out of it)
+    let lo = Math.max(100, Math.floor((12 * want + (q.onTop ? 0 : num(q.variable))) / 1000)), hi = lo;
+    while (!ok(hi * 1000)) { lo = hi; hi *= 2; if (hi > 1e6) return null; }   // ₹100 crore: no answer
+    while (hi - lo > 1) { const mid = Math.floor((lo + hi) / 2); if (ok(mid * 1000)) hi = mid; else lo = mid; }
+    return { ctc: hi * 1000, a: at(hi * 1000) };
+  };
+  const n = solve('new'), o = solve('old');
+  if (!n && !o) return null;
+  return { new: n, old: o, best: !o || (n && n.ctc <= o.ctc) ? 'new' : 'old' };
+}

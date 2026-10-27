@@ -159,6 +159,7 @@ export function renderOffer({ rates }) {
       next: [
         { label: 'See each salary split in full', note: 'Basic, HRA, PF and tax for one CTC', href: `/?ctc=${Math.round(+st.b.ctc)}#payslip`, primary: true },
         { label: 'Would the old regime win with your deductions?', note: 'Rent, home loan, 80C and NPS', href: `/?ctc=${Math.round(+st.b.ctc)}` },
+        { label: 'What CTC should you ask for?', note: 'Type the take-home you want; it works out the CTC', href: `/?want=${Math.round(Math.max(A1.monthly, B1.monthly) / 1000) * 1000}` },
         { label: `Plan your savings on ${B}’s pay`, note: `${inr(B1.monthly)} a month into the savings calculator`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(B1.monthly) }, 'offer') },
         { label: `Or on ${A}’s`, note: `${inr(A1.monthly)} a month`, href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(A1.monthly) }, 'offer') },
       ],

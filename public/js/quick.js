@@ -12,7 +12,7 @@ import { el, inr, inrShort, setChildren, debounce } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
 import { fromSalaryStore, toTaxInputs, ctcOf, ctcHeadline, payoutOf, isEmptyProfile, clearSalary, CITIES, METRO_CITIES } from '../engine/profile.js';
-import { quickAnswer, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
+import { quickAnswer, ctcForInHand, QUICK_DEFAULTS, LIMIT_80C } from './quick-engine.js';
 
 const DETAIL = 'taxcompass.detail-open.v1';
 const live = new Map();   // one listener per mount point, replaced when a page re-renders its copy
@@ -67,11 +67,20 @@ export function ctcFromUrl() {
   const v = Math.round(+new URLSearchParams(location.search).get('ctc'));
   return v >= 100000 && v <= 1e9 ? v : null;
 }
+/** A take-home asked for in the address (/?want=200000, or /?want= to open the reverse question empty). */
+export function wantFromUrl() {
+  if (typeof location === 'undefined') return null;
+  const s = new URLSearchParams(location.search);
+  if (!s.has('want')) return null;
+  const v = Math.round(+s.get('want'));
+  return v > 0 && v < 1e8 ? v : 0;
+}
+const WANT = 'taxcompass.want.v1';   // localStorage: { mode, want } for the reverse question
 const mounts = new Map();   // source -> the slot and options, so a ?ctc= link can refill a card already on the page
 if (typeof window !== 'undefined') window.addEventListener('routechange', () => {
-  const c = ctcFromUrl();
-  if (!c) return;
-  for (const { slot, opts } of mounts.values()) if (slot.isConnected && slot.offsetParent !== null && opts.ctc !== c) mountQuick(slot, { ...opts, ctc: c });
+  const c = ctcFromUrl(), w = wantFromUrl();
+  if (!c && w == null) return;
+  for (const { slot, opts } of mounts.values()) if (slot.isConnected && slot.offsetParent !== null && (w != null || opts.ctc !== c)) mountQuick(slot, { ...opts, ctc: c });
 });
 
 export function mountQuick(slot, opts) {
@@ -88,11 +97,33 @@ export function mountQuick(slot, opts) {
   let bonusKind = knownBonus(q);
   let asking = !bonusKind;   // the bonus question is on screen: until answered, or while its amount is being typed
   let deeper = DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0) || q.employerNpsPct > 0;
+  // the reverse question (the CTC to ask for, for a take-home), on the landing page only
+  const allowWant = source === 'quick:tax';
+  let mode = 'ctc', want = 0, hike = 0;
+  if (allowWant && !ctc) {
+    const w = wantFromUrl();
+    if (w != null) { mode = 'want'; want = w; }
+    else { try { const s = JSON.parse(localStorage.getItem(WANT) || 'null'); if (s && s.mode === 'want') { mode = 'want'; want = +s.want || 0; } } catch {} }
+  }
+  const keepWant = () => { try { localStorage.setItem(WANT, JSON.stringify({ mode, want })); } catch {} };
 
   // ---- 1. the CTC, and nothing else ----
   const ctcInput = el('input', { type: 'number', min: 0, step: 50000, inputmode: 'numeric', placeholder: 'e.g. 1500000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: q.ctc || '' });
   const echo = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
   const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Start over');
+  const wantInput = el('input', { type: 'number', min: 0, step: 5000, inputmode: 'numeric', placeholder: 'e.g. 200000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'The take-home you want each month, in rupees', value: want || '' });
+  const wantEcho = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
+  const ctcLabel = el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo])]);
+  const wantLabel = el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Take-home you want (₹ a month)'), el('span', { class: 'quick-in-row' }, [wantInput, wantEcho])]);
+  const modeBtns = [['ctc', 'I know my CTC'], ['want', 'I know the in-hand I want']].map(([m, t]) => el('button', { type: 'button', class: 'quick-mode', 'data-mode': m, 'aria-pressed': 'false' }, t));
+  const modeSwitch = allowWant ? el('div', { class: 'quick-modes', role: 'group', 'aria-label': 'What you know' }, modeBtns) : null;
+  for (const b of modeBtns) b.addEventListener('click', () => { mode = b.dataset.mode; keepWant(); paint(); (mode === 'want' ? wantInput : ctcInput).focus(); });
+  wantInput.addEventListener('input', () => { want = Math.max(0, +wantInput.value || 0); keepWant(); paint(); });
+  // a hike on the CTC: what it adds to the take-home, after the tax on it
+  const hikeInput = el('input', { type: 'number', min: 0, max: 200, step: 1, inputmode: 'decimal', placeholder: 'e.g. 10', class: 'quick-pct', 'aria-label': 'Hike you expect, percent' });
+  const hikeOut = el('span', { class: 'quick-hike-out', 'aria-live': 'polite' });
+  const hikeBox = el('label', { class: 'quick-hike', hidden: true }, [el('span', {}, 'Expecting a hike?'), el('span', { class: 'quick-amount' }, [hikeInput, el('span', { class: 'unit' }, '%')]), hikeOut]);
+  hikeInput.addEventListener('input', () => { hike = Math.max(0, +hikeInput.value || 0); paint(); });
 
   // ---- 2. the bonus ----
   const kindBtn = (kind, text) => el('button', { type: 'button', class: 'quick-choice', 'data-kind': kind, 'aria-pressed': 'false' }, text);
@@ -119,6 +150,7 @@ export function mountQuick(slot, opts) {
   ]);
 
   const save = debounce(() => {
+    if (mode === 'want') return;   // a take-home being tried out is not a salary: nothing is saved
     if (!q.ctc) {
       // an emptied CTC box empties the salary it had saved, and the detailed calculators' own copies of
       // it, so the old figure does not come back on this page or the next visit
@@ -217,9 +249,10 @@ export function mountQuick(slot, opts) {
   };
 
   const regimeName = (r) => (r === 'new' ? 'New regime' : 'Old regime');
-  function paintAnswer(a) {
+  function paintAnswer(a, need) {
     if (a.error) { setChildren(answer, el('p', { class: 'notice warn' }, a.error)); return; }
     const bonus = a.bonus.paid > 0;
+    if (need) { paintWant(a, need, bonus); return; }
     const row = (r) => el('div', { class: 'quick-side' + (r === a.better && !a.same ? ' win' : '') }, [
       el('div', { class: 'quick-side-k' }, regimeName(r)),
       el('div', { class: 'quick-side-v' }, [inr(a.monthly[r]), el('span', { class: 'quick-per' }, ' a month')]),
@@ -237,6 +270,30 @@ export function mountQuick(slot, opts) {
       adjTotal(q.inhand) !== 0 ? leftLine(a) : null,
       el('div', { class: 'quick-sides' }, [row('new'), row('old')]),
       el('p', { class: 'quick-sub quick-bonus-kind' }, ['Bonus: ', bonus ? `${inr(a.bonus.target)}, ${kindText}` : 'none', ' · ', change]),
+    ]);
+  }
+  // the reverse answer: the CTC to ask for, both regimes, and a way to carry on with it
+  function paintWant(a, need, bonus) {
+    const b = need.best, other = b === 'new' ? 'old' : 'new';
+    const kindText = bonusKind === 'top' ? 'on top of your CTC' : bonusKind === 'ctc' ? 'part of your CTC' : 'none';
+    const change = el('button', { type: 'button', class: 'quick-link-btn', onclick: () => { asking = true; paint(); (kindBtns.find((x) => x.dataset.kind === bonusKind) || kindBtns[0]).focus(); } }, 'change');
+    const row = (r) => need[r] ? el('div', { class: 'quick-side' + (r === b && need.new && need.old && need.new.ctc !== need.old.ctc ? ' win' : '') }, [
+      el('div', { class: 'quick-side-k' }, regimeName(r)),
+      el('div', { class: 'quick-side-v' }, [inr(need[r].ctc), el('span', { class: 'quick-per' }, ' CTC')]),
+      el('div', { class: 'quick-side-tax' }, need[r].a.tax[r] > 0 ? ['Tax ', el('b', {}, inr(need[r].a.tax[r])), ' a year'] : 'No income tax'),
+      r === b && need[other] && need[other].ctc > need[r].ctc ? el('div', { class: 'quick-side-sub' }, `Asks for ${inr(need[other].ctc - need[r].ctc)} less`) : null,
+    ]) : null;
+    const use = el('button', { type: 'button', class: 'btn secondary small-btn quick-use' }, `Carry on with ${inrShort(need[b].ctc)} as my CTC`);
+    use.addEventListener('click', () => { mode = 'ctc'; keepWant(); ctcInput.value = need[b].ctc; set({ ctc: need[b].ctc }); ctcInput.focus({ preventScroll: true }); });
+    setChildren(answer, [
+      el('div', { class: 'quick-k' }, 'Ask for a CTC of'),
+      el('div', { class: 'quick-v' }, inr(need[b].ctc)),
+      el('p', { class: 'quick-sub' }, `That puts ${inr(a.monthly[b])} a month in your bank${bonus ? ', before the bonus,' : ''} in the ${b} regime, after ${inr(a.pay.employeePf / 12)} PF (12% of Basic, taken as ${+q.basicPct.toFixed(1)}% of the CTC), ${inr(a.pay.professionalTax / 12)} professional tax and ${inr(a.tax[b] / 12)} a month of income tax.`),
+      need[other] && need[other].ctc !== need[b].ctc ? el('p', { class: 'quick-sub' }, `In the ${other} regime you would need ${inr(need[other].ctc)}.`) : null,
+      bonus ? el('p', { class: 'quick-sub quick-bonus' }, `Plus your bonus, ${kindText}: ${inr(a.bonus.paid)} a year, about ${inr(a.bonus.net[b])} after tax.`) : null,
+      el('div', { class: 'quick-sides' }, [row('new'), row('old')]),
+      el('p', { class: 'quick-sub quick-bonus-kind' }, ['Bonus: ', bonus ? `${inr(a.bonus.target)}, ${kindText}` : 'none', ' · ', change]),
+      use,
     ]);
   }
   function leftLine(a) {
@@ -296,8 +353,9 @@ export function mountQuick(slot, opts) {
       ])) : null,
       el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here. Old-regime deductions counted: ${parts.join(', ')}.`]),
       el('div', { class: 'quick-links' }, [
-        taxLink ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
-        salaryLink ? el('a', { class: 'quick-link', href: salaryLink.href, onclick: salaryLink.onclick }, salaryLink.text) : null,
+        // the payslip and the full form work from a saved salary, which a take-home being tried out is not
+        taxLink && mode !== 'want' ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
+        salaryLink && mode !== 'want' ? el('a', { class: 'quick-link', href: salaryLink.href, onclick: salaryLink.onclick }, salaryLink.text) : null,
         el('a', { class: 'quick-link', href: '/calculators/budget', onclick: () => setHandoff('budget', { income: Math.round(a.monthly.best) }, 'salary') }, 'Plan your savings with this →'),
       ]),
       assume,
@@ -305,10 +363,18 @@ export function mountQuick(slot, opts) {
   }
 
   function paint() {
-    const a = q.ctc > 0 ? quickAnswer(q, rates) : null;
+    const wanting = mode === 'want';
+    slot.classList.toggle('wanting', wanting);
+    for (const b of modeBtns) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+    ctcLabel.hidden = wanting; wantLabel.hidden = !wanting;
+    if (document.activeElement !== wantInput) wantInput.value = want || '';
+    wantEcho.textContent = want > 0 ? `${inr(want)} a month` : '';
+    const hasCtc = wanting ? want >= 10000 : q.ctc >= 100000;
+    let a = null, need = null;
+    if (wanting) { if (hasCtc) { need = ctcForInHand(want, { ...q, ctc: 0 }, rates); a = need ? need[need.best].a : { error: 'No CTC up to ₹100 crore reaches that take-home.' }; } }
+    else a = q.ctc > 0 ? quickAnswer(q, rates) : null;
     echo.textContent = q.ctc > 0 ? `${inrShort(q.ctc)} a year` : '';
     assumePt.textContent = inr(q.professionalTax ?? QUICK_DEFAULTS.professionalTax);
-    const hasCtc = q.ctc >= 100000;
     // step 2 waits for a CTC; the answer waits for step 2
     bonusStep.hidden = !hasCtc || !asking;
     for (const b of kindBtns) b.setAttribute('aria-pressed', String(b.dataset.kind === bonusKind));
@@ -322,9 +388,15 @@ export function mountQuick(slot, opts) {
     breakdown.hidden = !ok;
     deeperBtn.hidden = deeper;
     deeperBody.hidden = !deeper;
+    hikeBox.hidden = !ok || wanting;
     if (a && a.error) { paintAnswer(a); return; }
     if (!ok) return;
-    paintAnswer(a);
+    paintAnswer(a, need);
+    if (!wanting) {
+      const h = hike > 0 ? quickAnswer({ ...q, ctc: Math.round(q.ctc * (1 + hike / 100)) }, rates) : null;
+      const gain = h && !h.error ? h.inHand.best - a.inHand.best : 0;
+      hikeOut.textContent = gain > 0 ? `→ ${inr(gain)} more a year in hand (${inr(gain / 12)} a month): ${+(100 * gain / a.inHand.best).toFixed(1)}% after tax.` : '';
+    }
     paintVerdict(a);
     paintBreakdown(a);
     refreshFields(a);
@@ -334,13 +406,15 @@ export function mountQuick(slot, opts) {
 
   setChildren(slot, [
     el('div', { class: 'card quick quick-flow' }, [
+      modeSwitch,
       el('div', { class: 'quick-top' }, [
-        el('label', { class: 'quick-in' }, [el('span', { class: 'quick-in-label' }, 'Your annual CTC (₹)'), el('span', { class: 'quick-in-row' }, [ctcInput, echo])]),
+        el('div', { class: 'quick-in-wrap' }, [ctcLabel, wantLabel]),
         startOver,
       ]),
       el('p', { class: 'quick-privacy muted small' }, 'No sign-up. What you type stays on this device.'),
       bonusStep,
       answer,
+      hikeBox,
       deeperBox,
       breakdown,
     ]),
@@ -362,11 +436,11 @@ export function mountQuick(slot, opts) {
   // calculator on the same page (tax form, in-hand calculator) is told to clear itself too.
   startOver.addEventListener('click', () => {
     updateProfile(clearSalary, `reset:${source}`);
-    deeper = false; bonusKind = null; asking = true;
+    deeper = false; bonusKind = null; asking = true; want = 0; hike = 0; hikeInput.value = ''; keepWant();
     fromSaved(getProfile());
     bonusKind = null; asking = true; paint();
     window.dispatchEvent(new CustomEvent('taxcompass:startover', { detail: { source } }));
-    if (!ctc) ctcInput.focus();
+    if (!ctc) (mode === 'want' ? wantInput : ctcInput).focus();
   });
   const offChange = onProfileChange((p) => { if (!slot.contains(document.activeElement)) fromSaved(p); }, source);
   // a figure typed just before the tab is closed or reloaded is saved, not lost to the debounce

@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { quickAnswer, ladder, LADDER_CTCS } from '../public/js/quick-engine.js';
+import { quickAnswer, ladder, LADDER_CTCS, ctcForInHand } from '../public/js/quick-engine.js';
 import { salaryBreakdown } from '../public/js/salary.js';
 import { compareRegimes } from '../public/js/tax-engine.js';
 import { salaryMonthly } from '../public/js/budget-sync.js';
@@ -116,6 +116,23 @@ ok('Basic of 80% with PF and gratuity: components exceed CTC is reported', !!qui
   const over = quickAnswer({ ctc: 2500000, employerNpsPct: 20 }, rates), cap14 = quickAnswer({ ctc: 2500000, employerNpsPct: 14 }, rates);
   ok('above 14% of Basic the new regime gives no more relief: the tax stays the same', over.tax.new === cap14.tax.new, `${over.tax.new} vs ${cap14.tax.new}`);
   near('... while the extra 6% of Basic still leaves the monthly pay', cap14.monthly.new - over.monthly.new, 0.06 * 1250000 / 12);
+}
+
+// ---- the reverse question: the CTC to ask for, for a take-home you want ----
+{
+  for (const want of [50000, 100000, 168983, 200000, 350000]) {
+    const r = ctcForInHand(want, {}, rates);
+    const [n, below] = [r.new, quickAnswer({ ctc: r.new.ctc - 1000 }, rates)];
+    ok(`₹${want} a month: the named CTC reaches it, ₹1,000 less does not (new regime)`, n.a.monthly.new >= want - 0.5 && below.monthly.new < want, `ctc ${n.ctc} gives ${Math.round(n.a.monthly.new)}, ${n.ctc - 1000} gives ${Math.round(below.monthly.new)}`);
+    ok(`₹${want} a month: the old regime needs at least as much CTC with no deductions`, r.old.ctc >= r.new.ctc && r.best === 'new');
+  }
+  ok('round trip: ₹1,68,983 a month asks for ₹25 lakh', ctcForInHand(168983, {}, rates).new.ctc === 2500000);
+  const withBonus = ctcForInHand(150000, { variable: 300000 }, rates), plain = ctcForInHand(150000, {}, rates);
+  ok('a bonus inside the CTC raises the CTC to ask for, by about the bonus', withBonus.new.ctc > plain.new.ctc + 250000 && withBonus.new.a.monthly.new >= 149999.5);
+  const deductions = { rentMonthly: 40000, city: 'Mumbai', other80c: 150000, homeLoanInterest: 200000, healthSelf: 25000, nps1b: 50000 };
+  const d = ctcForInHand(150000, deductions, rates);
+  ok('with big deductions the old regime can need the lower CTC', d.old.ctc < ctcForInHand(150000, {}, rates).old.ctc);
+  ok('nothing wanted, no answer', ctcForInHand(0, {}, rates) === null);
 }
 
 console.log(failures ? `\n${failures} failure(s)` : '\nAll quick-answer tests passed');
