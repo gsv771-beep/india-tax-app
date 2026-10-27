@@ -145,5 +145,5 @@ function openInTaxComparison(r) {
   s.employer = { ...(s.employer || {}), npsContribution: Math.round(i.employer.npsContribution), isGovernment: false, totalRetirementContribution: Math.round(i.employer.totalRetirementContribution) };
   s.deductions = { ...(s.deductions || {}), includeEpf: true, epfEmployee: Math.round(i.deductions.epfEmployee), s80c: i.deductions.s80c, nps1b: i.deductions.nps1b, healthSelf: i.deductions.healthSelf };
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
-  location.href = '/tax';
+  location.href = '/';
 }

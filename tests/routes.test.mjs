@@ -5,23 +5,23 @@ import { metaFor, parsePath, PAGES, CALCS, REMOVED } from '../public/js/routes.j
 let failures = 0;
 const ok = (name, cond, detail = '') => { console.log(`${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? ' (' + detail + ')' : ''}`); if (!cond) failures++; };
 
-ok('root is the landing page', metaFor('/').tab === 'home' && /in-hand salary/i.test(metaFor('/').title) && /regime/i.test(metaFor('/').title) && metaFor('/').url === 'https://taxcompass.org/');
-ok('index.html is the landing page too', metaFor('/index.html').tab === 'home');
-ok('/tax is still the regime comparison', metaFor('/tax').tab === 'tax' && /regime/.test(metaFor('/tax').title));
+ok('root is the landing page: Tax & salary', metaFor('/').tab === 'tax' && /in-hand salary/i.test(metaFor('/').title) && /regime/i.test(metaFor('/').title) && metaFor('/').url === 'https://taxcompass.org/');
+ok('index.html is the landing page too', metaFor('/index.html').tab === 'tax');
+ok('/tax, now merged into the landing page, resolves to /', metaFor('/tax').tab === 'tax' && metaFor('/tax').url === 'https://taxcompass.org/' && /regime/.test(metaFor('/tax').title));
 ok('home-buying tool gets its own title', /True cost of buying/.test(metaFor('/calculators/home').title));
 ok('home-buying description mentions the cities', /Mumbai/.test(metaFor('/calculators/home').desc));
 ok('unknown calculator falls back to EMI', metaFor('/calculators/nonsense').url === 'https://taxcompass.org/calculators/emi');
 ok('removed lumpsum route resolves to SIP', metaFor('/calculators/lumpsum').url === 'https://taxcompass.org/calculators/sip');
-ok('the merged in-hand page resolves to Tax & salary', metaFor('/calculators/salary').url === 'https://taxcompass.org/tax' && metaFor('/calculators/salary').tab === 'tax');
+ok('the merged in-hand page resolves to Tax & salary', metaFor('/calculators/salary').url === 'https://taxcompass.org/' && metaFor('/calculators/salary').tab === 'tax');
 {
   const redirects = readFileSync(new URL('../public/_redirects', import.meta.url), 'utf8');
   ok('every removed page has an edge redirect to the same page', Object.entries(REMOVED).every(([from, to]) => redirects.includes(`${from} ${to.split('#')[0]} 301`)));
 }
-ok('removed advance-tax route resolves to tax', metaFor('/calculators/advance-tax').url === 'https://taxcompass.org/tax');
+ok('removed advance-tax route resolves to the landing page', metaFor('/calculators/advance-tax').url === 'https://taxcompass.org/');
 ok('retired insurance tool resolves to the money-tools index', metaFor('/calculators/insurance').url === 'https://taxcompass.org/calculators');
 ok('schemes alias resolves to NPS', metaFor('/schemes').tab === 'nps');
 ok('trailing slash ignored', metaFor('/nps/').url === 'https://taxcompass.org/nps');
-ok('every title carries the site name', Object.keys(PAGES).filter((t) => t !== 'home').every((t) => /· TaxCompass India$/.test(metaFor('/' + t).title)) && /TaxCompass India/.test(metaFor('/').title) && Object.keys(CALCS).every((c) => /· TaxCompass India$/.test(metaFor('/calculators/' + c).title)));
+ok('every title carries the site name', Object.keys(PAGES).filter((t) => t !== 'tax').every((t) => /· TaxCompass India$/.test(metaFor('/' + t).title)) && /TaxCompass India/.test(metaFor('/').title) && Object.keys(CALCS).filter((c) => !REMOVED['/calculators/' + c]).every((c) => /· TaxCompass India$/.test(metaFor('/calculators/' + c).title)));
 ok('compare route has its title', /Where should this money go/.test(metaFor('/calculators/compare').title));
 ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip')) === JSON.stringify({ tab: 'calculators', sub: 'sip' }));
 
@@ -46,7 +46,7 @@ ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip'))
     if (!m[1]) stack.push(m[2]); else if (stack.pop() !== m[2]) bad.push(`${m[0]} at offset ${m.index}`);
   }
   ok('index.html opens and closes every div, section and details in order', bad.length === 0 && stack.length === 0, bad.slice(0, 2).join('; ') || stack.join(','));
-  for (const id of ['home', 'tax', 'calculators', 'nps', 'glossary', 'about']) {
+  for (const id of ['tax', 'calculators', 'nps', 'glossary', 'about']) {
     const open = html.indexOf(`<section id="${id}"`);
     const next = html.indexOf('<section id="', open + 1);
     const chunk = html.slice(open, next < 0 ? html.indexOf('</main>') : next);

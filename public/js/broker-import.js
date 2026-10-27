@@ -166,7 +166,7 @@ export function renderBrokerImport({ rates }) {
     if (business > 0) { s.business = { ...(s.business || {}), income: Math.round((+s.business?.income || 0) + business) }; s.hasBusinessIncome = true; }
     if (h.debtSlab > 0) s.otherIncome = { ...(s.otherIncome || {}), other: Math.round((+s.otherIncome?.other || 0) + h.debtSlab) };
     try { localStorage.setItem(KEY, JSON.stringify(s)); } catch {}
-    location.href = '/tax';
+    location.href = '/';
   }
 
   render();

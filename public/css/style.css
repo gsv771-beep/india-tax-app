@@ -1041,7 +1041,6 @@ details.r-why[open] > summary { margin-bottom: 8px; }
 
 /* ---- the salary question, one step at a time (js/quick.js) ---- */
 .quick-flow { max-width: 720px; margin-inline: auto; padding: 24px; }
-#home .hero-quick { max-width: 720px; margin-inline: auto; text-align: left; }
 .quick-flow .quick-in-label { font-size: 1.1rem; }
 .quick-flow input.quick-ctc { width: 100%; max-width: 360px; }
 .quick-privacy { margin: 8px 0 0; }
@@ -1064,13 +1063,12 @@ details.r-why[open] > summary { margin-bottom: 8px; }
 .quick-bonus-kind { margin-top: 10px; }
 /* the tax page's deeper tools and the profile bar wait until there is something to go deeper on */
 #tax:not(:has(.quick-slot.has-answer)) > .detail-toggle { display: none; }
-body:has(#home:not([hidden])) .profile-panel:not(.open), body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
+body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 @media (max-width: 560px) {
   .quick-flow { padding: 18px 16px; }
   .quick-choice { flex: 1 1 100%; text-align: left; }
 }
 /* the first screen is the question alone: the footer starts below the fold */
-#home:not([hidden]) { min-height: 100svh; }
 .quick-flow .quick-amount input.quick-pct { width: 90px; }
 
 /* calculators: the first answer's inputs, then one closed 'More options' (calculators.js moreFold) */
@@ -1084,3 +1082,4 @@ body:has(#home:not([hidden])) .profile-panel:not(.open), body:has(#tax:not([hidd
 .tax-business-link { max-width: 720px; margin: 10px auto 0; font-size: .88rem; }
 #tax:has(.quick-slot.has-answer) .tax-business-link, #tax.show-detail .tax-business-link { display: none; }
 #tax:not([hidden]) { min-height: 100svh; }
+#tax > .panel-head { max-width: 720px; margin-inline: auto; }
