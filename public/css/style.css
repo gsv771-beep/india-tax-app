@@ -18,6 +18,8 @@
   --chart-green: #1d6b3d;
   --chart-gold: #b7861c;
   --chart-grey: #8a948e;
+  /* the car tool's lines, one per car slot (A to D); checked for colour-blind separation on both surfaces */
+  --car-a: #b7861c; --car-b: #1d6b3d; --car-c: #2f6db5; --car-d: #b4472f;
   --gold: #c9a227;
   --old: #8a6412;
   --old-soft: #fbf3dc;
@@ -54,6 +56,7 @@
     --chart-green: #4fbf7d;
     --chart-gold: #dcae3f;
     --chart-grey: #8f9a94;
+    --car-a: #a87a22; --car-b: #3aa877; --car-c: #5a92d6; --car-d: #d06a4f;
     --gold: #d1a935;
     --old: #d1a935;
     --old-soft: #3a2e12;
@@ -1144,6 +1147,15 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 .car-result .v { font-size: 1.45rem; font-weight: 700; margin: 4px 0 2px; overflow-wrap: anywhere; }
 .car-result.best .v { color: var(--chart-green); }
 .car-result .s { color: var(--muted); font-size: .85rem; }
+.car-be { margin-top: 20px; }
+.car-be-title { margin: 0 0 4px; font-size: 1.05rem; }
+.car-be-vs { color: var(--muted); font-size: .9rem; margin: 10px 0 8px; }
+.car-be-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.car-be-tile { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; min-width: 0; }
+.car-be-tile .k { color: var(--muted); font-size: .85rem; }
+.car-be-tile .v { font-size: 1.15rem; font-weight: 700; margin: 4px 0 2px; }
+.car-be-tile .s { color: var(--muted); font-size: .82rem; }
+.car-be-chart { margin-top: 16px; }
 @media (max-width: 560px) {
   .car-result { padding: 12px 12px; }
   .car-result .v { font-size: 1.2rem; }

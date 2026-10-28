@@ -61,18 +61,19 @@ export function onRoad({ city, fuel, price, roadTaxPct }, data) {
  */
 export function runningPerMonth(fuel, exShowroom, e, data) {
   const km = Math.max(0, num(e.kmPerMonth));
-  let energy;
+  let energyPerKm;
   if (fuel === 'ev') {
     const share = Math.min(100, Math.max(0, num(e.publicPct))) / 100;
     const rate = (1 - share) * num(e.homeRate) + share * num(e.publicRate);
-    energy = km / Math.max(0.1, num(e.efficiency)) * rate;
+    energyPerKm = rate / Math.max(0.1, num(e.efficiency));
   } else {
     const price = fuel === 'diesel' ? num(e.dieselPrice) : num(e.petrolPrice);
-    energy = km / Math.max(0.1, num(e.efficiency)) * price;
+    energyPerKm = price / Math.max(0.1, num(e.efficiency));
   }
+  const energy = km * energyPerKm;
   const service = num(e.maintenance) / 12;
   const insurance = exShowroom * num(data.insurance.renewal_pct) / 100 / 12;
-  return { energy, service, insurance, total: energy + service + insurance };
+  return { energy, energyPerKm, service, insurance, total: energy + service + insurance };
 }
 
 /**
@@ -114,12 +115,25 @@ export function ownership(input, data) {
   if (!options.length) return { options, cheapest: null, payback: [], years, kmPerMonth };
   const cheapest = options.reduce((a, b) => (b.total < a.total ? b : a));
   const lowestUpfront = options.reduce((a, b) => (b.road.total < a.road.total ? b : a));
-  // how long each dearer car takes to earn back its higher on-road price through lower running costs
+  // Break-even for each car that costs more to buy than the cheapest one to buy:
+  //  months: when the money spent so far is equal (the first year's insurance is in the on-road price,
+  //          so renewals only start counting from month 12)
+  //  kmPerYear: the driving a year above which it costs less over the whole period, resale included
+  //          (0: less at any distance; null: never, it costs as much or more a km to run)
   const payback = options.filter((o) => o !== lowestUpfront).map((o) => {
-    const extra = o.road.total - lowestUpfront.road.total;
-    const saving = lowestUpfront.run.total - o.run.total;
-    const monthsToPay = saving > 0 ? extra / saving : null;
-    return { id: o.id, fuel: o.fuel, againstId: lowestUpfront.id, against: lowestUpfront.fuel, extra, savingPerMonth: saving, months: monthsToPay, km: monthsToPay != null ? monthsToPay * kmPerMonth : null, withinYears: monthsToPay != null && monthsToPay <= months };
+    const c = lowestUpfront, extra = o.road.total - c.road.total;
+    const slope1 = (o.run.energy + o.run.service) - (c.run.energy + c.run.service);
+    const slope2 = slope1 + (o.run.insurance - c.run.insurance);
+    let at = null;
+    if (extra <= 0) at = 0;
+    else if (slope1 < 0 && extra + slope1 * 12 <= 0) at = extra / -slope1;
+    else if (slope2 < 0) at = 12 + (extra + slope1 * 12) / -slope2;
+    const fixed = extra + (o.run.service - c.run.service) * months + (o.run.insurance - c.run.insurance) * (months - 12) - (o.resale - c.resale);
+    const perKm = (o.run.energyPerKm - c.run.energyPerKm) * months;
+    const kmPerYear = perKm < 0 ? Math.max(0, fixed / -perKm) * 12 : fixed < 0 ? 0 : null;
+    return { id: o.id, fuel: o.fuel, againstId: c.id, against: c.fuel, extra, savingPerMonth: -slope2, months: at, km: at != null ? at * kmPerMonth : null, withinYears: at != null && at <= months, kmPerYear };
   });
-  return { options, cheapest, lowestUpfront, payback, years, kmPerMonth, city };
+  /** The money spent on a car by month t (before any resale): for drawing the lines that cross. */
+  const spentBy = (o, t) => o.road.total + (o.run.energy + o.run.service) * t + o.run.insurance * Math.max(0, t - 12);
+  return { options, cheapest, lowestUpfront, payback, spentBy, years, kmPerMonth, city };
 }

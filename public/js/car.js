@@ -13,12 +13,14 @@ import { setHandoff } from './handoff.js';
 import { getProfile } from './profile-store.js';
 import { salaryMonthly } from './budget-sync.js';
 import { moreFold, emi } from './calculators.js';
+import { lineChart } from './charts.js';
 
 const STORE = 'taxcompass.car.v2';
 const SHORT = { petrol: 'Petrol', diesel: 'Diesel', hybrid: 'Hybrid', ev: 'Electric' };
 const LETTERS = ['A', 'B', 'C', 'D'];
 const KM = { min: 5000, max: 40000, step: 1000 };
 const PERIODS = [3, 5, 7];
+const COLOR = ['var(--car-a)', 'var(--car-b)', 'var(--car-c)', 'var(--car-d)'];
 const months = (m) => { const t = Math.round(m), y = Math.floor(t / 12), r = t % 12; return [y ? `${y} year${y > 1 ? 's' : ''}` : '', r ? `${r} month${r > 1 ? 's' : ''}` : ''].filter(Boolean).join(' ') || 'under a month'; };
 const kmText = (n) => `${(Math.round(n / 1000) * 1000).toLocaleString('en-IN')} km`;
 const newCar = (fuel) => ({ fuel, price: '', roadTaxPct: '', efficiency: '', maintenance: '', resale: '' });
@@ -154,13 +156,38 @@ export function renderCar(appData, data) {
     const verdict = !many ? `${inr(best.road.total)} on the road, then ${inr(best.run.total)} a month to run.`
       : gap < best.total * 0.01 ? `Within ${inr(gap)} of each other over ${r.years} years: on these figures, about the same.`
         : `The ${best.name.toLowerCase()} costs ${inr(gap)} less over ${r.years} years than the ${sorted[1].name.toLowerCase()}.`;
-    const nameById = (id) => r.options.find((o) => o.id === id).name.toLowerCase();
-    const payback = many ? r.payback.filter((p) => p.extra > 0).map((p) => {
-      if (p.months == null) return `The ${nameById(p.id)} costs ${inr(p.extra)} more to buy and no less to run, so it never earns that back.`;
-      const total = r.years * 12;
-      const when = Math.abs(p.months - total) < 1 ? ', right at the end of the period' : p.months < total ? '' : `, longer than the ${r.years} years`;
-      return `The ${nameById(p.id)} costs ${inr(p.extra)} more to buy and ${inr(p.savingPerMonth)} a month less to run: it earns that back in ${months(p.months)} (about ${kmText(p.km)})${when}.`;
-    }) : [];
+    // break-even: for each car dearer to buy than the cheapest to buy, when the money spent so far is
+    // equal, and the driving a year above which it costs less over the whole period
+    const byId = (id) => r.options.find((o) => o.id === id);
+    const kmYear = +st.kmPerYear || 12000;
+    const be = many ? r.payback.filter((p) => p.extra > 0) : [];
+    const tile = (k, [v, sub]) => el('div', { class: 'car-be-tile' }, [el('div', { class: 'k' }, k), el('div', { class: 'v' }, v), el('div', { class: 's' }, sub)]);
+    const pairs = be.map((p) => {
+      const o = byId(p.id), c = byId(p.againstId), total = r.years * 12;
+      const when = p.months == null ? ['Never', 'it costs no less to run']
+        : [months(p.months), `about ${kmText(p.km)}${p.months > total + 0.5 ? `, after your ${r.years} years` : ''}`];
+      const above = p.kmPerYear == null ? ['No distance', 'it costs as much or more a km to run']
+        : p.kmPerYear < 100 ? ['Any distance', `you drive ${kmYear.toLocaleString('en-IN')} km`]
+          : [`${(Math.round(p.kmPerYear / 100) * 100).toLocaleString('en-IN')} km a year`, `you drive ${kmYear.toLocaleString('en-IN')} km`];
+      return el('div', {}, [
+        el('div', { class: 'car-be-vs' }, `${o.name} against ${c.name.toLowerCase()}: ${inr(p.extra)} more to buy`),
+        el('div', { class: 'car-be-grid' }, [tile('Earns that back in', when), tile(`Costs less over ${r.years} years above`, above)]),
+      ]);
+    });
+    // the lines that cross: money spent so far on each car, from the day it is bought
+    let chart = null;
+    if (be.length) {
+      const reach = Math.max(...be.map((p) => (p.months != null ? p.months : 0)));
+      const horizon = Math.min(15, Math.max(r.years, Math.ceil((reach + 6) / 12)));
+      const series = r.options.map((o, i) => ({ name: o.name, color: COLOR[LETTERS.indexOf(o.id)] || COLOR[i], dash: LETTERS.indexOf(o.id) >= 2, points: Array.from({ length: horizon * 12 + 1 }, (_, m) => [m / 12, r.spentBy(o, m)]) }));
+      const markers = be.filter((p) => p.months != null && p.months / 12 <= horizon).map((p) => ({ x: p.months / 12, y: r.spentBy(byId(p.id), p.months), label: be.length > 1 ? `${byId(p.id).name} breaks even` : 'Break-even' }));
+      chart = el('div', { class: 'car-be-chart' }, [
+        el('div', { class: 'viz-title' }, 'Money spent so far'),
+        lineChart({ series, markers, vlines: horizon > r.years ? [{ x: r.years, label: `${r.years} years` }] : [], yFromMin: true, height: 220, xFormat: (x) => `Yr ${Math.round(x)}`, xTipFormat: (x) => { const m = Math.round(x * 12); return m < 12 ? `After ${m} month${m === 1 ? '' : 's'}` : `After ${months(m)}`; }, ariaLabel: 'Money spent on each car, year by year' }),
+        net ? el('p', { class: 'muted small' }, 'Before what the cars sell for, which comes off at the end.') : null,
+      ]);
+    }
+    const beBlock = pairs.length ? el('section', { class: 'car-be', 'aria-label': 'Break-even' }, [el('h4', { class: 'car-be-title' }, 'Break-even'), ...pairs, chart]) : null;
 
     const breakdown = el('div', { class: 'table-wrap' }, el('table', { class: 'compare' }, [
       el('thead', {}, el('tr', {}, [el('th', {}, ''), ...r.options.map((o) => el('th', {}, o.name))])),
@@ -189,7 +216,7 @@ export function renderCar(appData, data) {
         el('p', { class: 'muted small car-out-sub' }, 'Illustrative assumptions, not live vehicle prices or quotes'),
         cards,
         el('p', { class: 'explain' }, verdict),
-        ...payback.map((t) => el('p', { class: 'muted small' }, t)),
+        beBlock,
       ],
       why: [
         breakdown,
