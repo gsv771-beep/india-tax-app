@@ -1103,3 +1103,10 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 .quick-basis-note { display: block; font-weight: 400; margin-top: 2px; }
 .quick-example { display: inline; font-size: inherit; }
 .quick-example[hidden] { display: none; }
+/* the car comparison: fits a phone (the per-km column is in the headline already; the lowest-cost row keeps its tint, not the larger total-row type) */
+@media (max-width: 560px) {
+  table.compare.car-table th, table.compare.car-table td { padding: 7px 4px; font-size: .78rem; }
+  table.compare.car-table th:first-child, table.compare.car-table td:first-child { padding-left: 8px; }
+  table.compare.car-table tr.total td { font-size: .8rem; }
+  table.compare.car-table .car-km { display: none; }
+}

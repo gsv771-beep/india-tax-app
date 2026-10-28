@@ -1,0 +1,135 @@
+{
+  "_meta": {
+    "compiled_on": "2026-10-28",
+    "purpose": "On-road price and running cost of a new private car by fuel, for the car cost tool (js/car.js, engine/car.js).",
+    "slabs": "Road tax slabs are [up_to_ex_showroom_inclusive, percent]; null means no upper limit. 'same_as' points a fuel at another fuel's slabs.",
+    "caution": "State road-tax rules change in budgets and by notification, and published summaries disagree. Every city carries a confidence note and its sources; the tool shows the rate it applied and lets the buyer replace it with the figure on the dealer's quote.",
+    "not_covered": "Kolkata (West Bengal): published rates conflict (5.5% to 10%, EV status unclear); left out until confirmed. Second cars, company-owned cars and BH-series registration are taxed differently and are not modelled."
+  },
+  "fees": {
+    "registration_and_plates": 3000,
+    "note": "Registration (₹600), smart-card RC (₹200), high-security plates and FASTag, rounded. Dealer 'handling' or 'logistics' charges are not a government fee and are left out."
+  },
+  "insurance": {
+    "first_year_pct": 3.5,
+    "renewal_pct": 2.0,
+    "note": "Comprehensive cover with the mandatory 3-year third-party for a new car, as a share of the ex-showroom price; a rough average across compact cars. Renewals fall as the car ages; 2% a year is a middle figure."
+  },
+  "tcs": {
+    "threshold": 1000000,
+    "rate_pct": 1,
+    "note": "Tax collected at source of 1% on a car above ₹10 lakh. Paid at purchase and claimed back against your income tax for the year, so it is cash out, not a cost."
+  },
+  "defaults": {
+    "km_per_month": 1000,
+    "years": 5,
+    "efficiency": { "petrol": 14, "diesel": 18, "hybrid": 21, "ev": 6.5 },
+    "efficiency_units": { "petrol": "km a litre", "diesel": "km a litre", "hybrid": "km a litre (petrol)", "ev": "km a kWh" },
+    "efficiency_note": "Real-world figures for a compact car or SUV in city and highway use, below the official (ARAI) claims. Strong hybrids (Toyota, Maruti self-charging) only; a mild hybrid is closer to petrol.",
+    "maintenance_per_year": { "petrol": 9000, "diesel": 11000, "hybrid": 9000, "ev": 5000 },
+    "maintenance_note": "Scheduled service and wear parts in the first five years; tyres, accidents and battery replacement are not included.",
+    "public_charging_pct": 20,
+    "public_charging_rate": 22,
+    "public_charging_note": "Share of charging done at public DC fast chargers, which cost about ₹18-25 a kWh against ₹5-8 at home."
+  },
+  "cities": [
+    {
+      "id": "delhi", "label": "Delhi", "state": "Delhi",
+      "fuel": { "petrol": 102.12, "diesel": 95.20, "as_of": "2026-10-26" },
+      "electricity": 4.5, "electricity_note": "Delhi's EV charging tariff on a separate meter",
+      "road_tax": {
+        "petrol": [[600000, 4], [1000000, 7], [null, 10]],
+        "diesel": [[600000, 5], [1000000, 8.75], [null, 12.5]],
+        "hybrid": "same_as:petrol",
+        "ev": [[null, 0]]
+      },
+      "cess_pct_of_tax": 0, "flat_cess": 0,
+      "confidence": "high for petrol and diesel; medium for EVs (Delhi EV Policy 2026-30 exemption reported, price cap unclear)",
+      "notes": "Diesel cars older than 10 years cannot be driven in Delhi NCR (15 for petrol)."
+    },
+    {
+      "id": "mumbai", "label": "Mumbai", "state": "Maharashtra",
+      "fuel": { "petrol": 111.21, "diesel": 97.83, "as_of": "2026-10-28" },
+      "electricity": 7,
+      "road_tax": {
+        "petrol": [[1000000, 11], [2000000, 12], [null, 13]],
+        "diesel": [[1000000, 13], [2000000, 14], [null, 15]],
+        "hybrid": "same_as:petrol",
+        "ev": [[null, 0]]
+      },
+      "cess_pct_of_tax": 0, "flat_cess": 0,
+      "confidence": "medium: a further 1% on petrol, diesel, CNG and hybrid cars was reported from July 2025 and is not included; the proposed 6% on EVs above ₹30 lakh was withdrawn",
+      "notes": "EVs exempt under the Maharashtra EV Policy to March 2030."
+    },
+    {
+      "id": "pune", "label": "Pune", "state": "Maharashtra",
+      "fuel": { "petrol": 111.21, "diesel": 97.83, "as_of": "2026-10-18" },
+      "electricity": 7,
+      "road_tax": "same_as:mumbai",
+      "cess_pct_of_tax": 0, "flat_cess": 0,
+      "confidence": "medium: as Mumbai",
+      "notes": "Maharashtra rules, as Mumbai."
+    },
+    {
+      "id": "bengaluru", "label": "Bengaluru", "state": "Karnataka",
+      "fuel": { "petrol": 111.68, "diesel": 99.56, "as_of": "2026-10-28" },
+      "electricity": 6,
+      "road_tax": {
+        "petrol": [[500000, 13], [1000000, 14], [2000000, 17], [null, 18]],
+        "diesel": "same_as:petrol",
+        "hybrid": "same_as:petrol",
+        "ev": [[1000000, 5], [2500000, 8], [null, 10]]
+      },
+      "cess_pct_of_tax": 11, "cess_applies_to_ev": false, "flat_cess": 0,
+      "confidence": "high for petrol and diesel; medium for EVs (lifetime tax on electric cars from April 2026, cess treatment unconfirmed)",
+      "notes": "An 11% cess is charged on the road tax. Electric cars lost their full exemption in April 2026."
+    },
+    {
+      "id": "chennai", "label": "Chennai", "state": "Tamil Nadu",
+      "fuel": { "petrol": 107.76, "diesel": 99.55, "as_of": "2026-10-28" },
+      "electricity": 6.5,
+      "road_tax": {
+        "petrol": [[500000, 12], [1000000, 13], [2000000, 18], [null, 20]],
+        "diesel": "same_as:petrol",
+        "hybrid": "same_as:petrol",
+        "ev": [[null, 0]]
+      },
+      "cess_pct_of_tax": 0, "flat_cess": 0,
+      "confidence": "high: life-tax slabs as amended by the Tamil Nadu Motor Vehicles Taxation Act amendment; EV exemption to December 2027",
+      "notes": ""
+    },
+    {
+      "id": "hyderabad", "label": "Hyderabad", "state": "Telangana",
+      "fuel": { "petrol": 116.15, "diesel": 104.23, "as_of": "2026-10-28" },
+      "electricity": 6,
+      "road_tax": {
+        "petrol": [[500000, 13], [1000000, 14], [2000000, 17], [null, 18]],
+        "diesel": "same_as:petrol",
+        "hybrid": "same_as:petrol",
+        "ev": [[null, 0]]
+      },
+      "cess_pct_of_tax": 0, "flat_cess": 5000, "flat_cess_applies_to_ev": true,
+      "confidence": "medium: first-car life-tax slabs (G.O.Ms.No.53, 2025); a ₹5,000 road safety cess from March 2026 is reported by one source; EV exemption to 31 December 2026",
+      "notes": "A second car in the same name pays more. The EV exemption is due to end on 31 December 2026."
+    },
+    {
+      "id": "ahmedabad", "label": "Ahmedabad", "state": "Gujarat",
+      "fuel": { "petrol": 102.15, "diesel": 98.27, "as_of": "2026-10-26" },
+      "electricity": 6,
+      "road_tax": {
+        "petrol": [[null, 6]],
+        "diesel": "same_as:petrol",
+        "hybrid": "same_as:petrol",
+        "ev": "same_as:petrol"
+      },
+      "cess_pct_of_tax": 0, "flat_cess": 0,
+      "confidence": "medium: 6% for all cars; the 1% EV concession ended on 31 March 2026",
+      "notes": "Gujarat charges the tax on the price before GST, so 6% of the ex-showroom price slightly overstates it."
+    }
+  ],
+  "sources": [
+    "State transport and finance department notifications as summarised by: mycarhelpline.com, motomotar.com, carthings.in, spinny.com, cars24.com, bankbazaar.com, newsmeter.in (Telangana G.O.Ms.No.53), cartoq.com and deccanherald.com (Maharashtra EV tax), evautoindia.co.in (Karnataka EV tax), meraev.com (Delhi, Gujarat EV policy); checked 28 October 2026.",
+    "Fuel prices: city retail prices reported 26-28 October 2026 (hdfcsky.com, newsable.asianetnews.com, kalingatv.com; Pune and Ahmedabad from cmv360.com, mypetrolprice.com, fuelpricetoday.in). Revised daily by the oil companies.",
+    "Home charging tariffs: DISCOM EV and domestic tariffs as summarised by pulseenergy.io, procharge.in and bharatrevolt.com."
+  ]
+}
