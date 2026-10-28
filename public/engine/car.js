@@ -5,7 +5,7 @@
  *
  *   roadTaxFor(city, fuel, price, data) -> { pct, tax, cess, total }
  *   onRoad({ city, fuel, price, roadTaxPct? }, data) -> { exShowroom, pct, roadTax, cess, fees, insurance, total, tcs, cashAtPurchase }
- *   ownership(input, data) -> { options: [...], cheapest, payback: [...] }
+ *   ownership(input, data) -> { options: [...], cheapest, lowestUpfront, payback: [...] }
  *
  * Nothing here says which car to buy: it puts the costs side by side and works out how long a dearer
  * car takes to earn back its higher price in running costs, on the figures given.
@@ -76,25 +76,28 @@ export function runningPerMonth(fuel, exShowroom, e, data) {
 }
 
 /**
- * input: { cityId, years, kmPerMonth, prices: { petrol, diesel, hybrid, ev }, roadTaxPct: { fuel: pct },
- *          otherCityPct, petrolPrice, dieselPrice, homeRate, publicPct, publicRate,
- *          efficiency: { fuel }, maintenance: { fuel } }   (blank fields take the city's and the file's defaults)
+ * input: { cityId, years, kmPerMonth, cars: [{ id, name, fuel, price, roadTaxPct?, efficiency?, maintenance?, resale? }],
+ *          otherCityPct, petrolPrice, dieselPrice, homeRate, publicPct, publicRate }
+ * (or, instead of cars, one car per fuel: prices: { fuel }, roadTaxPct: { fuel }, efficiency: { fuel }, maintenance: { fuel }).
+ * Blank fields take the city's and the file's defaults. A resale value, when given, comes off the total.
  */
 export function ownership(input, data) {
   const city = cityById(data, input.cityId);
   const d = data.defaults;
   const years = Math.max(1, num(input.years, d.years)), months = years * 12;
   const kmPerMonth = num(input.kmPerMonth, d.km_per_month);
+  const set = (v) => v !== '' && v != null;
+  const cars = input.cars || FUELS.map((fuel) => ({ fuel, price: input.prices?.[fuel], roadTaxPct: input.roadTaxPct?.[fuel], efficiency: input.efficiency?.[fuel], maintenance: input.maintenance?.[fuel] }));
   const options = [];
-  for (const fuel of FUELS) {
-    const price = num(input.prices?.[fuel]);
-    if (!(price > 0)) continue;
-    const override = city ? input.roadTaxPct?.[fuel] : (input.roadTaxPct?.[fuel] !== '' && input.roadTaxPct?.[fuel] != null ? input.roadTaxPct[fuel] : input.otherCityPct);
+  for (const car of cars) {
+    const { fuel } = car, price = num(car.price);
+    if (!(price > 0) || !FUELS.includes(fuel)) continue;
+    const override = set(car.roadTaxPct) ? car.roadTaxPct : city ? undefined : input.otherCityPct;
     const road = onRoad({ city, fuel, price, roadTaxPct: override }, data);
     const e = {
       kmPerMonth,
-      efficiency: num(input.efficiency?.[fuel], d.efficiency[fuel]),
-      maintenance: num(input.maintenance?.[fuel], d.maintenance_per_year[fuel]),
+      efficiency: num(car.efficiency, d.efficiency[fuel]),
+      maintenance: num(car.maintenance, d.maintenance_per_year[fuel]),
       petrolPrice: num(input.petrolPrice, city ? city.fuel.petrol : 0),
       dieselPrice: num(input.dieselPrice, city ? city.fuel.diesel : 0),
       homeRate: num(input.homeRate, city ? city.electricity : 7),
@@ -102,10 +105,11 @@ export function ownership(input, data) {
       publicRate: num(input.publicRate, d.public_charging_rate),
     };
     const run = runningPerMonth(fuel, price, e, data);
+    const resale = Math.max(0, num(car.resale));
     // the first year's insurance is in the on-road price; renewals start in year two
-    const total = road.total + run.energy * months + run.service * months + run.insurance * (months - 12);
+    const total = road.total + run.energy * months + run.service * months + run.insurance * (months - 12) - resale;
     const km = kmPerMonth * months;
-    options.push({ fuel, label: FUEL_LABEL[fuel], price, road, run, total, km, perKm: km > 0 ? total / km : 0, runPerKm: kmPerMonth > 0 ? (run.energy + run.service) / kmPerMonth : 0 });
+    options.push({ id: car.id ?? fuel, name: car.name ?? FUEL_LABEL[fuel], fuel, label: FUEL_LABEL[fuel], price, road, run, resale, efficiency: e.efficiency, maintenance: e.maintenance, total, km, perKm: km > 0 ? total / km : 0, runPerKm: kmPerMonth > 0 ? (run.energy + run.service) / kmPerMonth : 0 });
   }
   if (!options.length) return { options, cheapest: null, payback: [], years, kmPerMonth };
   const cheapest = options.reduce((a, b) => (b.total < a.total ? b : a));
@@ -115,7 +119,7 @@ export function ownership(input, data) {
     const extra = o.road.total - lowestUpfront.road.total;
     const saving = lowestUpfront.run.total - o.run.total;
     const monthsToPay = saving > 0 ? extra / saving : null;
-    return { fuel: o.fuel, against: lowestUpfront.fuel, extra, savingPerMonth: saving, months: monthsToPay, km: monthsToPay != null ? monthsToPay * kmPerMonth : null, withinYears: monthsToPay != null && monthsToPay <= months };
+    return { id: o.id, fuel: o.fuel, againstId: lowestUpfront.id, against: lowestUpfront.fuel, extra, savingPerMonth: saving, months: monthsToPay, km: monthsToPay != null ? monthsToPay * kmPerMonth : null, withinYears: monthsToPay != null && monthsToPay <= months };
   });
   return { options, cheapest, lowestUpfront, payback, years, kmPerMonth, city };
 }

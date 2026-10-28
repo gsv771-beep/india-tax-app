@@ -62,5 +62,19 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
   ok('another city: the typed road-tax % is used', other.options[0].road.roadTax === 100000);
 }
 
+// ---- cars by slot: two of the same fuel, a resale value ----
+{
+  const r = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ id: 'A', name: 'Car A', fuel: 'petrol', price: 1000000 }, { id: 'B', name: 'Car B', fuel: 'petrol', price: 1200000, resale: 500000 }] }, data);
+  ok('two petrol cars are compared side by side', r.options.length === 2 && r.options.map((o) => o.id).join() === 'A,B');
+  const a = r.options[0], b = r.options[1];
+  near('Car B on the road: ₹12 lakh at 10%, fees and 3.5% insurance', b.road.total, 1200000 + 120000 + 3000 + 42000);
+  const bGross = b.road.total + (1000 / 14 * 102.12 + 750) * 60 + 1200000 * 0.02 / 12 * 48;
+  near('a ₹5 lakh resale comes off Car B’s total', b.total, bGross - 500000, 2);
+  ok('with the resale, the dearer car costs less over 5 years', r.cheapest.id === 'B' && a.total > b.total);
+  ok('payback is reported per car, against the cheaper one to buy', r.payback.length === 1 && r.payback[0].id === 'B' && r.payback[0].againstId === 'A' && r.payback[0].months === null);
+  const per = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', price: 1000000, efficiency: 20, maintenance: 6000, roadTaxPct: 9 }] }, data).options[0];
+  ok('mileage, servicing and the quoted road tax are per car', per.road.roadTax === 90000 && per.efficiency === 20 && per.maintenance === 6000);
+}
+
 console.log(failures ? `\n${failures} failure(s)` : '\nAll car tests passed');
 process.exit(failures ? 1 : 0);

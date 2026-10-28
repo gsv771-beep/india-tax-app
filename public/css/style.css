@@ -1107,11 +1107,47 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 .quick-example { display: inline; font-size: inherit; }
 .quick-example[hidden] { display: none; }
 /* the car comparison: fits a phone (the per-km column is in the headline already; the lowest-cost row keeps its tint, not the larger total-row type) */
+/* Which car is cheaper to own: two cars, a slider, three periods, then two numbers, in one narrow column */
+.calc.car-calc { display: block; max-width: 640px; }
+.car-calc > .card.inputs { margin-bottom: 22px; }
+.car-form { display: flex; flex-direction: column; }
+.car-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.car-slot-name { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: .95rem; margin-bottom: 6px; }
+.car-remove { border: 0; background: none; color: var(--muted); font-size: 1.2rem; line-height: 1; padding: 0 4px; cursor: pointer; }
+.car-box { border: 1px solid var(--line-strong); border-radius: 14px; padding: 10px 14px 12px; background: var(--surface); transition: border-color .15s; }
+.car-box:focus-within { border-color: var(--accent); }
+.car-form select.car-fuel { border: 0; background-color: transparent; padding: 2px 18px 2px 0; margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text); box-shadow: none; width: 100%; min-height: 0; }
+.car-form label.car-price-row { display: flex; flex-direction: row; align-items: baseline; gap: 2px; margin: 4px 0 0; color: var(--muted); font-weight: 400; }
+.car-form input.car-price { border: 0; background: transparent; padding: 0; margin: 0; font-size: 1rem; color: var(--muted); box-shadow: none; width: 100%; min-height: 0; }
+.car-form input.car-price:focus { outline: none; color: var(--text); }
+.car-add { align-self: flex-start; margin-top: 10px; border: 0; background: none; padding: 4px 0; color: var(--accent); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
+.car-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; color: var(--muted); font-size: 1rem; }
+.car-form select.car-city { width: auto; min-width: 0; margin: 0; padding-top: 6px; padding-bottom: 6px; }
+.car-val { color: var(--text); font-size: 1.35rem; font-weight: 700; }
+.car-other { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 12px; }
+.car-other small { display: block; }
+.car-other input { width: 90px; flex: none; }
+.car-range { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; margin: 18px 0 0; border-radius: 999px; background: linear-gradient(to right, var(--text) var(--fill, 20%), var(--line) var(--fill, 20%)); cursor: pointer; }
+.car-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 44px; height: 30px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.car-range::-moz-range-thumb { width: 44px; height: 30px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.car-ends { display: flex; justify-content: space-between; margin-top: 12px; color: var(--muted); font-size: .85rem; }
+.car-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-top: 10px; }
+.car-seg button { border: 0; border-radius: 999px; background: none; padding: 10px 6px; color: var(--muted); font: inherit; font-size: 1rem; cursor: pointer; }
+.car-seg button[aria-pressed="true"] { background: var(--surface-2); color: var(--text); font-weight: 600; }
+.car-form .more-fold { margin-top: 22px; }
+.car-more { margin-top: 6px; }
+.car-out-title { margin: 0; font-size: 1.2rem; }
+.car-out-sub { margin: 4px 0 14px; }
+.car-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.car-result { border-radius: 14px; background: var(--surface-2); padding: 14px 16px; min-width: 0; }
+.car-result .k { color: var(--muted); font-size: .95rem; }
+.car-result .v { font-size: 1.45rem; font-weight: 700; margin: 4px 0 2px; overflow-wrap: anywhere; }
+.car-result.best .v { color: var(--chart-green); }
+.car-result .s { color: var(--muted); font-size: .85rem; }
 @media (max-width: 560px) {
-  table.compare.car-table th, table.compare.car-table td { padding: 7px 4px; font-size: .78rem; }
-  table.compare.car-table th:first-child, table.compare.car-table td:first-child { padding-left: 8px; }
-  table.compare.car-table tr.total td { font-size: .8rem; }
-  table.compare.car-table .car-km { display: none; }
+  .car-result { padding: 12px 12px; }
+  .car-result .v { font-size: 1.2rem; }
+  .car-form select.car-fuel { font-size: 1.1rem; }
 }
 @media (max-width: 380px) {
   .tabs a { padding: 7px 6px; font-size: .85rem; }

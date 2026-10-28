@@ -8,7 +8,7 @@
  * Mounted on the home page, the tax page and the salary pages (each with its own profile source,
  * so one copy hears what another saved). The arithmetic is quick-engine.js.
  */
-import { el, inr, inrShort, setChildren, debounce } from './util.js';
+import { el, inr, inrShort, setChildren, debounce, rupees, readRupees, groupAsTyped } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
 import { countEvent } from './feedback.js';
@@ -76,22 +76,6 @@ export function wantFromUrl() {
   if (!s.has('want')) return null;
   const v = Math.round(+s.get('want'));
   return v > 0 && v < 1e8 ? v : 0;
-}
-// money boxes show Indian grouping as you type (25,00,000) and are read back as plain numbers
-const rupees = (n) => (+n > 0 ? Math.round(+n).toLocaleString('en-IN') : '');
-const readRupees = (s) => +String(s || '').replace(/[^\d]/g, '') || 0;
-function groupAsTyped(input) {
-  input.addEventListener('input', () => {
-    const before = input.value, caret = input.selectionStart ?? before.length;
-    const digitsLeft = before.slice(0, caret).replace(/\D/g, '').length;
-    const after = rupees(readRupees(before));
-    if (after === before) return;
-    input.value = after;
-    // keep the caret after the same number of digits
-    let pos = 0, seen = 0;
-    while (pos < after.length && seen < digitsLeft) { if (/\d/.test(after[pos])) seen++; pos++; }
-    try { input.setSelectionRange(pos, pos); } catch {}
-  });
 }
 const WANT = 'taxcompass.want.v1';   // localStorage: { mode, want } for the reverse question
 const mounts = new Map();   // source -> the slot and options, so a ?ctc= link can refill a card already on the page
