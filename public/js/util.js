@@ -137,3 +137,20 @@ export function numberInput(label, attrs = {}) {
   const input = el('input', { type: 'number', ...attrs });
   return { wrap: el('label', {}, [label, input]), input };
 }
+
+/** Rupee text boxes grouped the Indian way as they are typed (15,00,000), and read back as a number. */
+export const rupees = (n) => (+n > 0 ? Math.round(+n).toLocaleString('en-IN') : '');
+export const readRupees = (s) => +String(s || '').replace(/[^\d]/g, '') || 0;
+export function groupAsTyped(input) {
+  input.addEventListener('input', () => {
+    const before = input.value, caret = input.selectionStart ?? before.length;
+    const digitsLeft = before.slice(0, caret).replace(/\D/g, '').length;
+    const after = rupees(readRupees(before));
+    if (after === before) return;
+    input.value = after;
+    // keep the caret after the same number of digits
+    let pos = 0, seen = 0;
+    while (pos < after.length && seen < digitsLeft) { if (/\d/.test(after[pos])) seen++; pos++; }
+    try { input.setSelectionRange(pos, pos); } catch {}
+  });
+}

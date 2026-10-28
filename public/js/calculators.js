@@ -202,7 +202,7 @@ const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
   debt: { keys: ['taxcompass.debt.v1'] }, offer: { keys: ['taxcompass.offer.v1'] },
-  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] }, car: { keys: ['taxcompass.car.v1'] },
+  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] }, car: { keys: ['taxcompass.car.v2', 'taxcompass.car.v1'] },
 };
 function resetCalc(key, { fromStartOver = false } = {}) {
   const spec = CALC_KEYS[key] || {};
