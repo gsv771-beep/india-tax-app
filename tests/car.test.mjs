@@ -54,7 +54,16 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
   near('EV over 5 years', v.total, 1452000 + (1000 / 6.5 * 8 + 5000 / 12) * 60 + 1400000 * 0.02 / 12 * 48, 2);
   ok('the lower total is named (the EV, by a little)', r.cheapest.fuel === 'ev' && p.total - v.total > 5000 && p.total - v.total < 10000, String(Math.round(p.total - v.total)));
   const pb = r.payback.find((x) => x.fuel === 'ev');
-  ok('the EV earns back its ₹3,44,000 extra in about 60 months', pb.against === 'petrol' && Math.abs(pb.extra - 344000) < 1 && pb.months > 59.5 && pb.months < 60.5, String(pb.months));
+  // money spent so far: the gap of ₹3,44,000 closes by ₹6,397 a month in year one (fuel and service),
+  // then by ₹5,730 (the EV's dearer insurance renewal starts): 12 + (3,44,000 − 12 × 6,397) / 5,730
+  const gap1 = (1000 / 14 * 102.12 + 750) - (1000 / 6.5 * 8 + 5000 / 12), gap2 = gap1 - (1400000 - 1000000) * 0.02 / 12;
+  near('the EV breaks even after about 58.6 months', pb.months * 100, (12 + (344000 - 12 * gap1) / gap2) * 100, 1);
+  ok('... against the petrol, ₹3,44,000 dearer to buy', pb.against === 'petrol' && Math.abs(pb.extra - 344000) < 1);
+  // over 5 years: ₹3,44,000 − ₹20,000 less servicing + ₹32,000 more insurance = ₹3,56,000 to recover,
+  // at ₹6.06 a km less for fuel (₹7.29 against ₹1.23) over 60 months
+  near('the EV costs less over 5 years above about 11,742 km a year', pb.kmPerYear, 356000 / ((102.12 / 14 - 8 / 6.5) * 60) * 12, 1);
+  ok('... which 12,000 km a year clears (so the EV is lower) and 3,600 does not', pb.kmPerYear < 12000 && pb.kmPerYear > 3600);
+  ok('spentBy draws the lines: on-road at month 0, equal at the break-even', Math.abs(r.spentBy(p, 0) - 1108000) < 1 && Math.abs(r.spentBy(p, pb.months) - r.spentBy(v, pb.months)) < 1);
   const shortTrips = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 300, prices: { petrol: 1000000, ev: 1400000 } }, data);
   ok('driving little, the petrol car costs less over 5 years', shortTrips.cheapest.fuel === 'petrol');
   ok('nothing priced, nothing shown', ownership({ cityId: 'delhi', prices: {} }, data).options.length === 0);
@@ -71,7 +80,8 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
   const bGross = b.road.total + (1000 / 14 * 102.12 + 750) * 60 + 1200000 * 0.02 / 12 * 48;
   near('a ₹5 lakh resale comes off Car B’s total', b.total, bGross - 500000, 2);
   ok('with the resale, the dearer car costs less over 5 years', r.cheapest.id === 'B' && a.total > b.total);
-  ok('payback is reported per car, against the cheaper one to buy', r.payback.length === 1 && r.payback[0].id === 'B' && r.payback[0].againstId === 'A' && r.payback[0].months === null);
+  ok('payback is reported per car, against the cheaper one to buy; same fuel, so it never catches up', r.payback.length === 1 && r.payback[0].id === 'B' && r.payback[0].againstId === 'A' && r.payback[0].months === null);
+  ok('... but its resale makes it lower over 5 years at any distance', r.payback[0].kmPerYear === 0, String(r.payback[0].kmPerYear));
   const per = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', price: 1000000, efficiency: 20, maintenance: 6000, roadTaxPct: 9 }] }, data).options[0];
   ok('mileage, servicing and the quoted road tax are per car', per.road.roadTax === 90000 && per.efficiency === 20 && per.maintenance === 6000);
 }

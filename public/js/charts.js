@@ -59,7 +59,9 @@ function responsive(build) {
 
 /**
  * lineChart({ series: [{ name, color, points: [[x, y], ...], dash, area }], xFormat, yFormat, xLabel,
- *             markers: [{ x, y, label, color }], vlines: [{ x, label }], height })
+ *             markers: [{ x, y, label, color }], vlines: [{ x, label }], height, yFromMin })
+ * yFromMin: the y-axis starts at a round figure just under the lowest point instead of at zero, for
+ * lines that all sit far above zero and differ by a little (money spent on two cars, which cross).
  */
 export function lineChart(o) {
   return responsive((W) => buildLine(o, W));
@@ -72,10 +74,17 @@ function buildLine(o, W) {
   const ys = o.series.flatMap((s) => s.points.map((p) => p[1]));
   const xmin = Math.min(...xs), xmax = Math.max(...xs) || 1;
   const ymaxRaw = Math.max(...ys, ...(o.markers || []).map((k) => k.y), 1);
-  const yt = niceTicks(ymaxRaw * 1.05, W < 420 ? 4 : 5);
+  let ymin = 0, yt;
+  if (o.yFromMin) {
+    const lo = Math.min(...ys), span = Math.max(1, ymaxRaw - lo);
+    const step = niceTicks(span * 1.1, W < 420 ? 4 : 5)[1] || span;
+    ymin = Math.max(0, Math.floor((lo - span * 0.04) / step) * step);
+    yt = [];
+    for (let t = ymin; ; t += step) { yt.push(+t.toFixed(6)); if (t >= ymaxRaw * 1.01 - 1e-9) break; }
+  } else yt = niceTicks(ymaxRaw * 1.05, W < 420 ? 4 : 5);
   const ymax = yt[yt.length - 1];
   const X = (x) => m.l + ((x - xmin) / (xmax - xmin || 1)) * pw;
-  const Y = (y) => m.t + ph - (y / ymax) * ph;
+  const Y = (y) => m.t + ph - ((y - ymin) / (ymax - ymin || 1)) * ph;
   const xf = o.xFormat || ((x) => String(x)), yf = o.yFormat || shortINR;
 
   const root = svg('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': o.ariaLabel || 'chart', class: 'viz' });
@@ -86,16 +95,16 @@ function buildLine(o, W) {
   const xt = niceTicks(xmax - xmin, W < 420 ? 4 : 6).map((t) => t + xmin).filter((t) => t <= xmax + 1e-9);
   for (const t of xt) root.append(svg('text', { x: X(t), y: H - m.b + 18, 'text-anchor': 'middle', 'font-size': 11, style: MUTED }, xf(t)));
   if (o.xLabel) root.append(svg('text', { x: m.l + pw / 2, y: H - 6, 'text-anchor': 'middle', 'font-size': 11, style: MUTED }, o.xLabel));
-  root.append(svg('line', { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), style: 'stroke:var(--line-strong)', 'stroke-width': 1 }));
+  root.append(svg('line', { x1: m.l, x2: W - m.r, y1: Y(ymin), y2: Y(ymin), style: 'stroke:var(--line-strong)', 'stroke-width': 1 }));
 
   for (const v of o.vlines || []) {
-    root.append(svg('line', { x1: X(v.x), x2: X(v.x), y1: m.t, y2: Y(0), style: 'stroke:var(--muted)', 'stroke-dasharray': '4 4', 'stroke-width': 1.5 }));
+    root.append(svg('line', { x1: X(v.x), x2: X(v.x), y1: m.t, y2: Y(ymin), style: 'stroke:var(--muted)', 'stroke-dasharray': '4 4', 'stroke-width': 1.5 }));
     const onRight = X(v.x) < W * 0.6;
     root.append(svg('text', { x: X(v.x) + (onRight ? 6 : -6), y: m.t + 12, 'text-anchor': onRight ? 'start' : 'end', 'font-size': 11, 'font-weight': 600, style: TEXT }, v.label));
   }
   o.series.forEach((s) => {
     const d = s.points.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
-    if (s.area) root.append(svg('path', { d: d + ` L${X(s.points[s.points.length - 1][0])},${Y(0)} L${X(s.points[0][0])},${Y(0)} Z`, style: `fill:${s.color}`, opacity: 0.08 }));
+    if (s.area) root.append(svg('path', { d: d + ` L${X(s.points[s.points.length - 1][0])},${Y(ymin)} L${X(s.points[0][0])},${Y(ymin)} Z`, style: `fill:${s.color}`, opacity: 0.08 }));
     root.append(svg('path', { d, fill: 'none', style: `stroke:${s.color}`, 'stroke-width': 2.25, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', 'stroke-dasharray': s.dash ? '6 4' : null }));
   });
   for (const k of o.markers || []) {
@@ -109,7 +118,7 @@ function buildLine(o, W) {
 
   // hover
   const tip = el('div', { class: 'viz-tip', hidden: true });
-  const cross = svg('line', { x1: 0, x2: 0, y1: m.t, y2: Y(0), style: 'stroke:var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
+  const cross = svg('line', { x1: 0, x2: 0, y1: m.t, y2: Y(ymin), style: 'stroke:var(--muted)', 'stroke-width': 1, visibility: 'hidden' });
   const dots = o.series.map((s) => svg('circle', { r: 4, style: `fill:${s.color};stroke:var(--surface)`, 'stroke-width': 2, visibility: 'hidden' }));
   root.append(cross, ...dots);
   const hit = svg('rect', { x: m.l, y: m.t, width: pw, height: ph, fill: 'transparent' });
