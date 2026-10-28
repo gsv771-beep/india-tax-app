@@ -129,7 +129,7 @@ export function mountQuick(slot, opts) {
   const ctcInput = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'e.g. 15,00,000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'Your annual CTC in rupees', value: rupees(q.ctc) });
   groupAsTyped(ctcInput);
   const echo = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
-  const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Start over');
+  const startOver = el('button', { type: 'button', class: 'quick-reset' }, 'Reset');
   const wantInput = el('input', { type: 'text', inputmode: 'numeric', autocomplete: 'off', placeholder: 'e.g. 2,00,000', class: 'quick-ctc', 'data-echo': 'own', 'aria-label': 'The take-home you want each month, in rupees', value: rupees(want) });
   groupAsTyped(wantInput);
   const wantEcho = el('span', { class: 'quick-echo', 'aria-live': 'polite' });
@@ -415,6 +415,8 @@ export function mountQuick(slot, opts) {
     if (document.activeElement !== bonusInput) bonusInput.value = rupees(q.variable);
     const ok = !!(a && !a.error) && hasCtc && !!bonusKind;
     slot.classList.toggle('has-answer', ok);
+    // Reset shows as soon as anything is typed, not only once there is an answer
+    slot.classList.toggle('has-input', wanting ? want > 0 : q.ctc > 0);
     slot.classList.toggle('asking', hasCtc && !bonusKind);
     answer.hidden = !(ok || (a && a.error && hasCtc));
     deeperBox.hidden = !ok;

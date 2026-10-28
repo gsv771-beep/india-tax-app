@@ -166,7 +166,10 @@ html.non-production .site-header { top: var(--staging-h); }
   .brand { font-size: 1.05rem; }
   .brand-mark { width: 28px; height: 28px; font-size: .95rem; }
   .tabs { margin: 0 -22px; padding: 2px 22px 4px; }
-  .tabs a { padding: 7px 12px; font-size: .88rem; }
+  .tabs { gap: 2px; }
+  .tabs a { padding: 7px 9px; font-size: .88rem; }
+  /* 'Savings', 'EMI', 'SIP': the whole menu, More tools included, fits a phone without a sideways scroll */
+  .tabs .tab-long { display: none; }
   .panel { padding-top: 22px; }
   h1 { font-size: 1.5rem; }
   .stat .v { font-size: 1.2rem; }
@@ -306,7 +309,7 @@ body:not(.ready) #calc-body:empty::before, .calc-skeleton { height: 320px; }
 .quick-top .quick-in { flex: 1; min-width: 0; }
 .quick-reset { flex: none; background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 14px; color: var(--muted); font: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; }
 .quick-reset:hover { color: var(--danger); border-color: var(--danger); }
-.quick-slot:not(.has-answer) .quick-reset { display: none; }
+.quick-slot:not(.has-input) .quick-reset { display: none; }
 .quick-in { display: grid; gap: 6px; }
 .quick-in-label { font-weight: 800; font-size: 1.05rem; }
 .quick-in-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
@@ -1109,4 +1112,7 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
   table.compare.car-table th:first-child, table.compare.car-table td:first-child { padding-left: 8px; }
   table.compare.car-table tr.total td { font-size: .8rem; }
   table.compare.car-table .car-km { display: none; }
+}
+@media (max-width: 380px) {
+  .tabs a { padding: 7px 6px; font-size: .85rem; }
 }
