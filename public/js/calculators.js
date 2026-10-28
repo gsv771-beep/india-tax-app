@@ -1,4 +1,4 @@
-import { inr, inrShort, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { loadJSON, inr, inrShort, pct, el, debounce, setChildren, disclaimer, animateNumber, isBlankAfterReset, markBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
 import { lineChart, columnChart, shortINR } from './charts.js';
 import { calcExportCard } from './calc-export-card.js';
 import { setHandoff, takeHandoff, handoffNote, fill } from './handoff.js';
@@ -202,7 +202,7 @@ const CALC_KEYS = {
   emi: { calc: ['emi', 'emi-price'] }, sip: { calc: ['sip'], keys: ['taxcompass.sip-lumps.v1'] }, goal: { calc: ['goal2'], keys: ['taxcompass.goal.v1'] },
   salary: { keys: ['taxcompass.salary.v1'] }, budget: { keys: ['taxcompass.budget.v1'] },
   debt: { keys: ['taxcompass.debt.v1'] }, offer: { keys: ['taxcompass.offer.v1'] },
-  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] },
+  'capital-gains': { keys: ['taxcompass.capgains.v1', 'taxcompass.broker.v1', 'taxcompass.capgains-mode.v1'] }, retirement: { keys: ['taxcompass.retirement.v1'] }, home: { keys: ['taxcompass.home.v1'] }, car: { keys: ['taxcompass.car.v1'] },
 };
 function resetCalc(key, { fromStartOver = false } = {}) {
   const spec = CALC_KEYS[key] || {};
@@ -351,6 +351,7 @@ const VIEWS = {
   'capital-gains': () => import('./capgains.js').then((m) => m.renderCapitalGains(appData)),
   salary: () => import('./salary.js').then((m) => m.renderSalary(appData)),
   home: () => import('./home-buy.js').then((m) => m.renderHomeBuying(appData)),
+  car: () => Promise.all([import('./car.js'), loadJSON('/data/car_charges.json')]).then(([m, data]) => m.renderCar(appData, data)),
   retirement: () => import('./retirement.js').then((m) => m.renderRetirement(appData)),
   goal: () => import('./goal.js').then((m) => m.renderGoal(appData)),
   debt: () => import('./debt.js').then((m) => m.renderDebt(appData)),

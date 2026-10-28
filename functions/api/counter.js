@@ -13,7 +13,7 @@ import { json, ensureSchema, bump, istDay } from '../_lib.js';
 import { cfTotals } from '../_cf-analytics.js';
 
 const EVENTS = { visit: 'visits', compare: 'comparisons', workbook: 'workbooks', ask: 'asks', tip: 'tips', answer: 'answers', deeper: 'deeper', want: 'reverse', example: 'examples', hike: 'hikes', pfin: 'pfInCtc' };
-const CALCS = ['salary', 'budget', 'emi', 'sip', 'home', 'compare', 'capital-gains', 'retirement', 'goal', 'insurance', 'debt', 'offer'];
+const CALCS = ['salary', 'budget', 'emi', 'sip', 'home', 'compare', 'capital-gains', 'retirement', 'goal', 'insurance', 'debt', 'offer', 'car'];
 const counterName = (event) => EVENTS[event] || (typeof event === 'string' && event.startsWith('calc:') && CALCS.includes(event.slice(5)) ? event : null);
 
 export async function onRequestGet({ env, request }) {
