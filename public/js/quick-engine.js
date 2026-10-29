@@ -6,7 +6,7 @@
  *     variable: the target bonus inside the CTC (from the payslip or tax form); payoutPct: what is actually
  *     paid, % of it; employerNpsPct: corporate NPS through payroll, % of Basic, carved out of the CTC
  *     (80CCD(2), deductible in both regimes); pfInCtc: the offer letter counts employer PF (12% of Basic)
- *     and gratuity (4.81% of Basic) inside the CTC, so less of it is paid as salary; onTop: the bonus is paid over and above the CTC rather than inside it. The monthly figures leave the bonus out, because it is paid once; the yearly ones include it.
+ *     inside the CTC, gratuityInCtc: and gratuity (4.81% of Basic), each on its own, so less of it is paid as salary; onTop: the bonus is paid over and above the CTC rather than inside it. The monthly figures leave the bonus out, because it is paid once; the yearly ones include it.
  *   ladder(rates)  -> the same answer at common CTCs, for the table shown before anything is typed
  *
  * The salary split is the in-hand calculator's own (salary.js), with its defaults (Basic 50% of CTC, HRA
@@ -39,7 +39,7 @@ export function quickAnswer(q, rates) {
   if (!ctc) return null;
   const store = {
     ctc, basicPct: num(q.basicPct) || QUICK_DEFAULTS.basicPct, hraPct: q.hraPct != null ? +q.hraPct : QUICK_DEFAULTS.hraPct,
-    conveyance: 0, variable: num(q.variable), variablePayoutPct: q.payoutPct == null ? 100 : q.payoutPct, variableMonthly: 'yearly', variableInCtc: q.onTop ? 'top' : 'ctc', includeEmployerPf: !!q.pfInCtc, includeGratuity: !!q.pfInCtc, employerNpsPct: Math.min(30, num(q.employerNpsPct)),
+    conveyance: 0, variable: num(q.variable), variablePayoutPct: q.payoutPct == null ? 100 : q.payoutPct, variableMonthly: 'yearly', variableInCtc: q.onTop ? 'top' : 'ctc', includeEmployerPf: !!q.pfInCtc, includeGratuity: !!q.gratuityInCtc, employerNpsPct: Math.min(30, num(q.employerNpsPct)),
     professionalTax: q.professionalTax != null ? num(q.professionalTax) : QUICK_DEFAULTS.professionalTax,
     city: q.city || QUICK_DEFAULTS.city, rentPaid: 12 * num(q.rentMonthly),
     other80c: num(q.other80c), nps1b: num(q.nps1b), healthSelf: num(q.healthSelf), homeLoanInterest: num(q.homeLoanInterest), ageBand: q.ageBand || 'below_60', regime: 'best',

@@ -135,15 +135,22 @@ ok('Basic of 80% with PF and gratuity: components exceed CTC is reported', !!qui
   ok('nothing wanted, no answer', ctcForInHand(0, {}, rates) === null);
 }
 
-// ---- a CTC that includes employer PF and gratuity ----
+// ---- employer PF and gratuity inside the CTC, each on its own ----
 {
-  const out = quickAnswer({ ctc: 2500000 }, rates), inside = quickAnswer({ ctc: 2500000, pfInCtc: true }, rates);
-  near('PF inside the CTC: employer PF is 12% of the ₹12.5 lakh Basic', inside.pay.employerPf, 150000);
-  near('... gratuity is 4.81% of Basic', inside.pay.gratuity, 60125);
-  near('... so ₹22,89,875 is paid as salary', inside.pay.grossSalary, 2289875);
-  ok('... and less reaches the bank than when they are on top', inside.monthly.best < out.monthly.best);
-  ok('... CTC = employer PF + gratuity + your PF + professional tax + tax + in hand', Math.abs(2500000 - inside.pay.employerPf - inside.pay.gratuity - inside.pay.employeePf - inside.pay.professionalTax - inside.tax.new - inside.inHand.new) < 1);
-  ok('... and the CTC to ask for rises to match', ctcForInHand(150000, { pfInCtc: true }, rates).new.ctc > ctcForInHand(150000, {}, rates).new.ctc);
+  const out = quickAnswer({ ctc: 2500000 }, rates);
+  const pfOnly = quickAnswer({ ctc: 2500000, pfInCtc: true }, rates);
+  near('PF inside the CTC: employer PF is 12% of the ₹12.5 lakh Basic', pfOnly.pay.employerPf, 150000);
+  ok('... gratuity is not taken off unless it is ticked too', pfOnly.pay.gratuity === 0);
+  near('... so ₹23,50,000 is paid as salary', pfOnly.pay.grossSalary, 2350000);
+  const gratOnly = quickAnswer({ ctc: 2500000, gratuityInCtc: true }, rates);
+  near('gratuity alone inside the CTC: 4.81% of Basic', gratOnly.pay.gratuity, 60125);
+  ok('... with employer PF on top', gratOnly.pay.employerPf === 0);
+  near('... so ₹24,39,875 is paid as salary', gratOnly.pay.grossSalary, 2439875);
+  const both = quickAnswer({ ctc: 2500000, pfInCtc: true, gratuityInCtc: true }, rates);
+  near('both inside: ₹22,89,875 is paid as salary', both.pay.grossSalary, 2289875);
+  ok('... each one in the CTC leaves less in hand', both.monthly.best < pfOnly.monthly.best && pfOnly.monthly.best < out.monthly.best && gratOnly.monthly.best < out.monthly.best);
+  ok('... CTC = employer PF + gratuity + your PF + professional tax + tax + in hand', Math.abs(2500000 - both.pay.employerPf - both.pay.gratuity - both.pay.employeePf - both.pay.professionalTax - both.tax.new - both.inHand.new) < 1);
+  ok('... and the CTC to ask for rises with each', ctcForInHand(150000, { pfInCtc: true, gratuityInCtc: true }, rates).new.ctc > ctcForInHand(150000, { pfInCtc: true }, rates).new.ctc && ctcForInHand(150000, { pfInCtc: true }, rates).new.ctc > ctcForInHand(150000, {}, rates).new.ctc);
 }
 
 console.log(failures ? `\n${failures} failure(s)` : '\nAll quick-answer tests passed');

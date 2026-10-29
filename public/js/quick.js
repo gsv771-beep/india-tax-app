@@ -34,7 +34,7 @@ function fromProfile(p) {
     // a bonus set in the payslip or the tax form: kept through a new CTC here, and out of the monthly figure
     variable: ctc > 0 ? Math.round(i.variablePay || 0) : 0, payoutPct: payoutOf(p), onTop: !!p.tax.bonusOnTop,
     employerNpsPct: i.basic > 0 && i.employerNps > 0 ? Math.round(1000 * i.employerNps / i.basic) / 10 : 0,
-    pfInCtc: i.employerPf > 0 || i.gratuity > 0,
+    pfInCtc: i.employerPf > 0, gratuityInCtc: i.gratuity > 0,
     inhand: { ...p.inhand },
     loanEmi: (type) => Math.round(p.loans.filter((l) => l.type === type).reduce((s, l) => s + (l.emi || 0), 0)),
   };
@@ -124,11 +124,19 @@ export function mountQuick(slot, opts) {
   for (const b of modeBtns) b.addEventListener('click', () => { mode = b.dataset.mode; keepWant(); paint(); (mode === 'want' ? wantInput : ctcInput).focus(); });
   wantInput.addEventListener('input', () => { want = readRupees(wantInput.value); keepWant(); paint(); });
   // what the CTC holds: most of the difference between a CTC and the salary paid is employer PF and
-  // gratuity, so the assumption is shown as a choice under the answer, not buried in the working
+  // gratuity, so the assumption is shown as a choice under the answer, not buried in the working. They are
+  // two choices: many offer letters count employer PF inside the CTC but not gratuity, which plenty of
+  // employers leave out of it altogether
   const pfInput = el('input', { type: 'checkbox' });
   const pfNote = el('span', { class: 'quick-basis-note muted small' });
-  const pfBox = el('label', { class: 'quick-basis', hidden: true }, [pfInput, el('span', {}, [el('span', {}, 'My CTC includes employer PF and gratuity'), pfNote])]);
+  const gratInput = el('input', { type: 'checkbox' });
+  const gratNote = el('span', { class: 'quick-basis-note muted small' });
+  const pfBox = el('div', { class: 'quick-basis-group', hidden: true }, [
+    el('label', { class: 'quick-basis' }, [pfInput, el('span', {}, [el('span', {}, 'My CTC includes employer PF'), pfNote])]),
+    el('label', { class: 'quick-basis' }, [gratInput, el('span', {}, [el('span', {}, 'My CTC includes gratuity'), gratNote])]),
+  ]);
   pfInput.addEventListener('change', () => { if (pfInput.checked) countEvent('pfin'); set({ pfInCtc: pfInput.checked }); });
+  gratInput.addEventListener('change', () => set({ gratuityInCtc: gratInput.checked }));
   // a hike on the CTC: what it adds to the take-home, after the tax on it
   const hikeInput = el('input', { type: 'number', min: 0, max: 200, step: 1, inputmode: 'decimal', placeholder: 'e.g. 10', class: 'quick-pct', 'aria-label': 'Hike you expect, percent' });
   const hikeOut = el('span', { class: 'quick-hike-out', 'aria-live': 'polite' });
@@ -184,7 +192,7 @@ export function mountQuick(slot, opts) {
     updateProfile((d) => {
       const prev = fromProfile(d);
       // a new CTC, Basic % or bonus rewrites the salary split; a deduction leaves any detailed split alone
-      const resplit = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || prev.variable !== q.variable || prev.onTop !== q.onTop || Math.abs(prev.employerNpsPct - (q.employerNpsPct || 0)) > 0.05 || prev.pfInCtc !== !!q.pfInCtc || isEmptyProfile(d);
+      const resplit = prev.ctc !== q.ctc || Math.abs(prev.basicPct - q.basicPct) > 0.05 || prev.variable !== q.variable || prev.onTop !== q.onTop || Math.abs(prev.employerNpsPct - (q.employerNpsPct || 0)) > 0.05 || prev.pfInCtc !== !!q.pfInCtc || prev.gratuityInCtc !== !!q.gratuityInCtc || isEmptyProfile(d);
       let out = resplit ? fromSalaryStore(d, { ...a.store, regime: a.better }, a.pay) : d;
       out.tax.s80cUsed = q.other80c || 0; out.tax.s80dUsed = q.healthSelf || 0; out.tax.nps1bUsed = q.nps1b || 0;
       if (!q.listedLoan) out.tax.homeLoanInterest = q.homeLoanInterest || 0;
@@ -367,7 +375,7 @@ export function mountQuick(slot, opts) {
           el('tr', { class: 'total' }, [el('th', { scope: 'row' }, 'Left each month'), el('td', {}, (a.monthly.best + adjTotal(q.inhand) < 0 ? '−' : '') + inr(Math.abs(a.monthly.best + adjTotal(q.inhand))))]),
         ]),
       ])) : null,
-      el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. ${a.pay.employerPf > 0 ? 'Employer PF and gratuity are inside this CTC, so they come off it above.' : `Employer PF (${inr(0.12 * a.pay.basic)}) and gratuity are paid on top of the CTC, so they are not taken off here.`} Old-regime deductions counted: ${parts.join(', ')}.`]),
+      el('p', { class: 'muted small' }, [`Your PF is 12% of Basic. ${a.pay.employerPf > 0 ? 'Employer PF is inside this CTC, so it comes off it above.' : `Employer PF (${inr(0.12 * a.pay.basic)}) is paid on top of the CTC, so it is not taken off here.`} ${a.pay.gratuity > 0 ? 'Gratuity is inside it too.' : 'Gratuity is not counted in it.'} Old-regime deductions counted: ${parts.join(', ')}.`]),
       el('div', { class: 'quick-links' }, [
         // the payslip and the full form work from a saved salary, which a take-home being tried out is not
         taxLink && mode !== 'want' ? el('a', { class: 'quick-link', href: taxLink.href, onclick: taxLink.onclick }, taxLink.text) : null,
@@ -410,9 +418,15 @@ export function mountQuick(slot, opts) {
     hikeBox.hidden = !ok || wanting;
     pfBox.hidden = !ok;
     pfInput.checked = !!q.pfInCtc;
-    if (a && !a.error) pfNote.textContent = q.pfInCtc
-      ? `Ticked: ${inr(a.pay.employerPf + a.pay.gratuity)} of the CTC is employer PF and gratuity, saved for you rather than paid, so the salary paid is ${inr(a.pay.grossSalary)}.`
-      : `Unticked: they are paid on top of the CTC, as many offer letters show. Tick if yours lists them inside it.`;
+    gratInput.checked = !!q.gratuityInCtc;
+    if (a && !a.error) {
+      pfNote.textContent = q.pfInCtc
+        ? `${inr(a.pay.employerPf)} a year of the CTC goes to your PF account, not your salary.`
+        : 'Unticked: paid on top of the CTC, as many offer letters show.';
+      gratNote.textContent = q.gratuityInCtc
+        ? `${inr(a.pay.gratuity)} a year of the CTC is set aside, paid only when you leave after 5 years.`
+        : 'Unticked: not part of the CTC, as at many companies.';
+    }
     if (a && a.error) { paintAnswer(a); return; }
     if (!ok) return;
     // the funnel: an answer was shown (once a tab), and whether it came from the reverse question
