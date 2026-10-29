@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { onRoad, roadTaxFor, runningPerMonth, ownership, cityById, FUELS } from '../public/engine/car.js';
+import { onRoad, fromOnRoad, blendedEfficiency, roadTaxFor, runningPerMonth, ownership, cityById, FUELS } from '../public/engine/car.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const data = JSON.parse(readFileSync(path.join(here, '../public/data/car_charges.json'), 'utf8'));
@@ -44,9 +44,11 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
   near('Delhi EV at 6.5 km a kWh, 80% home at ₹4.50, 20% public at ₹22: ₹1,231', runningPerMonth('ev', 1400000, { ...e, efficiency: 6.5 }, data).energy, 1000 / 6.5 * 8);
 }
 
-// ---- ownership and payback: Delhi, ₹10 lakh petrol against a ₹14 lakh EV, 1,000 km a month, 5 years ----
+// ---- ownership and payback: Delhi, ₹10 lakh petrol against a ₹14 lakh EV, 1,000 km a month, 5 years,
+//      at 14 km a litre and 6.5 km a kWh (the arithmetic, with the mileage fixed) ----
 {
-  const r = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, prices: { petrol: 1000000, ev: 1400000 } }, data);
+  const EFF = { petrol: 14, ev: 6.5 };
+  const r = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, prices: { petrol: 1000000, ev: 1400000 }, efficiency: EFF }, data);
   const p = r.options.find((o) => o.fuel === 'petrol'), v = r.options.find((o) => o.fuel === 'ev');
   near('petrol on the road ₹11,08,000 (7% on ₹10 lakh)', p.road.total, 1108000);
   near('EV on the road ₹14,52,000', v.road.total, 1452000);
@@ -64,7 +66,7 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
   near('the EV costs less over 5 years above about 11,742 km a year', pb.kmPerYear, 356000 / ((102.12 / 14 - 8 / 6.5) * 60) * 12, 1);
   ok('... which 12,000 km a year clears (so the EV is lower) and 3,600 does not', pb.kmPerYear < 12000 && pb.kmPerYear > 3600);
   ok('spentBy draws the lines: on-road at month 0, equal at the break-even', Math.abs(r.spentBy(p, 0) - 1108000) < 1 && Math.abs(r.spentBy(p, pb.months) - r.spentBy(v, pb.months)) < 1);
-  const shortTrips = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 300, prices: { petrol: 1000000, ev: 1400000 } }, data);
+  const shortTrips = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 300, prices: { petrol: 1000000, ev: 1400000 }, efficiency: EFF }, data);
   ok('driving little, the petrol car costs less over 5 years', shortTrips.cheapest.fuel === 'petrol');
   ok('nothing priced, nothing shown', ownership({ cityId: 'delhi', prices: {} }, data).options.length === 0);
   const other = ownership({ cityId: 'other', otherCityPct: 10, prices: { petrol: 1000000 }, petrolPrice: 105 }, data);
@@ -73,7 +75,7 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
 
 // ---- cars by slot: two of the same fuel, a resale value ----
 {
-  const r = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ id: 'A', name: 'Car A', fuel: 'petrol', price: 1000000 }, { id: 'B', name: 'Car B', fuel: 'petrol', price: 1200000, resale: 500000 }] }, data);
+  const r = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ id: 'A', name: 'Car A', fuel: 'petrol', price: 1000000, efficiency: 14 }, { id: 'B', name: 'Car B', fuel: 'petrol', price: 1200000, efficiency: 14, resale: 500000 }] }, data);
   ok('two petrol cars are compared side by side', r.options.length === 2 && r.options.map((o) => o.id).join() === 'A,B');
   const a = r.options[0], b = r.options[1];
   near('Car B on the road: ₹12 lakh at 10%, fees and 3.5% insurance', b.road.total, 1200000 + 120000 + 3000 + 42000);
@@ -84,6 +86,36 @@ ok('every city has fuel prices, a date and a confidence note', data.cities.every
   ok('... but its resale makes it lower over 5 years at any distance', r.payback[0].kmPerYear === 0, String(r.payback[0].kmPerYear));
   const per = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', price: 1000000, efficiency: 20, maintenance: 6000, roadTaxPct: 9 }] }, data).options[0];
   ok('mileage, servicing and the quoted road tax are per car', per.road.roadTax === 90000 && per.efficiency === 20 && per.maintenance === 6000);
+}
+
+// ---- the on-road price, as on a dealer's quote ----
+{
+  near('Delhi petrol ₹11,08,000 on the road: ₹10 lakh ex-showroom worked back', fromOnRoad({ city: city('delhi'), fuel: 'petrol', onRoad: 1108000 }, data).exShowroom, 1000000);
+  near('Bengaluru petrol ₹14,71,440 on the road: ₹12 lakh, through the 17% slab and the cess', fromOnRoad({ city: city('bengaluru'), fuel: 'petrol', onRoad: 1471440 }, data).exShowroom, 1200000);
+  const q = fromOnRoad({ city: city('bengaluru'), fuel: 'petrol', onRoad: 1471440 }, data);
+  ok('... the on-road price stays exactly as typed', q.total === 1471440 && q.fromQuote);
+  near('... with the ₹12,000 TCS on the ₹12 lakh, claimed back', q.tcs, 12000);
+  near('another city: worked back at 10% road tax (₹11,38,000 → ₹10 lakh)', fromOnRoad({ city: null, fuel: 'petrol', onRoad: 1000000 * 1.1 + 3000 + 35000 }, data).exShowroom, 1000000);
+  const byQuote = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', onRoad: 1108000, efficiency: 14 }] }, data).options[0];
+  const byPrice = ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', price: 1000000, efficiency: 14 }] }, data).options[0];
+  near('the same car typed either way costs the same over 5 years', byQuote.total, byPrice.total, 1);
+}
+
+// ---- mileage in the city and on the highway ----
+{
+  near('70% city at 9 km a litre, 30% highway at 14.5: 10.16 km a litre over the mix', blendedEfficiency(9, 14.5, 70) * 100, 100 / (0.7 / 9 + 0.3 / 14.5), 1);
+  ok('... all city is the city figure, all highway the highway figure', Math.abs(blendedEfficiency(9, 14.5, 100) - 9) < 1e-9 && Math.abs(blendedEfficiency(9, 14.5, 0) - 14.5) < 1e-9);
+  ok('... per km, not the plain average of the two (11.75)', blendedEfficiency(9, 14.5, 50) < 11.75);
+  const at = (cityPct) => ownership({ cityId: 'mumbai', years: 5, kmPerMonth: 1000, cityPct, cars: [{ id: 'P', fuel: 'petrol', onRoad: 1200000 }, { id: 'D', fuel: 'diesel', onRoad: 1350000 }, { id: 'E', fuel: 'ev', onRoad: 1700000 }] }, data);
+  const city100 = at(100), hwy100 = at(0);
+  const fuelP = (r) => r.options.find((o) => o.id === 'P').run.energy;
+  near('Mumbai petrol, all city: 1,000 km at 9 km a litre and ₹111.21', fuelP(city100), 1000 / 9 * 111.21);
+  near('... all highway: at 14.5 km a litre', fuelP(hwy100), 1000 / 14.5 * 111.21);
+  near('Mumbai diesel, all city: at 12 km a litre and ₹97.83', city100.options.find((o) => o.id === 'D').run.energy, 1000 / 12 * 97.83);
+  const evGain = (r) => r.options.find((o) => o.id === 'P').total - r.options.find((o) => o.id === 'E').total;
+  ok('city driving favours the EV over petrol more than highway driving does', evGain(city100) > evGain(hwy100), `${Math.round(evGain(city100))} vs ${Math.round(evGain(hwy100))}`);
+  ok('a mileage typed for the car replaces the blend', ownership({ cityId: 'delhi', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', onRoad: 1108000, effCity: 8, effHighway: 16 }], cityPct: 50 }, data).options[0].efficiency > 10.6);
+  ok('another city without fuel prices still has a fuel cost', ownership({ cityId: 'other', years: 5, kmPerMonth: 1000, cars: [{ fuel: 'petrol', onRoad: 1200000 }] }, data).options[0].run.energy > 9000);
 }
 
 console.log(failures ? `\n${failures} failure(s)` : '\nAll car tests passed');
