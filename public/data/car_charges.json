@@ -1,7 +1,7 @@
 {
   "_meta": {
     "compiled_on": "2026-10-28",
-    "purpose": "On-road price and running cost of a new private car by fuel, for the car cost tool (js/car.js, engine/car.js).",
+    "purpose": "Running cost of a new private car by fuel, and the road tax used to work the ex-showroom price back from the on-road price typed, for the car cost tool (js/car.js, engine/car.js).",
     "slabs": "Road tax slabs are [up_to_ex_showroom_inclusive, percent]; null means no upper limit. 'same_as' points a fuel at another fuel's slabs.",
     "caution": "State road-tax rules change in budgets and by notification, and published summaries disagree. Every city carries a confidence note and its sources; the tool shows the rate it applied and lets the buyer replace it with the figure on the dealer's quote.",
     "not_covered": "Kolkata (West Bengal): published rates conflict (5.5% to 10%, EV status unclear); left out until confirmed. Second cars, company-owned cars and BH-series registration are taxed differently and are not modelled."
@@ -23,9 +23,11 @@
   "defaults": {
     "km_per_month": 1000,
     "years": 5,
-    "efficiency": { "petrol": 14, "diesel": 18, "hybrid": 21, "ev": 6.5 },
+    "city_pct": 70,
+    "efficiency_city": { "petrol": 9, "diesel": 12, "hybrid": 18, "ev": 7 },
+    "efficiency_highway": { "petrol": 14.5, "diesel": 19, "hybrid": 21, "ev": 5.5 },
     "efficiency_units": { "petrol": "km a litre", "diesel": "km a litre", "hybrid": "km a litre (petrol)", "ev": "km a kWh" },
-    "efficiency_note": "Real-world figures for a compact car or SUV in city and highway use, below the official (ARAI) claims. Strong hybrids (Toyota, Maruti self-charging) only; a mild hybrid is closer to petrol.",
+    "efficiency_note": "Real-world figures for a compact car or SUV, well below the official (ARAI) claims: city is stop-go traffic in Mumbai or Bengaluru, highway is steady cruising. They are blended by the share of km driven in each, per km, not as an average of the two figures. Strong hybrids (Toyota, Maruti self-charging) do best in traffic, where they run on the battery; electric cars too, as braking recharges them. A mild hybrid is closer to petrol.",
     "maintenance_per_year": { "petrol": 9000, "diesel": 11000, "hybrid": 9000, "ev": 5000 },
     "maintenance_note": "Scheduled service and wear parts in the first five years; tyres, accidents and battery replacement are not included.",
     "public_charging_pct": 20,
