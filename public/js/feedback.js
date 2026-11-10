@@ -93,7 +93,10 @@ function once(flag) {
 }
 // ?nocount on any page stops this browser counting (the site's owner, testing); ?count turns it back on
 const NOCOUNT = 'taxcompass.nocount.v1';
+let switchRead = false;
 function readNoCountSwitch() {
+  if (switchRead) return;
+  switchRead = true;
   try {
     const u = new URL(location.href);
     if (!u.searchParams.has('nocount') && !u.searchParams.has('count')) return;
@@ -104,6 +107,7 @@ function readNoCountSwitch() {
 }
 const notCounting = () => { try { return localStorage.getItem(NOCOUNT) === '1'; } catch { return false; } };
 export function countEvent(event) {
+  readNoCountSwitch();   // the landing card can count an answer before initCounter has run
   if (notCounting() || !once(event)) return;
   fetch('/api/counter', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ event }), keepalive: true }).catch(() => {});
 }

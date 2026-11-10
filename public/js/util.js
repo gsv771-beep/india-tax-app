@@ -26,6 +26,9 @@ export function pct(x, digits = 2) {
 }
 
 export async function loadJSON(path) {
+  // a file the page asked for before its scripts arrived (index.html) is used once, if it came through
+  const early = typeof window !== 'undefined' && window.__tcPre?.json?.[path];
+  if (early) { delete window.__tcPre.json[path]; try { return await early; } catch { /* ask again below */ } }
   const res = await fetch(path, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
   return res.json();

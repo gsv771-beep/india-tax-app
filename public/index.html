@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="95ec311700">
+  <meta name="tc-build" content="72f5d9fe04">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -19,29 +19,31 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="TaxCompass">
   <meta property="og:image" content="https://taxcompass.org/icons/icon-512.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="preload" href="/fonts/inter-latin-v20.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/inter-rupee-v20.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/css/style.css">
-  <link rel="modulepreload" href="/js/tax-engine.js">
+  <!-- Only what the landing card needs to answer; app.js loads every other page's code after it. -->
+  <link rel="modulepreload" href="/js/version.js">
+  <link rel="modulepreload" href="/js/fresh.js">
   <link rel="modulepreload" href="/js/util.js">
+  <link rel="modulepreload" href="/js/tax-engine.js">
   <link rel="modulepreload" href="/js/routes.js">
-  <link rel="modulepreload" href="/js/tax-insights.js">
-  <link rel="modulepreload" href="/js/save-card.js">
-  <link rel="modulepreload" href="/js/charts.js">
-  <link rel="modulepreload" href="/js/share-card.js">
-  <link rel="modulepreload" href="/js/tooltips.js">
-  <link rel="modulepreload" href="/js/feedback.js">
+  <link rel="modulepreload" href="/js/theme.js">
+  <link rel="modulepreload" href="/js/env.js">
   <link rel="modulepreload" href="/engine/profile.js">
   <link rel="modulepreload" href="/js/profile-store.js">
-  <link rel="modulepreload" href="/js/tax-ui.js">
-  <link rel="modulepreload" href="/js/funds.js">
-  <link rel="modulepreload" href="/js/xlsx-style.js">
-  <link rel="modulepreload" href="/js/calc-export-card.js">
   <link rel="modulepreload" href="/js/handoff.js">
-  <link rel="modulepreload" href="/js/calculators.js">
-  <link rel="modulepreload" href="/js/env.js">
-  <link rel="modulepreload" href="/js/profile-panel.js">
+  <link rel="modulepreload" href="/js/feedback.js">
+  <link rel="modulepreload" href="/engine/salary-split.js">
+  <link rel="modulepreload" href="/js/tax-insights.js">
+  <link rel="modulepreload" href="/js/quick-engine.js">
+  <link rel="modulepreload" href="/js/quick.js">
+  <script>
+    // The tax rates are the one data file the landing card needs: asked for now, alongside the scripts,
+    // and handed to util.js's loadJSON when it asks.
+    window.__tcPre = { json: {} };
+    try { window.__tcPre.json['/data/tax_rates.json'] = fetch('/data/tax_rates.json', { cache: 'no-cache' }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }); window.__tcPre.json['/data/tax_rates.json'].catch(function () {}); } catch (e) {}
+  </script>
   <script>
     // Theme, before anything draws: the visitor's choice (Light or Dark, from the switch in the header)
     // or the device's own setting on Auto. style.css keys the dark palette off data-theme on <html>.
@@ -107,7 +109,31 @@
       <div class="panel-head">
         <h1>How much of your CTC do you take home?</h1>
       </div>
-      <div id="tax-quick" class="quick-slot"></div>
+      <!-- The card as it looks before a CTC is typed, so it is on screen with the page itself; quick.js
+           draws the working one over it and takes over anything already typed or tapped. -->
+      <div id="tax-quick" class="quick-slot"><div class="card quick quick-flow"><div class="quick-modes" role="group" aria-label="What you know"><button type="button" class="quick-mode" data-mode="ctc" aria-pressed="true">I know my CTC</button><button type="button" class="quick-mode" data-mode="want" aria-pressed="false">I know the in-hand I want</button></div><div class="quick-top"><div class="quick-in-wrap"><label class="quick-in"><span class="quick-in-label">Your annual CTC (₹)</span><span class="quick-in-row"><input type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 15,00,000" class="quick-ctc" data-echo="own" data-pre="" aria-label="Your annual CTC in rupees"><span class="quick-echo" aria-live="polite"></span></span></label></div><button type="button" class="quick-reset">Reset</button></div><p class="quick-privacy muted small">As on your offer letter. No sign-up; what you type stays on this device. <button type="button" class="quick-link-btn quick-example">Or see an example: ₹15 lakh CTC</button></p></div></div>
+      <script>
+        // The landing page shows at once, without waiting for the router; a salary saved on this device
+        // is already in the box; a tap on the card before its script arrives is remembered and replayed.
+        (function () {
+          var path = location.pathname.replace(/\/+$/, '');
+          if (path !== '' && path !== '/index.html' && path !== '/tax') return;
+          var tax = document.getElementById('tax'), slot = document.getElementById('tax-quick'), box = slot.querySelector('input');
+          tax.hidden = false;
+          var a = document.querySelector('.tabs a[data-tab="tax"]'); if (a) a.classList.add('active');
+          try {
+            var p = JSON.parse(localStorage.getItem('taxcompass.profile.v1') || 'null'), i = p && p.income, n = function (v) { return +v || 0; };
+            if (i && p.schemaVersion === 5 && !(p.person && p.person.employment === 'self_employed') && !/[?&](ctc|want)=/.test(location.search)) {
+              var ctc = n(i.basic) + n(i.hra) + n(i.conveyance) + n(i.variablePay) + n(i.otherAllowances) + n(i.employerNps) + n(i.employerPf) + n(i.gratuity) + n(i.esop) - (p.tax && p.tax.bonusOnTop ? n(i.variablePay) : 0);
+              if (ctc > 0) { box.value = Math.round(ctc).toLocaleString('en-IN'); box.setAttribute('data-pre', box.value); slot.classList.add('has-input'); }
+            }
+          } catch (e) {}
+          slot.addEventListener('click', function (e) {
+            var b = e.target.closest && e.target.closest('button');
+            if (b && window.__tcPre && !slot.hasAttribute('data-live') && b.className !== 'quick-reset') window.__tcPre.tap = b.getAttribute('data-mode') || 'example';
+          });
+        })();
+      </script>
       <p class="tax-business-link"><a href="#detail">Self-employed, or business income? Use the full tax calculation</a></p>
 
       <div class="detail-body" id="tax-payslip"></div>

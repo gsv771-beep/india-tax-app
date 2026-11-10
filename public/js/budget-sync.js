@@ -23,7 +23,7 @@ export function salaryMonthly(p, rates) {
 const freeAfterExpenses = (st) => Math.max(0, Math.round((+st.income || 0) - (st.expenses || []).reduce((s, e) => s + (+e.amount || 0), 0)));
 
 export function initBudgetSync({ rates }) {
-  onProfileChange((p, source) => {
+  const follow = (p, source) => {
     if (source === 'calc:budget' || source === SYNC_SOURCE) return;
     let st; try { st = JSON.parse(localStorage.getItem(BUDGET_KEY) || 'null'); } catch { st = null; }
     if (!st || st.incomeFrom !== 'salary') return;
@@ -33,5 +33,8 @@ export function initBudgetSync({ rates }) {
     try { localStorage.setItem(BUDGET_KEY, JSON.stringify(st)); } catch {}
     const free = monthly > 0 ? freeAfterExpenses(st) : 0;
     updateProfile((d) => { d.cashflow.monthlySurplus = free; return d; }, SYNC_SOURCE);
-  });
+  };
+  onProfileChange(follow);
+  // the landing card answers before this module has loaded: a salary typed there in the meantime is followed now
+  return { follow };
 }
