@@ -3,11 +3,12 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
+import { brotliCompressSync } from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const port = Number(process.env.PORT) || 8788;
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.xml': 'application/xml; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.xml': 'application/xml; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2' };
 
 createServer(async (req, res) => {
   try {
@@ -27,8 +28,11 @@ createServer(async (req, res) => {
     if (st?.isDirectory()) p = path.join(p, 'index.html');
     // single-page app: paths without a file extension fall back to index.html (mirrors public/_redirects)
     else if (!st && !path.extname(p)) p = path.join(root, 'index.html');
-    const body = await readFile(p);
-    res.writeHead(200, { 'content-type': types[path.extname(p)] || 'application/octet-stream', 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' });
+    let body = await readFile(p);
+    const headers = { 'content-type': types[path.extname(p)] || 'application/octet-stream', 'cache-control': 'no-store', 'x-robots-tag': 'noindex, nofollow' };
+    // text is compressed, as the live site's is, so load timings measured here are comparable
+    if (/^(text|application\/(json|xml|manifest))|svg/.test(headers['content-type']) && /\bbr\b/.test(req.headers['accept-encoding'] || '')) { body = brotliCompressSync(body); headers['content-encoding'] = 'br'; }
+    res.writeHead(200, headers);
     res.end(body);
   } catch {
     res.writeHead(404); res.end('Not found');

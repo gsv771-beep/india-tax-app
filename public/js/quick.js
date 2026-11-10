@@ -444,6 +444,10 @@ export function mountQuick(slot, opts) {
 
   breakdown.append(el('summary', {}, 'See how this adds up'), breakdownBody);
 
+  // the card the page itself drew (index.html) may already hold a figure being typed, the focus, or a tap
+  const pre = slot.querySelector('input.quick-ctc[data-pre]');
+  const preTyped = pre && pre.value !== pre.dataset.pre ? readRupees(pre.value) : null;
+  const preFocus = !!pre && document.activeElement === pre;
   setChildren(slot, [
     el('div', { class: 'card quick quick-flow' }, [
       modeSwitch,
@@ -460,7 +464,16 @@ export function mountQuick(slot, opts) {
       breakdown,
     ]),
   ]);
+  slot.setAttribute('data-live', '');
   paint();
+  if (pre) {
+    const tap = window.__tcPre?.tap;
+    if (window.__tcPre) delete window.__tcPre.tap;
+    if (preTyped != null) { mode = 'ctc'; ctcInput.value = rupees(preTyped); ctcInput.dispatchEvent(new Event('input')); }
+    else if (tap === 'want' && allowWant) modeBtns[1].click();
+    else if (tap === 'example') exampleBtn.click();
+    if (preFocus && mode === 'ctc') { ctcInput.focus({ preventScroll: true }); try { ctcInput.setSelectionRange(ctcInput.value.length, ctcInput.value.length); } catch {} }
+  }
 
   const fromSaved = (p) => {
     q = { ...fromProfile(p), ...(ctc && !p.income.ctc ? { ctc } : {}) };
