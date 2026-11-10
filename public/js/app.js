@@ -119,10 +119,10 @@ document.addEventListener('wheel', (e) => {
 function initQuick(rates) {
   const payslipBody = document.getElementById('tax-payslip');
   // the payslip and the full form are part of the rest of the site: opening either brings it in
-  const slip = detailFold('payslip', payslipBody, { label: 'Your payslip: salary structure, variable pay, employer PF and NPS ▾', openLabel: 'Hide your payslip ▴', hash: '#payslip', onOpen: () => { if (!payslip) payslipBody.replaceChildren(Object.assign(document.createElement('div'), { className: 'skeleton calc-skeleton' })); loadRest().then(() => payslip && payslip.show()); } });
+  const slip = detailFold('payslip', payslipBody, { label: 'Your payslip, line by line', openLabel: 'Your payslip, line by line', hash: '#payslip', onOpen: () => { if (!payslip) payslipBody.replaceChildren(Object.assign(document.createElement('div'), { className: 'skeleton calc-skeleton' })); loadRest().then(() => payslip && payslip.show()); } });
   payslipBody.before(slip.button);
   const taxBody = document.getElementById('tax-detail');
-  const fold = detailFold('tax', taxBody, { label: 'Full tax calculation: every allowance, exemption and deduction ▾', openLabel: 'Hide the full tax calculation ▴', onOpen: () => { loadRest(); } });
+  const fold = detailFold('tax', taxBody, { label: 'Full tax calculation, every deduction', openLabel: 'Full tax calculation, every deduction', onOpen: () => { loadRest(); } });
   taxBody.before(fold.button);
   // until there is an answer the page is the card alone; the full form shows only when asked for by
   // name (#detail: a business, or a link from elsewhere)
