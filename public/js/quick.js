@@ -8,7 +8,7 @@
  * Mounted on the home page, the tax page and the salary pages (each with its own profile source,
  * so one copy hears what another saved). The arithmetic is quick-engine.js.
  */
-import { el, inr, inrShort, setChildren, debounce, rupees, readRupees, groupAsTyped } from './util.js';
+import { el, inr, inrShort, setChildren, debounce, rupees, readRupees, groupAsTyped, animateNumber } from './util.js';
 import { getProfile, updateProfile, onProfileChange } from './profile-store.js';
 import { setHandoff } from './handoff.js';
 import { countEvent } from './feedback.js';
@@ -98,7 +98,9 @@ export function mountQuick(slot, opts) {
   const knownBonus = (x) => (x.variable > 0 ? (x.onTop ? 'top' : 'ctc') : x.ctc > 0 ? 'none' : null);
   let bonusKind = knownBonus(q);
   let asking = !bonusKind;   // the bonus question is on screen: until answered, or while its amount is being typed
-  let deeper = DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0) || q.employerNpsPct > 0;
+  // the adjustment open under the answer, one at a time: 'pf' | 'hike' | 'deeper' | null. All start closed,
+  // whatever is already filled in: the chip that opens each one says what it holds.
+  let panel = null;
   // the reverse question (the CTC to ask for, for a take-home), on the landing page only
   const allowWant = source === 'quick:tax';
   let mode = 'ctc', want = 0, hike = 0, example = false;   // example: the ₹15 lakh sample is on screen, not the person's own salary
@@ -131,16 +133,22 @@ export function mountQuick(slot, opts) {
   const pfNote = el('span', { class: 'quick-basis-note muted small' });
   const gratInput = el('input', { type: 'checkbox' });
   const gratNote = el('span', { class: 'quick-basis-note muted small' });
-  const pfBox = el('div', { class: 'quick-basis-group', hidden: true }, [
+  const pfBox = el('div', { class: 'quick-panel quick-basis-group', hidden: true }, [
     el('label', { class: 'quick-basis' }, [pfInput, el('span', {}, [el('span', {}, 'My CTC includes employer PF'), pfNote])]),
     el('label', { class: 'quick-basis' }, [gratInput, el('span', {}, [el('span', {}, 'My CTC includes gratuity'), gratNote])]),
   ]);
   pfInput.addEventListener('change', () => { if (pfInput.checked) countEvent('pfin'); set({ pfInCtc: pfInput.checked }); });
   gratInput.addEventListener('change', () => set({ gratuityInCtc: gratInput.checked }));
   // a hike on the CTC: what it adds to the take-home, after the tax on it
-  const hikeInput = el('input', { type: 'number', min: 0, max: 200, step: 1, inputmode: 'decimal', placeholder: 'e.g. 10', class: 'quick-pct', 'aria-label': 'Hike you expect, percent' });
+  const hikeInput = el('input', { type: 'range', min: 0, max: 50, step: 1, value: 0, class: 'tc-range', 'aria-label': 'Hike you expect, percent' });
+  const hikeVal = el('strong', { class: 'quick-hike-val' }, '0%');
+  const hikeNew = el('span', { class: 'quick-hike-new' });
   const hikeOut = el('span', { class: 'quick-hike-out', 'aria-live': 'polite' });
-  const hikeBox = el('label', { class: 'quick-hike', hidden: true }, [el('span', {}, 'Expecting a hike?'), el('span', { class: 'quick-amount' }, [hikeInput, el('span', { class: 'unit' }, '%')]), hikeOut]);
+  const hikeBox = el('div', { class: 'quick-panel quick-hike', hidden: true }, [
+    el('div', { class: 'quick-hike-head' }, [el('span', {}, 'A hike on your CTC'), hikeVal]),
+    hikeInput,
+    el('div', { class: 'quick-hike-result' }, [hikeNew, hikeOut]),
+  ]);
   hikeInput.addEventListener('input', () => { hike = Math.max(0, +hikeInput.value || 0); if (hike > 0) countEvent('hike'); paint(); });
 
   // ---- 2. the bonus ----
@@ -157,8 +165,7 @@ export function mountQuick(slot, opts) {
 
   // ---- 3. the answer, and 4. going deeper ----
   const answer = el('div', { class: 'quick-answer', 'aria-live': 'polite', hidden: true });
-  const deeperBtn = el('button', { type: 'button', class: 'btn quick-deeper-btn' }, 'Get a more exact answer');
-  const deeperIntro = el('p', { class: 'quick-q' }, 'A few more questions. Answer what applies to you and leave the rest blank.');
+  const deeperIntro = el('p', { class: 'muted small quick-deeper-intro' }, 'Fill in what applies to you and leave the rest blank. The answer above updates as you type.');
   const verdict = el('div', { class: 'quick-verdict-box' });
   const breakdown = el('details', { class: 'quick-breakdown', hidden: true });
   const breakdownBody = el('div', { class: 'quick-breakdown-body' });
@@ -260,8 +267,33 @@ export function mountQuick(slot, opts) {
     verdict,
     adjFold,
   ]);
-  const deeperBox = el('div', { class: 'quick-step quick-deeper', hidden: true }, [deeperBtn, deeperBody]);
-  deeperBtn.addEventListener('click', () => { countEvent('deeper'); deeper = true; paint(); fields[0].input.focus({ preventScroll: false }); });
+  const deeperBox = el('div', { class: 'quick-panel quick-deeper', hidden: true }, [deeperBody]);
+
+  // ---- one row under the answer: what can be adjusted, each chip saying what it holds ----
+  const chip = (key) => el('button', { type: 'button', class: 'quick-chip', 'data-panel': key, 'aria-expanded': key === 'bonus' ? null : 'false' });
+  const chips = { bonus: chip('bonus'), pf: chip('pf'), hike: chip('hike'), deeper: chip('deeper') };
+  const tune = el('div', { class: 'quick-tune', hidden: true, role: 'group', 'aria-label': 'Adjust the answer' }, [el('span', { class: 'quick-tune-k' }, 'Adjust'), chips.bonus, chips.pf, chips.hike, chips.deeper]);
+  chips.bonus.addEventListener('click', () => { panel = null; asking = true; paint(); (kindBtns.find((b) => b.dataset.kind === bonusKind) || kindBtns[0]).focus(); });
+  const FIRST = { pf: () => pfInput, hike: () => hikeInput, deeper: () => fields[0].input };
+  for (const key of ['pf', 'hike', 'deeper']) chips[key].addEventListener('click', () => {
+    panel = panel === key ? null : key;
+    if (panel === 'deeper') countEvent('deeper');
+    paint();
+    if (panel) FIRST[key]().focus({ preventScroll: true });
+  });
+  const filled = () => DEDUCTIONS.filter((d) => q[d.key] > 0).length + ADJUST.filter((d) => +q.inhand?.[d.key] > 0).length + (q.employerNpsPct > 0 ? 1 : 0);
+  function paintTune(a) {
+    chips.bonus.textContent = a.bonus.paid > 0 ? `Bonus: ${inrShort(a.bonus.target)}` : 'Bonus: none';
+    chips.pf.textContent = q.pfInCtc && q.gratuityInCtc ? 'PF, gratuity: in CTC' : q.pfInCtc ? 'Employer PF: in CTC' : q.gratuityInCtc ? 'Gratuity: in CTC' : 'PF, gratuity: on top';
+    chips.hike.textContent = hike > 0 ? `Hike: ${hike}%` : 'Try a hike';
+    const n = filled();
+    chips.deeper.textContent = n ? `Rent, 80C, loans: ${n} added` : 'Rent, 80C, loans';
+    chips.pf.classList.toggle('set', !!(q.pfInCtc || q.gratuityInCtc));
+    chips.hike.classList.toggle('set', hike > 0);
+    chips.deeper.classList.toggle('set', n > 0);
+    chips.bonus.classList.toggle('set', a.bonus.paid > 0);
+    for (const key of ['pf', 'hike', 'deeper']) chips[key].setAttribute('aria-expanded', String(panel === key));
+  }
 
   const refreshFields = (a) => {
     if (document.activeElement !== npsPctInput) npsPctInput.value = q.employerNpsPct || '';
@@ -279,26 +311,51 @@ export function mountQuick(slot, opts) {
       el('div', { class: 'quick-side-k' }, regimeName(r)),
       el('div', { class: 'quick-side-v' }, [inr(a.monthly[r]), el('span', { class: 'quick-per' }, ' a month')]),
       el('div', { class: 'quick-side-tax' }, a.tax[r] > 0 ? ['Tax ', el('b', {}, inr(a.tax[r])), ' a year'] : 'No income tax'),
-      a.same ? (r === 'new' ? el('div', { class: 'quick-side-sub' }, 'Same either way') : null) : r === a.better ? el('div', { class: 'quick-side-sub' }, `Better by ${inr(a.saves)} a year`) : null,
     ]);
     const kindText = bonusKind === 'top' ? 'on top of your CTC' : bonusKind === 'ctc' ? 'part of your CTC' : 'none';
-    const change = el('button', { type: 'button', class: 'quick-link-btn', onclick: () => { asking = true; paint(); (kindBtns.find((b) => b.dataset.kind === bonusKind) || kindBtns[0]).focus(); } }, 'change');
     setChildren(answer, [
       el('div', { class: 'quick-k' }, bonus ? 'Your monthly salary in hand, before bonus' : 'Your monthly salary in hand'),
-      el('div', { class: 'quick-v' }, inr(a.monthly.best)),
-      el('p', { class: 'quick-sub' }, `In the ${a.better} regime, after ${inr(a.pay.employeePf / 12)} PF (12% of Basic, taken as ${+q.basicPct.toFixed(1)}% of your CTC), ${inr(a.pay.professionalTax / 12)} professional tax and income tax.`),
-      a.pay.employerNps > 0 ? el('p', { class: 'quick-sub' }, `Another ${inr(a.pay.employerNps / 12)} a month goes to your NPS account (employer NPS, ${+(+q.employerNpsPct).toFixed(1)}% of Basic), and lowers your tax in both regimes.`) : null,
+      hero(inr(a.monthly.best)),
+      el('p', { class: 'quick-sub quick-regime-line' }, a.same ? 'The same in both tax regimes.' : [el('b', {}, regimeName(a.better)), `: ${inr(a.saves)} a year better than the ${a.better === 'new' ? 'old' : 'new'}.`]),
       bonus ? el('p', { class: 'quick-sub quick-bonus' }, `Plus your bonus, ${kindText}: ${inr(a.bonus.paid)} a year, about ${inr(a.bonus.net.best)} after tax.`) : null,
       adjTotal(q.inhand) !== 0 ? leftLine(a) : null,
+      payBar(a, a.better),
       el('div', { class: 'quick-sides' }, [row('new'), row('old')]),
-      el('p', { class: 'quick-sub quick-bonus-kind' }, ['Bonus: ', bonus ? `${inr(a.bonus.target)}, ${kindText}` : 'none', ' · ', change]),
+    ]);
+  }
+  // the headline figure counts from the last one to the new one, so a change is seen to move it
+  function hero(text) {
+    const node = el('div', { class: 'quick-v' });
+    animateNumber(node, `quick:${source}:${mode}`, text);
+    return node;
+  }
+  /**
+   * Where a year's pay goes, as one bar: in hand, tax (income tax and professional tax), and what is
+   * set aside for retirement (your PF, and any employer PF, gratuity or NPS counted inside the CTC).
+   * The three add up to the CTC (plus a bonus paid on top). The figures sit beside it in words.
+   */
+  function payBar(a, r) {
+    const retire = a.pay.employeePf + a.pay.employerPf + a.pay.gratuity + a.pay.employerNps;
+    const tax = a.tax[r] + a.pay.professionalTax, hand = a.inHand[r], total = hand + tax + retire;
+    if (!(total > 0)) return null;
+    const kept = [a.pay.employerNps > 0 ? 'NPS' : '', a.pay.gratuity > 0 ? 'gratuity' : ''].filter(Boolean);
+    const parts = [
+      { cls: 'hand', k: 'In hand', v: hand },
+      { cls: 'tax', k: 'Tax', v: tax },
+      { cls: 'pf', k: ['PF', ...kept].join(kept.length > 1 ? ', ' : ' and ').replace(/, ([^,]*)$/, ' and $1'), v: retire },
+    ].filter((x) => x.v > 0).map((x) => ({ ...x, pct: 100 * x.v / total }));
+    const pctText = (x) => `${x.pct >= 10 ? Math.round(x.pct) : +x.pct.toFixed(1)}%`;
+    return el('div', { class: 'pay' }, [
+      el('div', { class: 'pay-title' }, `Where ${inrShort(total)} a year goes`),
+      el('div', { class: 'pay-bar', role: 'img', 'aria-label': `Of ${inr(total)} a year: ${parts.map((x) => `${x.k.toLowerCase()} ${inr(x.v)}, ${pctText(x)}`).join('; ')}` },
+        parts.map((x) => el('span', { class: `pay-seg ${x.cls}`, style: `flex-grow:${x.pct.toFixed(2)}`, title: `${x.k}: ${inr(x.v)} a year (${pctText(x)})` }))),
+      el('ul', { class: 'pay-legend' }, parts.map((x) => el('li', {}, [el('i', { class: x.cls, 'aria-hidden': 'true' }), el('span', { class: 'pay-k' }, x.k), el('b', {}, pctText(x)), el('span', { class: 'pay-v' }, inr(x.v))]))),
     ]);
   }
   // the reverse answer: the CTC to ask for, both regimes, and a way to carry on with it
   function paintWant(a, need, bonus) {
     const b = need.best, other = b === 'new' ? 'old' : 'new';
     const kindText = bonusKind === 'top' ? 'on top of your CTC' : bonusKind === 'ctc' ? 'part of your CTC' : 'none';
-    const change = el('button', { type: 'button', class: 'quick-link-btn', onclick: () => { asking = true; paint(); (kindBtns.find((x) => x.dataset.kind === bonusKind) || kindBtns[0]).focus(); } }, 'change');
     const row = (r) => need[r] ? el('div', { class: 'quick-side' + (r === b && need.new && need.old && need.new.ctc !== need.old.ctc ? ' win' : '') }, [
       el('div', { class: 'quick-side-k' }, regimeName(r)),
       el('div', { class: 'quick-side-v' }, [inr(need[r].ctc), el('span', { class: 'quick-per' }, ' CTC')]),
@@ -309,12 +366,12 @@ export function mountQuick(slot, opts) {
     use.addEventListener('click', () => { mode = 'ctc'; keepWant(); ctcInput.value = rupees(need[b].ctc); set({ ctc: need[b].ctc }); ctcInput.focus({ preventScroll: true }); });
     setChildren(answer, [
       el('div', { class: 'quick-k' }, 'Ask for a CTC of'),
-      el('div', { class: 'quick-v' }, inr(need[b].ctc)),
-      el('p', { class: 'quick-sub' }, `That puts ${inr(a.monthly[b])} a month in your bank${bonus ? ', before the bonus,' : ''} in the ${b} regime, after ${inr(a.pay.employeePf / 12)} PF (12% of Basic, taken as ${+q.basicPct.toFixed(1)}% of the CTC), ${inr(a.pay.professionalTax / 12)} professional tax and ${inr(a.tax[b] / 12)} a month of income tax.`),
+      hero(inr(need[b].ctc)),
+      el('p', { class: 'quick-sub quick-regime-line' }, [`That puts ${inr(a.monthly[b])} a month in your bank${bonus ? ', before the bonus,' : ''} in the `, el('b', {}, `${b} regime`), '.']),
       need[other] && need[other].ctc !== need[b].ctc ? el('p', { class: 'quick-sub' }, `In the ${other} regime you would need ${inr(need[other].ctc)}.`) : null,
       bonus ? el('p', { class: 'quick-sub quick-bonus' }, `Plus your bonus, ${kindText}: ${inr(a.bonus.paid)} a year, about ${inr(a.bonus.net[b])} after tax.`) : null,
+      payBar(a, b),
       el('div', { class: 'quick-sides' }, [row('new'), row('old')]),
-      el('p', { class: 'quick-sub quick-bonus-kind' }, ['Bonus: ', bonus ? `${inr(a.bonus.target)}, ${kindText}` : 'none', ' · ', change]),
       use,
     ]);
   }
@@ -411,12 +468,14 @@ export function mountQuick(slot, opts) {
     slot.classList.toggle('has-input', wanting ? want > 0 : q.ctc > 0);
     slot.classList.toggle('asking', hasCtc && !bonusKind);
     answer.hidden = !(ok || (a && a.error && hasCtc));
-    deeperBox.hidden = !ok;
+    if (wanting && panel === 'hike') panel = null;
+    tune.hidden = !ok;
+    chips.hike.hidden = wanting;
+    deeperBox.hidden = !ok || panel !== 'deeper';
+    deeperBody.hidden = false;
     breakdown.hidden = !ok;
-    deeperBtn.hidden = deeper;
-    deeperBody.hidden = !deeper;
-    hikeBox.hidden = !ok || wanting;
-    pfBox.hidden = !ok;
+    hikeBox.hidden = !ok || panel !== 'hike';
+    pfBox.hidden = !ok || panel !== 'pf';
     pfInput.checked = !!q.pfInCtc;
     gratInput.checked = !!q.gratuityInCtc;
     if (a && !a.error) {
@@ -435,8 +494,12 @@ export function mountQuick(slot, opts) {
     if (!wanting) {
       const h = hike > 0 ? quickAnswer({ ...q, ctc: Math.round(q.ctc * (1 + hike / 100)) }, rates) : null;
       const gain = h && !h.error ? h.inHand.best - a.inHand.best : 0;
-      hikeOut.textContent = gain > 0 ? `→ ${inr(gain)} more a year in hand (${inr(gain / 12)} a month): ${+(100 * gain / a.inHand.best).toFixed(1)}% after tax.` : '';
+      hikeVal.textContent = `${hike}%`;
+      hikeInput.style.setProperty('--fill', `${2 * hike}%`);
+      if (gain > 0) animateNumber(hikeNew, `quick:${source}:hike`, `${inr(h.monthly.best)} a month`); else hikeNew.textContent = '';
+      hikeOut.textContent = gain > 0 ? `${inr(gain / 12)} more a month in hand, ${inr(gain)} a year. A ${hike}% hike is ${+(100 * gain / a.inHand.best).toFixed(1)}% after tax.` : 'Drag to see what a hike adds to your take-home, after tax.';
     }
+    paintTune(a);
     paintVerdict(a);
     paintBreakdown(a);
     refreshFields(a);
@@ -458,6 +521,7 @@ export function mountQuick(slot, opts) {
       el('p', { class: 'quick-privacy muted small' }, ['As on your offer letter. No sign-up; what you type stays on this device. ', exampleBtn]),
       bonusStep,
       answer,
+      tune,
       pfBox,
       hikeBox,
       deeperBox,
@@ -482,7 +546,6 @@ export function mountQuick(slot, opts) {
     // a salary saved elsewhere answers the bonus question; an emptied one asks it again
     if (!asking) bonusKind = q.ctc > 0 ? knownBonus(q) : null;
     if (!bonusKind) asking = true;
-    if (DEDUCTIONS.some((d) => q[d.key] > 0) || ADJUST.some((d) => +q.inhand?.[d.key] > 0) || q.employerNpsPct > 0) deeper = true;
     adjFold.open = adjFold.open || ADJUST.some((d) => +q.inhand?.[d.key] > 0);
     paint();
   };
@@ -490,7 +553,7 @@ export function mountQuick(slot, opts) {
   // calculator on the same page (tax form, in-hand calculator) is told to clear itself too.
   startOver.addEventListener('click', () => {
     updateProfile(clearSalary, `reset:${source}`);
-    deeper = false; bonusKind = null; asking = true; want = 0; hike = 0; hikeInput.value = ''; keepWant();
+    panel = null; bonusKind = null; asking = true; want = 0; hike = 0; hikeInput.value = 0; keepWant();
     fromSaved(getProfile());
     bonusKind = null; asking = true; paint();
     window.dispatchEvent(new CustomEvent('taxcompass:startover', { detail: { source } }));
