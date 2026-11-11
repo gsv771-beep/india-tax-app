@@ -29,6 +29,7 @@ const FROM_LABEL = {
   emi: ['your EMI calculation', '/calculators/emi'],
   home: ['the home-buying tool', '/calculators/home'],
   car: ['the car cost tool', '/calculators/car'],
+  'idle-money': ['the idle-money tool', '/calculators/idle-money'],
   offer: ['the offer comparison', '/calculators/offer'],
   tip: ['a TaxCompass worked example', '/'],
 };

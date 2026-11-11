@@ -33,6 +33,7 @@ const GROUPS = [
   {
     title: 'Money going out to work',
     items: [
+      { href: '/calculators/idle-money', icon: '💤', q: 'Is money lying idle in my savings account?', d: 'What it earns there, and what the same money would be worth after tax in a sweep-in FD, a liquid fund or an arbitrage fund.', line: () => null },
       { href: '/calculators/sip', icon: '📊', q: 'What will my SIP grow into?', d: 'A monthly SIP with step-ups and lump sums, and what it could grow into.', line: () => null },
       { href: '/nps', icon: '🏛️', q: 'Is NPS worth it for me?', d: 'How it works, the corpus and pension at 60, and the one deduction the new regime still allows.', line: () => null },
     ],
