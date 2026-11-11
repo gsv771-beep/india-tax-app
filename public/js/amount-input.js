@@ -62,6 +62,15 @@ export function enhanceMoneyInputs(root) {
   }
 }
 
+/** Keep a range input's filled track in step with its value (style.css draws it from --fill). */
+export function trackFill(range) {
+  const paint = () => { const lo = +range.min || 0, hi = +range.max || 1; range.style.setProperty('--fill', `${Math.max(0, Math.min(100, (100 * (+range.value - lo)) / (hi - lo || 1))).toFixed(1)}%`); };
+  range.addEventListener('input', paint);
+  range.classList.add('drag');
+  paint();
+  return paint;
+}
+
 const nice = (v) => { const p = Math.pow(10, Math.floor(Math.log10(Math.max(1, v)))); return Math.ceil((v * 1.25) / p) * p; };
 
 export function attachSlider(input, { min = 0, max, step, unit } = {}) {
@@ -70,8 +79,11 @@ export function attachSlider(input, { min = 0, max, step, unit } = {}) {
     const v = input.value === '' ? +min : +input.value || 0;
     if (v > +range.max) range.max = nice(v);
     range.value = v;
+    // how far along the track the value is, for the filled part of it (style.css)
+    const lo = +range.min || 0, hi = +range.max || 1;
+    range.style.setProperty('--fill', `${Math.max(0, Math.min(100, (100 * (+range.value - lo)) / (hi - lo || 1))).toFixed(1)}%`);
   };
-  range.addEventListener('input', () => { input.value = range.value; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  range.addEventListener('input', () => { input.value = range.value; input.dispatchEvent(new Event('input', { bubbles: true })); sync(); });
   input.addEventListener('input', sync);
   input.addEventListener('change', sync);
   sync();
