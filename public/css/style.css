@@ -1240,3 +1240,26 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
   .footer-feedback .muted { display: none; }
   .pay-legend { gap: 6px 16px; font-size: .86rem; }
 }
+
+/* Put your idle money to work: one amount, typed or dragged, on the car page's form */
+.idle-form label.idle-amount-row { display: block; margin: 0; font-weight: 400; }
+.idle-amount-k { display: block; color: var(--muted); font-size: 1rem; }
+.idle-amount-box { display: flex; align-items: baseline; gap: 4px; margin-top: 6px; font-size: 1.9rem; font-weight: 800; color: var(--muted); }
+.idle-form input.idle-amount { border: 0; background: transparent; padding: 0; margin: 0; width: 100%; min-height: 0; box-shadow: none; font: inherit; color: var(--text); font-variant-numeric: tabular-nums; }
+.idle-form input.idle-amount:focus { outline: none; }
+.idle-form input.idle-amount::placeholder { color: var(--line-strong); }
+.idle-form .tc-range { margin-top: 14px; background: linear-gradient(to right, var(--text) var(--fill, 0%), var(--line) var(--fill, 0%)); }
+.idle-from { color: var(--muted); font-size: .8rem; }
+.idle-form label.idle-check { margin-top: 12px; }
+.idle-check small { display: block; }
+.idle-hero { margin-bottom: 6px; }
+.idle-hero .quick-v { color: var(--chart-green); }
+.idle-about { display: grid; gap: 14px; }
+.idle-about-item { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px 14px; }
+.idle-about-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+.idle-about-head i { width: 10px; height: 10px; border-radius: 3px; align-self: center; flex: none; }
+.idle-about-head span { color: var(--muted); font-size: .88rem; }
+.idle-about dl { margin: 8px 0 0; display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: .88rem; }
+.idle-about dt { color: var(--muted); }
+.idle-about dd { margin: 0; }
+@media (max-width: 560px) { .idle-about dl { grid-template-columns: 1fr; gap: 0; } .idle-about dt { margin-top: 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; } .idle-amount-box { font-size: 1.6rem; } }

@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "compiled_on": "2026-11-11",
+    "purpose": "What money sitting in a savings account would earn, after tax, in the common places people keep spare cash, for the idle-money tool (js/idle-money.js, engine/idle-money.js).",
+    "caution": "Every rate here is a typical figure on the date above, not an offer: deposit rates differ by bank and change with RBI's rate, and fund returns are past category averages, not promises. The tool shows the rate it used for each and lets the person replace it.",
+    "not_covered": "Senior citizens (higher deposit rates, section 80TTB), small finance bank accounts paying more on savings, corporate deposits, Treasury bills, and surcharge on incomes above ₹50 lakh."
+  },
+  "tax": {
+    "cess_pct": 4,
+    "savings_interest_exempt_old_regime": 10000,
+    "equity_ltcg_pct": 12.5,
+    "equity_stcg_pct": 20,
+    "equity_ltcg_exempt_per_year": 125000,
+    "equity_long_term_after_months": 12,
+    "note": "Bank interest is added to income each year and taxed at the slab; the old regime leaves the first ₹10,000 of savings-account interest out (section 80TTA), the new regime does not. Gains on a liquid fund bought after 1 April 2023 are taxed at the slab, but only when it is sold. An arbitrage fund is taxed as an equity fund: 20% on gains from units sold within 12 months, 12.5% after that, on gains above ₹1.25 lakh a year across all equity. Cess of 4% is on top of each."
+  },
+  "defaults": { "years": 3, "slab_pct": 30 },
+  "options": [
+    {
+      "id": "savings", "label": "Savings account", "rate_pct": 2.5, "compounding_per_year": 4, "tax": "interest",
+      "rate_note": "2.5% at SBI, HDFC Bank and ICICI Bank on ordinary balances (2.5% to 3% across the largest banks).",
+      "access": "Any time.",
+      "safety": "A bank deposit: insured up to ₹5 lakh a bank, all your deposits there together (DICGC)."
+    },
+    {
+      "id": "sweep", "label": "Sweep-in FD", "rate_pct": 6.25, "compounding_per_year": 4, "tax": "interest",
+      "rate_note": "The one-year fixed-deposit rate at the largest banks: 6.25% at SBI, HDFC Bank and ICICI Bank in September 2026, a little higher at some since.",
+      "access": "Any time: money above a level you set moves into fixed deposits, and the bank breaks them in small units when the account runs short. The part taken out early earns the rate for the time it stayed, at some banks less a penalty.",
+      "safety": "A bank deposit: insured up to ₹5 lakh a bank, all your deposits there together (DICGC)."
+    },
+    {
+      "id": "liquid", "label": "Liquid fund", "rate_pct": 6.0, "compounding_per_year": 1, "tax": "slab_at_exit",
+      "rate_note": "The liquid-fund category averaged 6.02% over the year to 7 October 2026. A past average, not a promise.",
+      "access": "The next working day; some funds pay up to ₹50,000 at once. A small exit charge applies in the first 6 days.",
+      "safety": "A mutual fund, not a deposit: nothing is insured or guaranteed. It lends for up to 91 days to the government, banks and companies; a fall in value is rare and small, but has happened."
+    },
+    {
+      "id": "arbitrage", "label": "Arbitrage fund", "rate_pct": 6.3, "compounding_per_year": 1, "tax": "equity",
+      "rate_note": "The arbitrage-fund category averaged 6.28% over the year to 7 October 2026. A past average, not a promise.",
+      "access": "Two working days. Most charge an exit load in the first 15 to 30 days.",
+      "safety": "A mutual fund, not a deposit: nothing is insured or guaranteed. It earns the gap between share prices today and in the futures market; returns move from month to month and a month can come out slightly negative, so it is for money that can stay six months or more."
+    }
+  ],
+  "sources": [
+    "Savings-account rates: 5paisa (April 2026) and Paisabazaar (December 2025) list SBI, HDFC Bank and ICICI Bank at 2.5%; other listings show up to 3%.",
+    "Fixed-deposit rates: Business Today, 15 September 2026 (6.25% for one year at SBI, HDFC Bank and ICICI Bank); HDFC Bank revised its rates from 4 November 2026.",
+    "Fund category averages: arthgyaan.com, one-year category averages as of 7 October 2026 (liquid 6.02%, arbitrage 6.28%).",
+    "Tax: Income-tax Act as amended to the Finance Act 2026 (slab taxation of debt-fund gains on units bought after 1 April 2023; sections 111A and 112A for equity-oriented funds; section 80TTA); fund houses' tax reckoners for FY 2026-27."
+  ]
+}
