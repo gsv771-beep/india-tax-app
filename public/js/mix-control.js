@@ -4,6 +4,7 @@
  * retirement pages. mixControl({ label, value, cap, rates, onChange }) -> { node, update({ value, cap, rates }) }
  */
 import { el } from './util.js';
+import { trackFill } from './amount-input.js';
 import { mixReturn, describeMix } from '../engine/mix.js';
 
 export function mixControl({ label, hint, value, cap = 100, rates, onChange }) {
@@ -27,6 +28,7 @@ export function mixControl({ label, hint, value, cap = 100, rates, onChange }) {
     ].filter(Boolean));
   };
   range.addEventListener('input', () => { state.value = +range.value; paint(); onChange(state.value); });
+  const fill = trackFill(range);
   paint();
-  return { node, update(next) { state = { ...state, ...next }; if (next.value != null) range.value = next.value; paint(); } };
+  return { node, update(next) { state = { ...state, ...next }; if (next.value != null) { range.value = next.value; fill(); } paint(); } };
 }

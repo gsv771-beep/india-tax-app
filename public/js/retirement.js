@@ -4,6 +4,7 @@
  * Engine: engine/retirement.js.
  */
 import { inr, inrShort, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { attachSlider } from './amount-input.js';
 import { retirement, buildPlan, drawPlan } from '../engine/retirement.js';
 import { lineChart } from './charts.js';
 import { getProfile, updateProfile } from './profile-store.js';
@@ -52,17 +53,19 @@ export function renderRetirement({ schemes }) {
   const field = (key, label, attrs = {}, hint) => {
     const input = el('input', { type: 'number', min: attrs.min ?? 0, max: attrs.max, step: attrs.step || 1, value: st[key] === '' ? '' : st[key], placeholder: attrs.placeholder });
     input.addEventListener('input', () => { st[key] = input.value === '' ? '' : +input.value; save(); rerender(); });
-    return el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
+    const node = el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
+    if (attrs.slider) attachSlider(input, attrs.slider);
+    return node;
   };
   const mixBefore = mixControl({ label: 'Until you retire: how much of your savings in equity', hint: 'the rest in EPF, PPF, deposits, debt funds', value: st.equityBeforePct, rates: effRates(), onChange: (v) => { st.equityBeforePct = v; save(); rerender(); } });
   const mixAfter = mixControl({ label: 'After you retire: how much stays in equity', hint: 'a 25-year retirement still needs some growth', value: st.equityAfterPct, rates: effRates(), onChange: (v) => { st.equityAfterPct = v; save(); rerender(); } });
   const eqField = field('equityRate', 'Equity returns (% a year)', { step: 0.1, max: 30, placeholder: String(rates.equity) }, rates.sources.equity);
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
-      el('div', { class: 'two' }, [field('age', 'Your age', { step: 1, max: 80, placeholder: 'e.g. 35' }), field('retireAt', 'Retire at', { step: 1, max: 80 })]),
-      field('monthlyExpenses', 'What you spend a month today (₹)', { step: 5000, placeholder: 'e.g. 80000' }, 'the household, not just you'),
-      field('saved', 'Saved and invested so far (₹)', { step: 100000, placeholder: 'e.g. 2500000' }, 'EPF, PPF, NPS, funds, deposits: everything meant for later'),
-      field('monthlyInvesting', 'Going into savings each month (₹)', { step: 1000, placeholder: 'e.g. 40000' }, 'EPF included; it is savings too'),
+      el('div', { class: 'two' }, [field('age', 'Your age', { step: 1, max: 80, placeholder: 'e.g. 35', slider: { min: 18, max: 75, step: 1, unit: 'none' } }), field('retireAt', 'Retire at', { step: 1, max: 80, slider: { min: 40, max: 80, step: 1, unit: 'none' } })]),
+      field('monthlyExpenses', 'What you spend a month today (₹)', { step: 5000, placeholder: 'e.g. 80000', slider: { max: 500000, step: 5000 } }, 'the household, not just you'),
+      field('saved', 'Saved and invested so far (₹)', { step: 100000, placeholder: 'e.g. 2500000', slider: { max: 50000000, step: 100000 } }, 'EPF, PPF, NPS, funds, deposits: everything meant for later'),
+      field('monthlyInvesting', 'Going into savings each month (₹)', { step: 1000, placeholder: 'e.g. 40000', slider: { max: 500000, step: 1000 } }, 'EPF included; it is savings too'),
     ]),
     // the equity mix and the assumptions have plain defaults: one closed section holds them all
     el('details', { class: 'opts fold' }, [

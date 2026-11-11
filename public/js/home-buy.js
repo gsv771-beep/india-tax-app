@@ -178,6 +178,7 @@ export function renderHomeBuying({ propertyCharges: charges, loanPolicy: policy 
     builderItemsTitle.textContent = builder ? 'Builder charges from the cost sheet' : 'Society charges';
   };
   attachSlider(F.price.input, { max: 50000000, step: 100000 }); attachSlider(F.loan.input, { max: 50000000, step: 100000 });
+  attachSlider(F.downPayment.input, { max: 50000000, step: 100000 }); attachSlider(F.ratePct.input, { min: 6, max: 14, step: 0.05, unit: 'pct' }); attachSlider(F.tenureYears.input, { min: 1, max: 30, step: 1, unit: 'years' });
   const inputs = el('div', { class: 'card inputs' }, [
     el('div', { class: 'opts', style: 'border-top:0;padding-top:0' }, [
       el('div', { class: 'opt-title' }, 'The property'),

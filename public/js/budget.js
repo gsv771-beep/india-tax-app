@@ -14,7 +14,7 @@ import { getProfile, updateProfile } from './profile-store.js';
 import { salaryMonthly } from './budget-sync.js';
 import { quickAnswer } from './quick-engine.js';
 import { fromSalaryStore, ctcOf, ctcHeadline } from '../engine/profile.js';
-import { attachAmountEcho } from './amount-input.js';
+import { attachAmountEcho, attachSlider } from './amount-input.js';
 
 export const CATEGORIES = [
   'Rent / housing', 'Groceries & food', 'Education', 'Medical & health', 'Electricity & utilities',
@@ -384,6 +384,7 @@ export function renderBudget(appData) {
       el('label', { class: 'budget-ctc' }, ['Or work the take-home out from your annual CTC (₹)', el('small', {}, ['the same salary the ', el('a', { href: '/' }, 'Tax & salary'), ' page uses']), ctcInput]),
     ]),
   ]);
+  attachSlider(incomeInput, { max: 500000, step: 1000 });
 
   // right side: the answer, why, what to do next, then the working
   attachAmountEcho(ctcInput);

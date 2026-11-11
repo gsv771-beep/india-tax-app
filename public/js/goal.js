@@ -4,6 +4,7 @@
  * gets a row. Engine: engine/goal.js and engine/mix.js.
  */
 import { inr, inrShort, el, setChildren, disclaimer, debounce, isBlankAfterReset, clearBlankAfterReset, beginPrompt } from './util.js';
+import { attachSlider } from './amount-input.js';
 import { GOAL_TYPES, goalType, goalPlan } from '../engine/goal.js';
 import { equityCap } from '../engine/mix.js';
 import { getProfile, updateProfile } from './profile-store.js';
@@ -47,15 +48,17 @@ export function renderGoal({ schemes }) {
     const input = el('input', { type: 'number', min: attrs.min ?? 0, max: attrs.max, step: attrs.step || 1, value: st[key] === '' ? '' : st[key], placeholder: attrs.placeholder });
     input.addEventListener('input', () => { st[key] = input.value === '' ? '' : +input.value; save(); rerender(); });
     const small = el('small', {}, hint || '');
-    return { node: el('label', {}, [el('span', { class: 'lbl' }, label), small, input]), input, small };
+    const node = el('label', {}, [el('span', { class: 'lbl' }, label), small, input]);
+    if (attrs.slider) attachSlider(input, attrs.slider);
+    return { node, input, small };
   };
   const typeSel = el('select', {}, GOAL_TYPES.map((t) => el('option', { value: t.id, selected: t.id === st.type }, t.label)));
   typeSel.addEventListener('change', () => { st.type = typeSel.value; st.inflationPct = ''; st.atAge = ''; save(); syncType(); paint(); });
   const F = {
-    cost: field('costToday', goalType(st.type).costLabel, { step: 50000, placeholder: 'e.g. 2500000' }, goalType(st.type).costHint),
-    years: field('years', 'In how many years', { step: 1, max: 50, min: 1 }),
-    childAge: field('childAge', "Child's age now", { step: 1, max: 30, placeholder: 'e.g. 4' }, kids.length ? 'from your profile' : ''),
-    atAge: field('atAge', 'Needed when the child is', { step: 1, max: 40, placeholder: String(goalType(st.type).atAge || '') }),
+    cost: field('costToday', goalType(st.type).costLabel, { step: 50000, placeholder: 'e.g. 2500000', slider: { max: 20000000, step: 50000, unit: 'inr' } }, goalType(st.type).costHint),
+    years: field('years', 'In how many years', { step: 1, max: 50, min: 1, slider: { min: 1, max: 30, step: 1, unit: 'years' } }),
+    childAge: field('childAge', "Child's age now", { step: 1, max: 30, placeholder: 'e.g. 4', slider: { min: 0, max: 25, step: 1, unit: 'none' } }, kids.length ? 'from your profile' : ''),
+    atAge: field('atAge', 'Needed when the child is', { step: 1, max: 40, placeholder: String(goalType(st.type).atAge || ''), slider: { min: 1, max: 35, step: 1, unit: 'none' } }),
     inflation: field('inflationPct', 'It gets dearer each year by (%)', { step: 0.5, max: 20, placeholder: String(goalType(st.type).inflationPct) }, goalType(st.type).why),
     equityRate: field('equityRate', 'Equity returns (% a year)', { step: 0.1, max: 30, placeholder: String(rates.equity) }, rates.sources.equity),
     safeRate: field('safeRate', 'Safe money returns (% a year)', { step: 0.1, max: 15, placeholder: String(rates.safe) }, rates.sources.safe),

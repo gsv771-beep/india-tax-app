@@ -4,6 +4,7 @@
  */
 import { moreFold } from './calculators.js';
 import { inr, pct, el, setChildren, disclaimer, beginPrompt } from './util.js';
+import { attachSlider } from './amount-input.js';
 import { calcExportCard } from './calc-export-card.js';
 import { resultLayout } from './result-layout.js';
 
@@ -263,6 +264,7 @@ export function renderCapitalGains(app) {
   const impAmount = mk('impAmount', { step: 1000 }, 'Cost of improvement (₹)', 'renovation or construction after purchase, optional');
   const impFy = mk('impFy', { type: 'text', step: undefined, placeholder: 'e.g. 2018-19' }, 'Financial year of the improvement');
   const sale = mk('sale', { step: 1000 }, 'Sale price (₹)');
+  attachSlider(cost.input, { max: 20000000, step: 10000 }); attachSlider(sale.input, { max: 20000000, step: 10000 });
   const expenses = mk('expenses', { step: 100 }, 'Expenses on sale (₹)', 'brokerage, legal fees, transfer charges');
   const fmv2018 = mk('fmv2018', { step: 1000 }, 'Fair market value on 31 January 2018 (₹)', 'for shares or equity funds bought before 1 February 2018 (grandfathering)');
   const resident = mk('resident', { type: 'checkbox' }, 'I am a resident individual or HUF');

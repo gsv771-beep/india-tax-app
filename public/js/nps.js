@@ -70,10 +70,12 @@ function projector(nps) {
   // Pre-fill contributions and Basic from the shared profile when it has them.
   { const p = getProfile(); if (!isEmptyProfile(p)) { if (p.income.employerNps > 0) st.employerMonthly = Math.round(p.income.employerNps / 12); if (p.tax.nps1bUsed > 0) st.monthly = Math.round(p.tax.nps1bUsed / 12); if (p.income.basic > 0 && st.basicMonthly === '') st.basicMonthly = Math.round(p.income.basic / 12); } }
   const save = () => { try { localStorage.setItem(STORE, JSON.stringify(st)); } catch {} };
-  const f = (key, label, attrs, hint) => {
+  const f = (key, label, { slider, ...attrs }, hint) => {
     const input = el('input', { type: 'number', ...attrs, value: st[key] });
     input.addEventListener('input', () => { st[key] = input.value; save(); render(); });
-    return el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
+    const node = el('label', {}, [label, hint ? el('small', {}, hint) : null, input]);
+    if (slider) attachSlider(input, { min: attrs.min, max: attrs.max, step: attrs.step, unit: 'none' });
+    return node;
   };
   const out = el('div');
   const basicF = f('basicMonthly', 'Monthly Basic + DA (₹)', { min: 0, step: 1000, placeholder: 'optional' }, 'lets you enter the contributions below as a % of it');
@@ -84,7 +86,7 @@ function projector(nps) {
   pctToggle({ input: ownIn, baseInput: basicIn, defaultPct: 10, name: 'nps.own', hint: 'monthly Basic + DA', max: 50 });
   pctToggle({ input: empIn, baseInput: basicIn, defaultPct: 10, name: 'nps.employer', hint: 'monthly Basic + DA', max: 30 });
   const inputs = el('div', { class: 'card inputs' }, [
-    el('div', { class: 'two' }, [f('age', 'Your age', { min: 18, max: 70, step: 1 }), f('retireAge', 'Retire at', { min: 40, max: 75, step: 1 }, 'normal exit is 60')]),
+    el('div', { class: 'two' }, [f('age', 'Your age', { min: 18, max: 70, step: 1, slider: true }), f('retireAge', 'Retire at', { min: 40, max: 75, step: 1, slider: true }, 'normal exit is 60')]),
     basicF, ownF, empF,
     f('stepUpPct', 'Increase contributions every year (%)', { min: 0, max: 30, step: 1 }),
     f('returnPct', 'Expected return (% p.a.)', { min: 0, max: 20, step: 0.5 }, 'NPS equity has returned about 13% and debt about 7% over ten years; a 50:50 mix sits near 10%'),

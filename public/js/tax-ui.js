@@ -2,7 +2,7 @@ import { compareRegimes, DEFAULT_FLAGS } from './tax-engine.js';
 import { inr, pct, el, setPath, debounce, setChildren, animateNumber } from './util.js';
 import { breakEven, headroom, whatIf, breakEvenCurve, taxDrivers, advanceTaxSchedule } from './tax-insights.js';
 import { hasBusiness, businessIncome } from './tax-engine.js';
-import { attachSlider, pctToggle, enhanceMoneyInputs, refreshEchoes } from './amount-input.js';
+import { attachSlider, pctToggle, enhanceMoneyInputs, refreshEchoes, trackFill } from './amount-input.js';
 import { rememberFold } from './result-layout.js';
 import { saveFileCard } from './save-card.js';
 import { lineChart, shortINR } from './charts.js';
@@ -504,6 +504,7 @@ function renderInsights(inputs, cmp, rates, flags) {
     const range = el('input', { type: 'range', min: 0, max: room, step: 500, value: extras[key] });
     const val = el('span', { class: 'slider-val' }, fmt(extras[key]));
     range.addEventListener('input', () => { extras[key] = +range.value; val.textContent = fmt(extras[key]); renderResult(); });
+    trackFill(range);
     return el('div', { class: 'slider-row' }, [
       el('div', { class: 'slider-label' }, [label, el('small', {}, ` room left ${fmt(room)}`), filter ? el('a', { href: '/nps', class: 'slider-link' }, 'how NPS works') : null]),
       el('div', { class: 'slider-ctl' }, [range, val]),

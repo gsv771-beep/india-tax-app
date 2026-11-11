@@ -40,6 +40,7 @@ export function renderDebt() {
       const num = (key, label, attrs = {}) => {
         const input = el('input', { type: 'number', min: 0, step: attrs.step || 1, value: d[key] === '' ? '' : d[key], placeholder: attrs.placeholder });
         input.addEventListener('input', () => { d[key] = input.value === '' ? '' : +input.value; if (key === 'minPayment') d.exactPayment = 0; save(); rerender(); });
+        if (attrs.slider) queueMicrotask(() => attachSlider(input, attrs.slider));   // once the field is inside its label
         return el('label', {}, [label, attrs.hint ? el('small', {}, attrs.hint) : null, input]);
       };
       // each debt is a small card: what it is across the top, where it can be read in full, then its three figures
@@ -51,9 +52,9 @@ export function renderDebt() {
           el('button', { type: 'button', class: 'debt-remove', 'aria-label': `Remove ${KINDS.find(([v]) => v === d.kind)?.[1] || 'this debt'}`, onclick: () => { st.debts.splice(i, 1); if (!st.debts.length) st.debts = [{ name: 'Credit card', balance: '', ratePct: 42, minPayment: '', kind: 'card' }]; save(); buildRows(); paint(); } }, 'Remove'),
         ]),
         el('div', { class: 'debt-row-fields' }, [
-          num('balance', 'Outstanding (₹)', { step: 10000, placeholder: 'e.g. 200000' }),
-          num('ratePct', 'Rate, % a year', { step: 0.5 }),
-          num('minPayment', 'Paid a month (₹)', { step: 1000, placeholder: 'e.g. 10000', hint: 'minimum due or EMI' }),
+          num('balance', 'Outstanding (₹)', { step: 10000, placeholder: 'e.g. 200000', slider: { max: 5000000, step: 10000 } }),
+          num('ratePct', 'Rate, % a year', { step: 0.5, slider: { max: 48, step: 0.5, unit: 'none' } }),
+          num('minPayment', 'Paid a month (₹)', { step: 1000, placeholder: 'e.g. 10000', hint: 'minimum due or EMI', slider: { max: 200000, step: 1000 } }),
         ]),
       ]);
     }));
