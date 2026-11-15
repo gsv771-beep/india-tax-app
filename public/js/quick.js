@@ -125,6 +125,22 @@ export function mountQuick(slot, opts) {
   const modeSwitch = allowWant ? el('div', { class: 'quick-modes', role: 'group', 'aria-label': 'What you know' }, modeBtns) : null;
   for (const b of modeBtns) b.addEventListener('click', () => { mode = b.dataset.mode; keepWant(); paint(); (mode === 'want' ? wantInput : ctcInput).focus(); });
   wantInput.addEventListener('input', () => { want = readRupees(wantInput.value); keepWant(); paint(); });
+  // a drag line under each rupee box: it writes the box and runs the box's own handler, once a frame
+  const dragFor = (input, { max, step, label }) => {
+    const range = el('input', { type: 'range', class: 'tc-range quick-drag', min: 0, max, step, value: 0, tabindex: -1, 'aria-label': label });
+    const sync = () => { const v = Math.min(max, readRupees(input.value)); range.value = v; range.style.setProperty('--fill', `${(100 * v) / max}%`); };
+    let queued = false;
+    range.addEventListener('input', () => {
+      input.value = rupees(+range.value);
+      range.style.setProperty('--fill', `${(100 * range.value) / max}%`);
+      if (queued) return;
+      queued = true;
+      requestAnimationFrame(() => { queued = false; input.dispatchEvent(new Event('input')); });
+    });
+    return { range, sync };
+  };
+  const ctcDrag = dragFor(ctcInput, { max: 5000000, step: 50000, label: 'Annual CTC, drag to set' });
+  const wantDrag = dragFor(wantInput, { max: 500000, step: 5000, label: 'Take-home you want a month, drag to set' });
   // what the CTC holds: most of the difference between a CTC and the salary paid is employer PF and
   // gratuity, so the assumption is shown as a choice under the answer, not buried in the working. They are
   // two choices: many offer letters count employer PF inside the CTC but not gratuity, which plenty of
@@ -449,6 +465,9 @@ export function mountQuick(slot, opts) {
     slot.classList.toggle('wanting', wanting);
     for (const b of modeBtns) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
     ctcLabel.hidden = wanting; wantLabel.hidden = !wanting;
+    ctcDrag.range.hidden = wanting; wantDrag.range.hidden = !wanting;
+    if (document.activeElement !== ctcDrag.range) ctcDrag.sync();
+    if (document.activeElement !== wantDrag.range) wantDrag.sync();
     if (document.activeElement !== wantInput) wantInput.value = rupees(want);
     wantEcho.textContent = want > 0 ? `${inr(want)} a month` : '';
     const hasCtc = wanting ? want >= 10000 : q.ctc >= 100000;
@@ -509,7 +528,9 @@ export function mountQuick(slot, opts) {
 
   // the card the page itself drew (index.html) may already hold a figure being typed, the focus, or a tap
   const pre = slot.querySelector('input.quick-ctc[data-pre]');
-  const preTyped = pre && pre.value !== pre.dataset.pre ? readRupees(pre.value) : null;
+  const preDrag = slot.querySelector('input.quick-drag[data-pre]');
+  // typed into, or dragged, before this script arrived
+  const preTyped = pre && pre.value !== pre.dataset.pre ? readRupees(pre.value) : preDrag && +preDrag.value > 0 && +preDrag.value !== +preDrag.dataset.pre ? +preDrag.value : null;
   const preFocus = !!pre && document.activeElement === pre;
   setChildren(slot, [
     el('div', { class: 'card quick quick-flow' }, [
@@ -518,6 +539,7 @@ export function mountQuick(slot, opts) {
         el('div', { class: 'quick-in-wrap' }, [ctcLabel, wantLabel]),
         startOver,
       ]),
+      ctcDrag.range, wantDrag.range,
       el('p', { class: 'quick-privacy muted small' }, ['As on your offer letter. No sign-up; what you type stays on this device. ', exampleBtn]),
       bonusStep,
       answer,

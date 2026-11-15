@@ -346,7 +346,8 @@ export function renderBudget(appData) {
     if (e.custom) cat.addEventListener('change', () => { e.category = cat.value; refresh(); });
     amt.addEventListener('input', () => { e.amount = amt.value; refresh(); });
     del.addEventListener('click', () => { state.expenses = state.expenses.filter((x) => x !== e); row.remove(); refresh(); });
-    const row = el('div', { class: 'row expense-row' }, [cat, amt, del]);
+    const row = el('div', { class: 'row expense-row' }, [cat, el('div', { class: 'expense-amt' }, amt), del]);
+    attachSlider(amt, { max: 100000, step: 500, unit: 'none' });
     return row;
   }
   function investRow(inv) {
