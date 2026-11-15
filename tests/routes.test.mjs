@@ -46,7 +46,7 @@ ok('parsePath splits tab and sub', JSON.stringify(parsePath('/calculators/sip'))
     if (!m[1]) stack.push(m[2]); else if (stack.pop() !== m[2]) bad.push(`${m[0]} at offset ${m.index}`);
   }
   ok('index.html opens and closes every div, section and details in order', bad.length === 0 && stack.length === 0, bad.slice(0, 2).join('; ') || stack.join(','));
-  for (const id of ['tax', 'calculators', 'nps', 'glossary', 'about']) {
+  for (const id of ['tax', 'calculators', 'nps', 'about']) {
     const open = html.indexOf(`<section id="${id}"`);
     const next = html.indexOf('<section id="', open + 1);
     const chunk = html.slice(open, next < 0 ? html.indexOf('</main>') : next);

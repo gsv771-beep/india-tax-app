@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="tc-build" content="02b6c2075f">
+  <meta name="tc-build" content="b36fed987d">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TaxCompass India: in-hand salary and old vs new tax regime from your CTC</title>
   <meta name="description" content="Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Tick your rent, home loan and 80C to see if the old regime can still win. Free, and nothing you type leaves your browser.">
@@ -90,8 +90,8 @@
         <a href="/calculators/budget" data-tab="budget">Savings<span class="tab-long"> calculator</span></a>
         <a href="/calculators/emi" data-tab="emi">EMI<span class="tab-long"> calculator</span></a>
         <a href="/calculators/sip" data-tab="sip">SIP<span class="tab-long"> calculator</span></a>
-        <a href="/calculators" data-tab="calculators">More tools</a>
-        <a href="/glossary" data-tab="glossary">Glossary</a>
+        <a href="/calculators/capital-gains" data-tab="capital-gains"><span class="tab-long">Capital gains</span><span class="tab-short">Gains</span></a>
+        <a href="/calculators" data-tab="calculators">More<span class="tab-long"> tools</span></a>
         <a href="/about" data-tab="about">About</a>
       </nav>
       <div class="theme-switch" id="theme-switch"></div>
@@ -111,7 +111,7 @@
       </div>
       <!-- The card as it looks before a CTC is typed, so it is on screen with the page itself; quick.js
            draws the working one over it and takes over anything already typed or tapped. -->
-      <div id="tax-quick" class="quick-slot"><div class="card quick quick-flow"><div class="quick-modes" role="group" aria-label="What you know"><button type="button" class="quick-mode" data-mode="ctc" aria-pressed="true">I know my CTC</button><button type="button" class="quick-mode" data-mode="want" aria-pressed="false">I know the in-hand I want</button></div><div class="quick-top"><div class="quick-in-wrap"><label class="quick-in"><span class="quick-in-label">Your annual CTC (₹)</span><span class="quick-in-row"><input type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 15,00,000" class="quick-ctc" data-echo="own" data-pre="" aria-label="Your annual CTC in rupees"><span class="quick-echo" aria-live="polite"></span></span></label></div><button type="button" class="quick-reset">Reset</button></div><p class="quick-privacy muted small">As on your offer letter. No sign-up; what you type stays on this device. <button type="button" class="quick-link-btn quick-example">Or see an example: ₹15 lakh CTC</button></p></div></div>
+      <div id="tax-quick" class="quick-slot"><div class="card quick quick-flow"><div class="quick-modes" role="group" aria-label="What you know"><button type="button" class="quick-mode" data-mode="ctc" aria-pressed="true">I know my CTC</button><button type="button" class="quick-mode" data-mode="want" aria-pressed="false">I know the in-hand I want</button></div><div class="quick-top"><div class="quick-in-wrap"><label class="quick-in"><span class="quick-in-label">Your annual CTC (₹)</span><span class="quick-in-row"><input type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 15,00,000" class="quick-ctc" data-echo="own" data-pre="" aria-label="Your annual CTC in rupees"><span class="quick-echo" aria-live="polite"></span></span></label></div><button type="button" class="quick-reset">Reset</button></div><input type="range" class="tc-range quick-drag" min="0" max="5000000" step="50000" value="0" data-pre="0" tabindex="-1" aria-label="Annual CTC, drag to set"><p class="quick-privacy muted small">As on your offer letter. No sign-up; what you type stays on this device. <button type="button" class="quick-link-btn quick-example">Or see an example: ₹15 lakh CTC</button></p></div></div>
       <script>
         // The landing page shows at once, without waiting for the router; a salary saved on this device
         // is already in the box; a tap on the card before its script arrives is remembered and replayed.
@@ -125,7 +125,7 @@
             var p = JSON.parse(localStorage.getItem('taxcompass.profile.v1') || 'null'), i = p && p.income, n = function (v) { return +v || 0; };
             if (i && p.schemaVersion === 5 && !(p.person && p.person.employment === 'self_employed') && !/[?&](ctc|want)=/.test(location.search)) {
               var ctc = n(i.basic) + n(i.hra) + n(i.conveyance) + n(i.variablePay) + n(i.otherAllowances) + n(i.employerNps) + n(i.employerPf) + n(i.gratuity) + n(i.esop) - (p.tax && p.tax.bonusOnTop ? n(i.variablePay) : 0);
-              if (ctc > 0) { box.value = Math.round(ctc).toLocaleString('en-IN'); box.setAttribute('data-pre', box.value); slot.classList.add('has-input'); }
+              if (ctc > 0) { box.value = Math.round(ctc).toLocaleString('en-IN'); box.setAttribute('data-pre', box.value); slot.classList.add('has-input'); var d = slot.querySelector('.quick-drag'), v = Math.min(5000000, Math.round(ctc)); d.value = v; d.setAttribute('data-pre', d.value); d.style.setProperty('--fill', (v / 50000) + '%'); }
             }
           } catch (e) {}
           slot.addEventListener('click', function (e) {
@@ -368,7 +368,7 @@
       <div class="panel-head">
         <span class="eyebrow" id="calc-eyebrow">Money tools</span>
         <h1 id="calc-title">What do you want to work out?</h1>
-        <p id="calc-intro">Choose a practical question. Your figures carry between tools and stay in this browser.</p>
+        <p id="calc-intro">Three bigger decisions. Your figures stay in this browser.</p>
       </div>
       <a href="/calculators" class="all-tools" id="all-tools">← All tools</a>
       <nav class="subtabs" id="calc-tabs" aria-label="Calculators" hidden>
@@ -376,14 +376,10 @@
         <a href="/calculators/budget" data-calc="budget">Savings calculator</a>
         <a href="/calculators/emi" data-calc="emi">EMI</a>
         <a href="/calculators/sip" data-calc="sip">SIP</a>
-        <a href="/calculators/offer" data-calc="offer">Compare offers</a>
+        <a href="/calculators/capital-gains" data-calc="capital-gains">Capital gains</a>
         <a href="/calculators/home" data-calc="home">Home buying</a>
         <a href="/calculators/car" data-calc="car">Buying a car</a>
-        <a href="/calculators/idle-money" data-calc="idle-money">Idle money</a>
-        <a href="/calculators/debt" data-calc="debt">Debt</a>
-        <a href="/calculators/capital-gains" data-calc="capital-gains">Capital gains</a>
         <a href="/calculators/retirement" data-calc="retirement">Retirement</a>
-        <a href="/calculators/goal" data-calc="goal">Goal planner</a>
       </nav>
       <div id="calc-body"></div>
     </section>
@@ -396,20 +392,6 @@
         <p>How NPS works, what your contributions could grow into, what you get at 60, and how it is taxed in each regime. Information only, not a recommendation.</p>
       </div>
       <div id="nps-body"></div>
-    </section>
-
-    <!-- ============ GLOSSARY ============ -->
-    <section id="glossary" class="panel" hidden>
-      <div class="panel-head">
-        <span class="eyebrow">Learn</span>
-        <h1>Glossary</h1>
-        <p>Plain-language definitions of Indian tax and personal-finance terms.</p>
-      </div>
-      <div class="glossary-controls">
-        <input type="search" id="glossary-search" placeholder="Search terms, e.g. 80C, XIRR, marginal relief">
-        <div id="glossary-cats" class="chips"></div>
-      </div>
-      <div id="glossary-list" class="glossary-list"></div>
     </section>
 
     <!-- ============ ABOUT ============ -->

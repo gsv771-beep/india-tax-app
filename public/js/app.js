@@ -1,5 +1,5 @@
 // Loaded with the page: only what the landing card needs to turn a CTC into an answer. Every other
-// page's code (the tax form, the calculators, the glossary, feedback) is fetched by loadRest() below,
+// page's code (the tax form, the calculators, feedback) is fetched by loadRest() below,
 // once the card is usable, or at once when the address asks for another page.
 import { loadJSON } from './util.js';
 import { PAGES, REMOVED, parsePath, metaFor, CALCS } from './routes.js';
@@ -13,7 +13,6 @@ import { isProduction } from './env.js';
 // Pages that load only when first visited (their code is not needed to show the tax page or the calculators).
 const LAZY = {
   nps: (data) => import('./nps.js').then((m) => m.initNps(data)),
-  glossary: (data) => import('./glossary.js').then((m) => m.initGlossary(data)),
   about: (data) => import('./about.js').then((m) => m.initAbout(data)),
 };
 const started = new Set();
@@ -43,7 +42,7 @@ function primeCalcHeading(tab, sub) {
 function showTab(tab, sub) {
   for (const t of Object.keys(PAGES)) document.getElementById(t).hidden = t !== tab;
   // the menu leads with the everyday tools; the salary pages sit with Tax & salary, NPS with the rest
-  const FRONT = ['budget', 'emi', 'sip'];
+  const FRONT = ['budget', 'emi', 'sip', 'capital-gains'];
   const navTab = tab === 'calculators' && FRONT.includes(sub) ? sub : tab === 'salary' ? 'tax' : tab === 'nps' ? 'calculators' : tab;
   document.querySelectorAll('.tabs a').forEach((a) => a.classList.toggle('active', a.dataset.tab === navTab));
   if (tab !== currentTab) {
@@ -74,7 +73,7 @@ export function navigate(path, replace = false) {
 
 function route() {
   // Old links used hashes (#schemes?f=80c); turn them into paths once.
-  const m = location.hash.match(/^#(tax|calculators|schemes|nps|glossary|about)(\?.*)?$/);
+  const m = location.hash.match(/^#(tax|calculators|schemes|nps|about)(\?.*)?$/);
   if (m) history.replaceState({}, '', `/${m[1] === 'schemes' ? 'nps' : m[1]}${m[2] || ''}`);
   const gone = REMOVED[location.pathname.replace(/\/+$/, '')];
   if (gone) { const [p, h] = gone.split('#'); history.replaceState({}, '', p + location.search + (h ? `#${h}` : location.hash)); }

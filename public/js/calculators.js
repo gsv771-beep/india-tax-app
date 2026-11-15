@@ -171,7 +171,7 @@ export function showCalc(name) {
   if (key === 'index') {
     eyebrow.textContent = 'Money tools';
     title.textContent = 'What do you want to work out?';
-    intro.textContent = 'Choose a practical question. Your figures carry between tools and stay in this browser.';
+    intro.textContent = 'Three bigger decisions. Your figures stay in this browser.';
   } else {
     eyebrow.textContent = 'Calculator';
     title.textContent = CALCS[key].title;

@@ -10,9 +10,8 @@ export const ORIGIN = 'https://taxcompass.org';
 export const PAGES = {
   // the landing page: the salary question, then the payslip and the full tax calculation (it was /tax)
   tax: { title: 'TaxCompass India: in-hand salary and old vs new tax regime from your CTC', desc: 'Type your CTC and see your monthly in-hand salary and whether the old or new tax regime saves you more, for FY 2026-27. Add your rent, home loan, 80C and NPS to see if the old regime can still win. Free, and nothing you type leaves your browser.' },
-  calculators: { title: 'Money tools: tax, salary, loans, investing and goals', desc: 'Practical calculators for salary, expenses, EMI, SIP, home buying, capital gains, debt, retirement and goals, connected by one private profile in your browser.' },
+  calculators: { title: 'More tools: buying a home, choosing a car, retirement', desc: 'Three bigger decisions worked through: what a home really costs with duty, charges and the loan; which car is cheaper to own; and whether your savings will last through retirement.' },
   nps: { title: 'NPS explained, with a corpus and pension projector', desc: 'How the National Pension System works, what your contributions could grow into, the lump sum and pension at 60, and its tax treatment in the old and new regimes.' },
-  glossary: { title: 'Glossary of Indian tax and finance terms', desc: 'Plain-language definitions of about 150 Indian tax, mutual fund, loan and retirement terms.' },
   salary: { title: 'In-hand salary by CTC, ₹3 lakh to ₹2 crore (FY 2026-27)', desc: 'What every common CTC pays in hand each month, the income tax in the old and new regimes, and the deductions at which the old regime wins. Pick your salary for the full breakup.' },
   about: { title: 'About, sources and methodology', desc: 'How TaxCompass India computes its numbers, where the data comes from, how fresh it is, and what stays private.' },
 };
@@ -58,7 +57,7 @@ export function ctcWords(ctc) {
 export const ALIASES = { schemes: 'nps', decide: 'calculators', decisions: 'calculators' };
 /** Removed pages and where they went; public/_redirects carries the same map for the edge. */
 /** '/calculators/salary' became the payslip fold of Tax & salary, and /tax became the landing page: the edge sends both to /, keeping ?ctc=. */
-export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/', '/calculators/insurance': '/calculators', '/calculators/compare': '/calculators', '/calculators/salary': '/#payslip', '/tax': '/' };
+export const REMOVED = { '/calculators/lumpsum': '/calculators/sip', '/calculators/advance-tax': '/', '/calculators/insurance': '/calculators', '/calculators/compare': '/calculators', '/calculators/salary': '/#payslip', '/tax': '/', '/glossary': '/about' };
 
 export function parsePath(pathname) {
   const parts = String(pathname || '/').replace(/\/+$/, '').split('/').filter(Boolean);

@@ -165,6 +165,7 @@ html.non-production .site-header { top: var(--staging-h); }
 /* the tagline gave way to the menu: seven sections need the header's width */
 .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
 .tabs::-webkit-scrollbar { display: none; }
+.tabs .tab-short { display: none; }
 .tabs a { white-space: nowrap; padding: 8px 12px; border-radius: 999px; text-decoration: none; color: rgba(255, 255, 255, .82); font-weight: 500; font-size: .92rem; transition: background .15s, color .15s; }
 .tabs a:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 .tabs a.active { background: #fff; color: var(--accent); font-weight: 600; box-shadow: 0 2px 8px rgba(0, 0, 0, .12); }
@@ -177,9 +178,10 @@ html.non-production .site-header { top: var(--staging-h); }
   .brand-mark { width: 28px; height: 28px; font-size: .95rem; }
   .tabs { margin: 0 -22px; padding: 2px 22px 4px; }
   .tabs { gap: 2px; }
-  .tabs a { padding: 7px 9px; font-size: .88rem; }
+  .tabs a { padding: 7px 7px; font-size: .88rem; }
   /* 'Savings', 'EMI', 'SIP': the whole menu, More tools included, fits a phone without a sideways scroll */
   .tabs .tab-long { display: none; }
+  .tabs .tab-short { display: inline; }
   .panel { padding-top: 22px; }
   h1 { font-size: 1.5rem; }
   .stat .v { font-size: 1.2rem; }
@@ -1263,3 +1265,10 @@ body:has(#tax:not([hidden])) .profile-panel:not(.open) { display: none; }
 .idle-about dt { color: var(--muted); }
 .idle-about dd { margin: 0; }
 @media (max-width: 560px) { .idle-about dl { grid-template-columns: 1fr; gap: 0; } .idle-about dt { margin-top: 6px; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; } .idle-amount-box { font-size: 1.6rem; } }
+
+/* the landing card's drag line, under the CTC (or take-home) box */
+.quick .quick-drag { display: block; margin: 16px 0 4px; background: linear-gradient(to right, var(--accent-2) var(--fill, 0%), var(--line-strong) var(--fill, 0%)); }
+.quick .quick-drag[hidden] { display: none; }
+.expense-amt { min-width: 0; }
+.expense-amt input[type=number] { width: 100%; }
+.expense-amt input[type=range].drag { margin: 8px 0 2px; }
